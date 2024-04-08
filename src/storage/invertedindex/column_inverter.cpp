@@ -52,6 +52,19 @@ ColumnInverter::~ColumnInverter() = default;
 
 bool ColumnInverter::CompareTermRef::operator()(const u32 lhs, const u32 rhs) const { return std::strcmp(GetTerm(lhs), GetTerm(rhs)) < 0; }
 
+void ColumnInverter::InvertColumn(Vector<SharedPtr<ColumnVector>> &column_vectors, Vector<u32> &row_counts, u32 begin_doc_id) {
+    begin_doc_id_ = begin_doc_id;
+    for (SizeT i = 0; i < column_vectors.size(); ++i) {
+        SharedPtr<ColumnVector> column_vector = column_vectors[i];
+        u32 row_count = row_counts[i];
+        u32 start_offset = i * row_count;
+        for (SizeT j = 0; j < row_count; ++j) {
+            String data = column_vector->ToString(j);
+            InvertColumn(begin_doc_id + start_offset + j, data);
+        }
+    }
+}
+
 void ColumnInverter::InvertColumn(SharedPtr<ColumnVector> column_vector, u32 row_offset, u32 row_count, u32 begin_doc_id) {
     begin_doc_id_ = begin_doc_id;
     doc_count_ = row_count;

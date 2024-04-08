@@ -33,4 +33,16 @@ public:
     u32 row_count_;
     u32 start_doc_id_;
 };
+
+export struct OfflineInvertTask {
+public:
+    OfflineInvertTask(u64 task_seq, Vector<SharedPtr<ColumnVector>> &column_vectors, Vector<u32> &row_counts, u32 start_doc_id)
+        : task_seq_(task_seq), column_vectors_(column_vectors), row_counts_(row_counts), start_doc_id_(start_doc_id) {}
+
+    u64 task_seq_;
+    Vector<SharedPtr<ColumnVector>> column_vectors_;
+    Vector<u32> row_counts_;
+    u32 start_doc_id_;
+};
+
 } // namespace infinity

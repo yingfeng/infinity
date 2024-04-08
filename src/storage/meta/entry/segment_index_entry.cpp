@@ -257,12 +257,25 @@ void SegmentIndexEntry::PopulateEntirely(const SegmentEntry *segment_entry, Txn 
             auto column_length_file_handler =
                 MakeShared<FullTextColumnLengthFileHandler>(MakeUnique<LocalFileSystem>(), column_length_file_path, this);
             auto block_entry_iter = BlockEntryIter(segment_entry);
+            Vector<SharedPtr<ColumnVector>> column_vectors;
+            Vector<u32> row_counts;
             for (const auto *block_entry = block_entry_iter.Next(); block_entry != nullptr; block_entry = block_entry_iter.Next()) {
                 BlockColumnEntry *block_column_entry = block_entry->GetColumnBlockEntry(column_id);
                 SharedPtr<ColumnVector> column_vector = MakeShared<ColumnVector>(block_column_entry->GetColumnVector(buffer_mgr));
-                memory_indexer_->Insert(column_vector, 0, block_entry->row_count(), column_length_file_handler, true);
+                column_vectors.push_back(column_vector);
+                row_counts.push_back(block_entry->row_count());
+                if (column_vectors.size() >= 10) {
+                    memory_indexer_->Insert(column_vectors, row_counts, column_length_file_handler);
+                    memory_indexer_->Commit(true);
+                    column_vectors.clear();
+                    row_counts.clear();
+                }
+            }
+            if (column_vectors.size() > 0) {
+                memory_indexer_->Insert(column_vectors, row_counts, column_length_file_handler);
                 memory_indexer_->Commit(true);
             }
+
             column_length_file_handler.reset();
             memory_indexer_->Dump(true);
             {

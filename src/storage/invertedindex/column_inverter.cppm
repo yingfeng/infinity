@@ -38,6 +38,8 @@ public:
     ColumnInverter &operator=(const ColumnInverter &&) = delete;
     ~ColumnInverter();
 
+    void InvertColumn(Vector<SharedPtr<ColumnVector>> &column_vectors, Vector<u32> &row_counts, u32 begin_doc_id);
+
     void InvertColumn(SharedPtr<ColumnVector> column_vector, u32 row_offset, u32 row_count, u32 begin_doc_id);
 
     void InvertColumn(u32 doc_id, const String &val);

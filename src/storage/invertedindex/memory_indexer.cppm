@@ -62,6 +62,10 @@ public:
 
     ~MemoryIndexer();
 
+    void Insert(Vector<SharedPtr<ColumnVector>> &column_vectors,
+                Vector<u32> &row_counts,
+                SharedPtr<FullTextColumnLengthFileHandler> fulltext_length_handler);
+
     // Insert is non-blocking. Caller must ensure there's no RowID gap between each call.
     void Insert(SharedPtr<ColumnVector> column_vector,
                 u32 row_offset,
