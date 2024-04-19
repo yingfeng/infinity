@@ -16,6 +16,7 @@ module;
 
 #include <boost/bind.hpp>
 #include <thread>
+#include <valgrind/callgrind.h>
 
 module pg_server;
 
@@ -57,7 +58,7 @@ void PGServer::Run() {
 }
 
 void PGServer::Shutdown() {
-
+    CALLGRIND_DUMP_STATS;
     initialized_ = false;
 
     while (running_connection_count_ > 0) {

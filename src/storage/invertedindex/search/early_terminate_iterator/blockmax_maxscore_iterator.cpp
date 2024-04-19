@@ -22,6 +22,7 @@ import stl;
 import index_defines;
 import early_terminate_iterator;
 import internal_types;
+import naive_profiler;
 
 namespace infinity {
 
@@ -46,6 +47,7 @@ BlockMaxMaxscoreIterator::BlockMaxMaxscoreIterator(Vector<UniquePtr<EarlyTermina
 
 // inherited from EarlyTerminateIterator
 bool BlockMaxMaxscoreIterator::BlockSkipTo(RowID doc_id, float threshold) {
+
     if (threshold > BM25ScoreUpperBound()) [[unlikely]] {
         return false;
     }

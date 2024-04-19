@@ -2,7 +2,10 @@ module;
 
 #include "common/utility/builtin.h"
 #include <cassert>
+#include <chrono>
+#include <iostream>
 #include <vector>
+
 import stl;
 import memory_pool;
 import byte_slice_reader;
@@ -50,11 +53,17 @@ bool PostingIterator::Init(SharedPtr<Vector<SegmentPosting>> seg_postings, const
 bool PostingIterator::SkipTo(RowID doc_id) {
     if (doc_id > last_doc_id_in_current_block_ or last_doc_id_in_current_block_ == INVALID_ROWID) {
         finish_decode_docid_ = false;
-        return posting_decoder_->SkipTo(doc_id,
-                                        last_doc_id_in_prev_block_,
-                                        lowest_possible_doc_id_in_current_block_,
-                                        last_doc_id_in_current_block_,
-                                        current_ttf_);
+        // auto begin_ts = std::chrono::high_resolution_clock::now();
+        bool ret = posting_decoder_->SkipTo(doc_id,
+                                            last_doc_id_in_prev_block_,
+                                            lowest_possible_doc_id_in_current_block_,
+                                            last_doc_id_in_current_block_,
+                                            current_ttf_);
+        // auto end_ts = std::chrono::high_resolution_clock::now();
+        // using TimeDurationType = std::chrono::duration<float, std::milli>;
+        // TimeDurationType duration = end_ts - begin_ts;
+        //  std::cout << "SkipTo duration: " << duration << std::endl;
+        return ret;
     }
     return true;
 }

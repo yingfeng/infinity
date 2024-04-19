@@ -19,6 +19,7 @@ module;
 #include <iostream>
 #include <memory>
 #include <string>
+#include <valgrind/callgrind.h>
 
 module physical_match;
 
@@ -325,6 +326,50 @@ void AnalyzeFunc(const String &analyzer_name, String &&text, TermList &output_te
     analyzer->Analyze(input_term, output_terms);
 }
 
+void DoSearch(std::unique_ptr<EarlyTerminateIterator> et_iter, FullTextScoreResultHeap &result_heap, u32 &loop_cnt) {
+    auto blockmax_begin_ts = std::chrono::high_resolution_clock::now();
+    if (et_iter) {
+        while (true) {
+            ++loop_cnt;
+            auto [id, et_score] = et_iter->BlockNextWithThreshold(result_heap.GetScoreThreshold());
+            if (id == INVALID_ROWID) [[unlikely]] {
+                break;
+            }
+            if (result_heap.AddResult(et_score, id)) {
+                // update threshold
+                et_iter->UpdateScoreThreshold(result_heap.GetScoreThreshold());
+            }
+        }
+    }
+    result_heap.Sort();
+    auto blockmax_end_ts = std::chrono::high_resolution_clock::now();
+    using TimeDurationType = std::chrono::duration<float, std::milli>;
+    TimeDurationType duration = blockmax_end_ts - blockmax_begin_ts;
+    std::cout << "blockmax_duration: " << duration << std::endl;
+}
+
+void DoSearch2(std::unique_ptr<EarlyTerminateIterator> et_iter, FullTextScoreResultHeap &result_heap, u32 &loop_cnt) {
+    auto blockmax_begin_ts = std::chrono::high_resolution_clock::now();
+    if (et_iter) {
+        while (true) {
+            ++loop_cnt;
+            auto [id, et_score] = et_iter->BlockNextWithThreshold(result_heap.GetScoreThreshold());
+            if (id == INVALID_ROWID) [[unlikely]] {
+                break;
+            }
+            if (result_heap.AddResult(et_score, id)) {
+                // update threshold
+                et_iter->UpdateScoreThreshold(result_heap.GetScoreThreshold());
+            }
+        }
+    }
+    result_heap.Sort();
+    auto blockmax_end_ts = std::chrono::high_resolution_clock::now();
+    using TimeDurationType = std::chrono::duration<float, std::milli>;
+    TimeDurationType duration = blockmax_end_ts - blockmax_begin_ts;
+    std::cout << "blockmax_duration2: " << duration << std::endl;
+}
+
 bool PhysicalMatch::ExecuteInnerHomebrewed(QueryContext *query_context, OperatorState *operator_state) {
     using TimeDurationType = std::chrono::duration<float, std::milli>;
     auto execute_start_time = std::chrono::high_resolution_clock::now();
@@ -432,6 +477,8 @@ bool PhysicalMatch::ExecuteInnerHomebrewed(QueryContext *query_context, Operator
 #ifdef INFINITY_DEBUG
         auto blockmax_begin_ts = std::chrono::high_resolution_clock::now();
 #endif
+        DoSearch(std::move(et_iter), result_heap, blockmax_loop_cnt);
+#if 0        
         if (et_iter) {
             while (true) {
                 ++blockmax_loop_cnt;
@@ -446,6 +493,7 @@ bool PhysicalMatch::ExecuteInnerHomebrewed(QueryContext *query_context, Operator
             }
         }
         result_heap.Sort();
+#endif
         blockmax_result_count = result_heap.GetResultSize();
 #ifdef INFINITY_DEBUG
         auto blockmax_end_ts = std::chrono::high_resolution_clock::now();
@@ -484,6 +532,8 @@ bool PhysicalMatch::ExecuteInnerHomebrewed(QueryContext *query_context, Operator
 #ifdef INFINITY_DEBUG
         auto blockmax_begin_ts = std::chrono::high_resolution_clock::now();
 #endif
+        DoSearch2(std::move(et_iter_2), result_heap, blockmax_loop_cnt_2);
+#if 0        
         if (et_iter_2) {
             while (true) {
                 ++blockmax_loop_cnt_2;
@@ -498,6 +548,7 @@ bool PhysicalMatch::ExecuteInnerHomebrewed(QueryContext *query_context, Operator
             }
         }
         result_heap.Sort();
+#endif
         blockmax_result_count_2 = result_heap.GetResultSize();
 #ifdef INFINITY_DEBUG
         auto blockmax_end_ts = std::chrono::high_resolution_clock::now();
@@ -664,6 +715,8 @@ PhysicalMatch::~PhysicalMatch() = default;
 void PhysicalMatch::Init() {}
 
 bool PhysicalMatch::Execute(QueryContext *query_context, OperatorState *operator_state) {
+    CALLGRIND_START_INSTRUMENTATION;
+    CALLGRIND_TOGGLE_COLLECT;
     auto start_time = std::chrono::high_resolution_clock::now();
     if (have_filter_) {
         filter_result_ = SolveSecondaryIndexFilter(fast_rough_filter_evaluator_.get(),
@@ -684,6 +737,8 @@ bool PhysicalMatch::Execute(QueryContext *query_context, OperatorState *operator
     auto end_time = std::chrono::high_resolution_clock::now();
     std::chrono::duration<float, std::milli> duration = end_time - start_time;
     LOG_INFO(fmt::format("PhysicalMatch Execute time: {} ms", duration.count()));
+    CALLGRIND_TOGGLE_COLLECT;
+    CALLGRIND_STOP_INSTRUMENTATION;
     return return_value;
 }
 

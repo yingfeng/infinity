@@ -28,7 +28,7 @@ import segment_posting;
 import posting_iterator;
 import column_length_io;
 import infinity_exception;
-
+import naive_profiler;
 namespace infinity {
 BlockMaxTermDocIterator::BlockMaxTermDocIterator(optionflag_t flag, MemoryPool *session_pool) : iter_(flag, session_pool) {}
 
@@ -86,6 +86,7 @@ float BlockMaxTermDocIterator::BlockMaxBM25Score() {
 // weight included
 float BlockMaxTermDocIterator::BM25Score() {
     // bm25_common_score_ * tf / (tf + k1 * (1.0F - b + b * column_len / avg_column_len));
+
     auto tf = iter_.GetCurrentTF();
     auto doc_len = column_length_reader_->GetColumnLength(doc_id_);
     return bm25_common_score_ * tf / (tf + k1 * (1.0F - b + b * doc_len / avg_column_len_));
@@ -110,6 +111,7 @@ Tuple<bool, float, RowID> BlockMaxTermDocIterator::SeekInBlockRange(RowID doc_id
         }
         ++doc_id;
     }
+
     return {false, 0.0F, INVALID_ROWID};
 }
 

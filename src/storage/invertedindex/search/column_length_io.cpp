@@ -30,6 +30,7 @@ import file_system;
 import local_file_system;
 import chunk_index_entry;
 import memory_indexer;
+import naive_profiler;
 
 namespace infinity {
 
@@ -69,6 +70,8 @@ u32 FullTextColumnLengthReader::SeekFile(RowID row_id) {
         column_lengths_ = MakeUniqueForOverwrite<u32[]>(column_lengths_capacity_);
     }
     column_lengths_size_ = new_size;
+    NaiveProfiler profiler("FullTextColumnLengthReader::SeekFile");
+    profiler.Foo();
     i64 read_count = file_system_->Read(*file_handler, column_lengths_.get(), file_size);
     file_handler->Close();
     if (read_count != i64(file_size)) {
