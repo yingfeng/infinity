@@ -207,6 +207,7 @@ private:
     LoadIndexEntry(TableIndexEntry *table_index_entry, u32 segment_id, BufferManager *buffer_manager, CreateIndexParam *create_index_param);
 
 private:
+    BufferManager *buffer_manager_{};
     TableIndexEntry *table_index_entry_;
     const SegmentID segment_id_{};
 

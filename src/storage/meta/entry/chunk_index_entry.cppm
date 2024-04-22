@@ -54,7 +54,7 @@ public:
     NewChunkIndexEntry(SegmentIndexEntry *segment_index_entry, CreateIndexParam *param, RowID base_rowid, BufferManager *buffer_mgr);
 
     static SharedPtr<ChunkIndexEntry>
-    NewFtChunkIndexEntry(SegmentIndexEntry *segment_index_entry, const String &base_name, RowID base_rowid, u32 row_count);
+    NewFtChunkIndexEntry(SegmentIndexEntry *segment_index_entry, const String &base_name, RowID base_rowid, u32 row_count, BufferManager *buffer_mgr);
 
     static SharedPtr<ChunkIndexEntry> NewReplayChunkIndexEntry(SegmentIndexEntry *segment_index_entry,
                                                                CreateIndexParam *param,
@@ -79,6 +79,8 @@ public:
     virtual void PickCleanup(CleanupScanner *scanner) override {}
 
     void SaveIndexFile();
+
+    BufferObj *GetBufferObj() { return buffer_obj_; }
 
 public:
     SegmentIndexEntry *segment_index_entry_;

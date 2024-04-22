@@ -84,6 +84,7 @@ SegmentIndexEntry::NewIndexEntry(TableIndexEntry *table_index_entry, SegmentID s
     segment_index_entry->min_ts_ = begin_ts;
     segment_index_entry->max_ts_ = begin_ts;
     segment_index_entry->begin_ts_ = begin_ts;
+    segment_index_entry->buffer_manager_ = buffer_mgr;
 
     return segment_index_entry;
 }
@@ -97,7 +98,6 @@ SharedPtr<SegmentIndexEntry> SegmentIndexEntry::NewReplaySegmentIndexEntry(Table
                                                                            TransactionID txn_id,
                                                                            TxnTimeStamp begin_ts,
                                                                            TxnTimeStamp commit_ts) {
-
     auto [segment_row_count, status] = table_entry->GetSegmentRowCountBySegmentID(segment_id);
     if (!status.ok()) {
         UnrecoverableError(status.message());
@@ -117,6 +117,7 @@ SharedPtr<SegmentIndexEntry> SegmentIndexEntry::NewReplaySegmentIndexEntry(Table
     segment_index_entry->min_ts_ = min_ts;
     segment_index_entry->max_ts_ = max_ts;
     segment_index_entry->commit_ts_.store(commit_ts);
+    segment_index_entry->buffer_manager_ = buffer_manager;
     return segment_index_entry;
 }
 
@@ -681,7 +682,7 @@ void SegmentIndexEntry::AddChunkIndexEntry(SharedPtr<ChunkIndexEntry> chunk_inde
 SharedPtr<ChunkIndexEntry> SegmentIndexEntry::AddFtChunkIndexEntry(const String &base_name, RowID base_rowid, u32 row_count) {
     std::shared_lock lock(rw_locker_);
     assert(chunk_index_entries_.empty() || base_rowid == chunk_index_entries_.back()->base_rowid_ + chunk_index_entries_.back()->row_count_);
-    SharedPtr<ChunkIndexEntry> chunk_index_entry = ChunkIndexEntry::NewFtChunkIndexEntry(this, base_name, base_rowid, row_count);
+    SharedPtr<ChunkIndexEntry> chunk_index_entry = ChunkIndexEntry::NewFtChunkIndexEntry(this, base_name, base_rowid, row_count, buffer_manager_);
     chunk_index_entries_.push_back(chunk_index_entry);
     return chunk_index_entry;
 }
