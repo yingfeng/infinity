@@ -61,11 +61,15 @@ namespace infinity {
 
 SegmentIndexEntry::SegmentIndexEntry(TableIndexEntry *table_index_entry, SegmentID segment_id, Vector<BufferObj *> vector_buffer)
     : BaseEntry(EntryType::kSegmentIndex, false), table_index_entry_(table_index_entry), segment_id_(segment_id),
-      vector_buffer_(std::move(vector_buffer)){};
+      vector_buffer_(std::move(vector_buffer)) {
+    if (table_index_entry != nullptr)
+        index_dir_ = table_index_entry->index_dir();
+};
 
 SharedPtr<SegmentIndexEntry> SegmentIndexEntry::CreateFakeEntry() {
     SharedPtr<SegmentIndexEntry> fake_entry;
     fake_entry.reset(new SegmentIndexEntry(static_cast<TableIndexEntry *>(nullptr), SegmentID(0), Vector<BufferObj *>()));
+    fake_entry->index_dir_ = MakeShared<String>("/var/infinity/tmp/fake_ft_index");
     return fake_entry;
 }
 

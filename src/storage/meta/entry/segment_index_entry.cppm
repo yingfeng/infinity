@@ -64,7 +64,7 @@ public:
                                                                    TxnTimeStamp begin_ts,
                                                                    TxnTimeStamp commit_ts);
 
-    static Vector<UniquePtr<IndexFileWorker>> CreateFileWorkers(const SharedPtr<String> &index_dir, CreateIndexParam *param, SegmentID segment_id);
+    static Vector<UniquePtr<IndexFileWorker>> CreateFileWorkers(SharedPtr<String> index_dir, CreateIndexParam *param, SegmentID segment_id);
 
     static String IndexFileName(SegmentID segment_id);
 
@@ -97,7 +97,7 @@ public:
     inline SegmentID segment_id() const { return segment_id_; }
     inline TxnTimeStamp min_ts() const { return min_ts_; }
     inline TxnTimeStamp max_ts() const { return max_ts_; }
-    const SharedPtr<String> &index_dir() const;
+    SharedPtr<String> index_dir() const { return index_dir_; }
 
     // MemIndexInsert is non-blocking. Caller must ensure there's no RowID gap between each call.
     void MemIndexInsert(SharedPtr<BlockEntry> block_entry, u32 row_offset, u32 row_count, TxnTimeStamp commit_ts, BufferManager *buffer_manager);
@@ -209,6 +209,7 @@ private:
 private:
     BufferManager *buffer_manager_{};
     TableIndexEntry *table_index_entry_;
+    SharedPtr<String> index_dir_{};
     const SegmentID segment_id_{};
 
     Vector<BufferObj *> vector_buffer_{}; // size: 1 + GetIndexPartNum().

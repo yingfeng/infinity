@@ -84,6 +84,7 @@ SharedPtr<ChunkIndexEntry> ChunkIndexEntry::NewFtChunkIndexEntry(SegmentIndexEnt
                                                                  BufferManager *buffer_mgr) {
     auto chunk_index_entry = SharedPtr<ChunkIndexEntry>(new ChunkIndexEntry(segment_index_entry, base_name, base_rowid, row_count));
     const auto &index_dir = segment_index_entry->index_dir();
+    assert(index_dir.get() != nullptr);
     auto column_length_file_name = MakeShared<String>(base_name + LENGTH_SUFFIX);
     auto file_worker = MakeUnique<RawFileWorker>(index_dir, column_length_file_name);
     chunk_index_entry->buffer_obj_ = buffer_mgr->Get(std::move(file_worker));
