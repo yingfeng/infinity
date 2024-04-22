@@ -125,8 +125,7 @@ SharedPtr<SegmentIndexEntry> SegmentIndexEntry::NewReplaySegmentIndexEntry(Table
     return segment_index_entry;
 }
 
-Vector<UniquePtr<IndexFileWorker>>
-SegmentIndexEntry::CreateFileWorkers(const SharedPtr<String> &index_dir, CreateIndexParam *param, SegmentID segment_id) {
+Vector<UniquePtr<IndexFileWorker>> SegmentIndexEntry::CreateFileWorkers(SharedPtr<String> index_dir, CreateIndexParam *param, SegmentID segment_id) {
     Vector<UniquePtr<IndexFileWorker>> vector_file_worker;
     // reference file_worker will be invalidated when vector_file_worker is resized
     const auto index_base = param->index_base_;
@@ -204,8 +203,6 @@ SegmentIndexEntry::LoadIndexEntry(TableIndexEntry *table_index_entry, u32 segmen
 BufferHandle SegmentIndexEntry::GetIndex() { return vector_buffer_[0]->Load(); }
 
 BufferHandle SegmentIndexEntry::GetIndexPartAt(u32 idx) { return vector_buffer_[idx + 1]->Load(); }
-
-const SharedPtr<String> &SegmentIndexEntry::index_dir() const { return table_index_entry_->index_dir(); }
 
 void SegmentIndexEntry::MemIndexInsert(SharedPtr<BlockEntry> block_entry,
                                        u32 row_offset,
