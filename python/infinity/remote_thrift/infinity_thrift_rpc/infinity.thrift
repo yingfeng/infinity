@@ -169,12 +169,12 @@ struct SearchExpr {
 
 struct ConstantExpr {
 1: LiteralType literal_type,
-2: bool bool_value,
-3: i64 i64_value,
-4: double f64_value,
-5: string str_value,
-6: list<i64> i64_array_value,
-7: list<double> f64_array_value,
+2: optional bool bool_value,
+3: optional i64 i64_value,
+4: optional double f64_value,
+5: optional string str_value,
+6: optional list<i64> i64_array_value,
+7: optional list<double> f64_array_value,
 }
 
 struct FunctionExpr {
@@ -518,6 +518,79 @@ struct ShowTablesRequest{
 2: string db_name,
 }
 
+struct ShowSegmentsRequest {
+1: i64 session_id,
+2: string db_name,
+3: string table_name,
+}
+
+struct ShowSegmentRequest {
+1: i64 session_id,
+2: string db_name,
+3: string table_name,
+4: i64 segment_id,
+}
+
+struct ShowSegmentResponse {
+1: i64 error_code,
+2: string error_msg,
+3: i64 segment_id,
+4: string status,
+5: string path,
+6: string size,
+7: i64 block_count,
+8: i64 row_capacity,
+9: i64 row_count,
+10: i64 room,
+11: i64 column_count,
+}
+
+struct ShowBlocksRequest {
+1: i64 session_id,
+2: string db_name,
+3: string table_name,
+4: i64 segment_id,
+}
+
+struct ShowBlockRequest {
+1: i64 session_id,
+2: string db_name,
+3: string table_name,
+4: i64 segment_id,
+5: i64 block_id,
+}
+
+struct ShowBlockResponse {
+1: i64 error_code,
+2: string error_msg,
+3: i64 block_id,
+4: string path,
+5: string size,
+6: i64 row_capacity,
+7: i64 row_count,
+8: i64 column_count,
+}
+
+struct ShowBlockColumnRequest {
+1: i64 session_id,
+2: string db_name,
+3: string table_name,
+4: i64 segment_id,
+5: i64 block_id,
+6: i64 column_id,
+}
+
+struct ShowBlockColumnResponse {
+1: i64 error_code,
+2: string error_msg,
+3: string column_name,
+4: i64 column_id,
+5: string data_type,
+6: string path,
+7: i64 extra_file_count,
+8: string extra_file_names,
+}
+
 // Service
 service InfinityService {
 CommonResponse Connect(),
@@ -544,6 +617,14 @@ ShowTableResponse ShowTable(1:ShowTableRequest request),
 SelectResponse ShowColumns(1:ShowColumnsRequest request),
 ShowDatabaseResponse ShowDatabase(1:ShowDatabaseRequest request),
 SelectResponse ShowTables(1:ShowTablesRequest request),
+
+SelectResponse ShowSegments(1:ShowSegmentsRequest request),
+ShowSegmentResponse ShowSegment(1:ShowSegmentRequest request),
+
+SelectResponse ShowBlocks(1:ShowBlocksRequest request),
+ShowBlockResponse ShowBlock(1:ShowBlockRequest request),
+
+ShowBlockColumnResponse ShowBlockColumn(1:ShowBlockColumnRequest request),
 
 CommonResponse GetDatabase(1:GetDatabaseRequest request),
 CommonResponse GetTable(1:GetTableRequest request),

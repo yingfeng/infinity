@@ -30,11 +30,13 @@ import logger;
 import create_index_info;
 import third_party;
 import hnsw_file_worker;
+import raw_file_worker;
 import index_base;
 import buffer_manager;
 import buffer_obj;
 import buffer_handle;
 import infinity_exception;
+import index_defines;
 
 namespace infinity {
 
@@ -75,9 +77,18 @@ ChunkIndexEntry::NewChunkIndexEntry(SegmentIndexEntry *segment_index_entry, Crea
     return chunk_index_entry;
 }
 
-SharedPtr<ChunkIndexEntry>
-ChunkIndexEntry::NewFtChunkIndexEntry(SegmentIndexEntry *segment_index_entry, const String &base_name, RowID base_rowid, u32 row_count) {
-    return SharedPtr<ChunkIndexEntry>(new ChunkIndexEntry(segment_index_entry, base_name, base_rowid, row_count));
+SharedPtr<ChunkIndexEntry> ChunkIndexEntry::NewFtChunkIndexEntry(SegmentIndexEntry *segment_index_entry,
+                                                                 const String &base_name,
+                                                                 RowID base_rowid,
+                                                                 u32 row_count,
+                                                                 BufferManager *buffer_mgr) {
+    auto chunk_index_entry = SharedPtr<ChunkIndexEntry>(new ChunkIndexEntry(segment_index_entry, base_name, base_rowid, row_count));
+    const auto &index_dir = segment_index_entry->index_dir();
+    assert(index_dir.get() != nullptr);
+    auto column_length_file_name = MakeShared<String>(base_name + LENGTH_SUFFIX);
+    auto file_worker = MakeUnique<RawFileWorker>(index_dir, column_length_file_name);
+    chunk_index_entry->buffer_obj_ = buffer_mgr->Get(std::move(file_worker));
+    return chunk_index_entry;
 }
 
 SharedPtr<ChunkIndexEntry> ChunkIndexEntry::NewReplayChunkIndexEntry(SegmentIndexEntry *segment_index_entry,
@@ -87,7 +98,12 @@ SharedPtr<ChunkIndexEntry> ChunkIndexEntry::NewReplayChunkIndexEntry(SegmentInde
                                                                      u32 row_count,
                                                                      BufferManager *buffer_mgr) {
     auto chunk_index_entry = SharedPtr<ChunkIndexEntry>(new ChunkIndexEntry(segment_index_entry, base_name, base_rowid, row_count));
-    if (param->index_base_->index_type_ != IndexType::kFullText) {
+    if (param->index_base_->index_type_ == IndexType::kFullText) {
+        const auto &index_dir = segment_index_entry->index_dir();
+        auto column_length_file_name = MakeShared<String>(base_name + LENGTH_SUFFIX);
+        auto file_worker = MakeUnique<RawFileWorker>(index_dir, column_length_file_name);
+        chunk_index_entry->buffer_obj_ = buffer_mgr->Get(std::move(file_worker));
+    } else {
         const auto &index_dir = segment_index_entry->index_dir();
         const auto &index_base = param->index_base_;
         SegmentID segment_id = segment_index_entry->segment_id();

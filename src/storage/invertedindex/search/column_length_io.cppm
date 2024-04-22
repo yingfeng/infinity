@@ -23,6 +23,8 @@ import index_defines;
 import internal_types;
 import chunk_index_entry;
 import memory_indexer;
+import buffer_obj;
+import buffer_handle;
 import naive_profiler;
 
 namespace infinity {
@@ -39,24 +41,19 @@ public:
                                SharedPtr<MemoryIndexer> memory_indexer);
 
     inline u32 GetColumnLength(RowID row_id) {
-        {
-            if (current_chunk_ != std::numeric_limits<u32>::max() && row_id >= chunk_index_entries_[current_chunk_]->base_rowid_ &&
-                row_id < chunk_index_entries_[current_chunk_]->base_rowid_ + chunk_index_entries_[current_chunk_]->row_count_) [[likely]] {
-                assert(column_lengths_size_ == chunk_index_entries_[current_chunk_]->row_count_);
-                return column_lengths_[row_id - chunk_index_entries_[current_chunk_]->base_rowid_];
-            }
+        if (row_id >= current_chunk_base_rowid_ && row_id < current_chunk_base_rowid_ + current_chunk_row_count_) [[likely]] {
+            assert(column_lengths_ != nullptr);
+            return column_lengths_[row_id - current_chunk_base_rowid_];
         }
-        {
-            if (memory_indexer_.get() != nullptr) {
-                RowID base_rowid = memory_indexer_->GetBaseRowId();
-                u32 doc_count = memory_indexer_->GetDocCount();
-                if (row_id >= base_rowid && row_id < base_rowid + doc_count) {
-                    return memory_indexer_->GetColumnLength(row_id - base_rowid);
-                }
+        if (memory_indexer_.get() != nullptr) {
+            RowID base_rowid = memory_indexer_->GetBaseRowId();
+            u32 doc_count = memory_indexer_->GetDocCount();
+            if (row_id >= base_rowid && row_id < base_rowid + doc_count) {
+                return memory_indexer_->GetColumnLength(row_id - base_rowid);
             }
         }
         NaiveProfiler profiler("GetColumnLength::SeekFile");
-        profiler.Foo();
+        profiler.Foo();        
         return SeekFile(row_id);
     }
 
@@ -66,10 +63,10 @@ private:
     const String &index_dir_;
     const Vector<SharedPtr<ChunkIndexEntry>> &chunk_index_entries_; // must in ascending order
     SharedPtr<MemoryIndexer> memory_indexer_;
-    u32 current_chunk_{std::numeric_limits<u32>::max()};
-    UniquePtr<u32[]> column_lengths_;
-    u32 column_lengths_size_ = 0;
-    u32 column_lengths_capacity_ = 0;
+    const u32 *column_lengths_{nullptr};
+    RowID current_chunk_base_rowid_{(u64)0};
+    u32 current_chunk_row_count_{0};
+    BufferHandle current_chunk_buffer_handle_{};
 };
 
 export class ColumnLengthReader {
