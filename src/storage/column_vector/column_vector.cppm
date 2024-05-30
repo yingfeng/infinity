@@ -139,26 +139,36 @@ public:
 
     void AppendValue(const Value &value) {
         if (!initialized) {
-            UnrecoverableError("Column vector isn't initialized.");
+            String error_message = "Column vector isn't initialized.";
+            LOG_CRITICAL(error_message);
+            UnrecoverableError(error_message);
         }
         if (vector_type_ == ColumnVectorType::kConstant) {
             if (tail_index_ >= 1) {
-                UnrecoverableError("Constant column vector will only have 1 value.");
+                String error_message = "Constant column vector will only have 1 value.";
+                LOG_CRITICAL(error_message);
+                UnrecoverableError(error_message);
             }
         }
 
         if (tail_index_ >= capacity_) {
-            UnrecoverableError(fmt::format("Exceed the column vector capacity.({}/{})", tail_index_, capacity_));
+            String error_message = fmt::format("Exceed the column vector capacity.({}/{})", tail_index_, capacity_);
+            LOG_CRITICAL(error_message);
+            UnrecoverableError(error_message);
         }
         SetValue(tail_index_++, value);
     }
 
     void SetVectorType(ColumnVectorType vector_type) {
         if (initialized) {
-            UnrecoverableError("Column vector is initialized");
+            String error_message = "Column vector isn't initialized.";
+            LOG_CRITICAL(error_message);
+            UnrecoverableError(error_message);
         }
         if (vector_type == ColumnVectorType::kInvalid) {
-            UnrecoverableError("Invalid column vector type.");
+            String error_message = "Invalid column vector type.";
+            LOG_CRITICAL(error_message);
+            UnrecoverableError(error_message);
         }
         if (vector_type_ == vector_type) {
             return;
@@ -305,7 +315,9 @@ private:
                 break;
             }
             default: {
-                UnrecoverableError("Unsupported sparse index type.");
+                String error_message = "Unsupported sparse index type.";
+                LOG_CRITICAL(error_message);
+                UnrecoverableError(error_message);
             }
         }
     }
@@ -316,22 +328,47 @@ private:
         SizeT total_element_count = ele_str_views.size();
         target_sparse.nnz_ = total_element_count;
 
-        auto tmp_indices = MakeUniqueForOverwrite<IdxT[]>(total_element_count);
-        auto tmp_data = MakeUniqueForOverwrite<T[]>(total_element_count);
-        HashSet<IdxT> index_set;
-        for (u32 i = 0; i < total_element_count; ++i) {
-            auto [index, value] = DataType::StringToSparseValue<T, IdxT>(ele_str_views[i]);
-            tmp_indices[i] = index;
-            tmp_data[i] = value;
-            auto [iter, insert_ok] = index_set.insert(index);
-            if (!insert_ok) {
-                RecoverableError(Status::InvalidDataType());
-            }
+        if (total_element_count == 0) {
+            target_sparse.chunk_id_ = -1;
+            target_sparse.chunk_offset_ = 0;
+            return;
         }
-        Vector<Pair<const_ptr_t, SizeT>> data_ptrs;
-        data_ptrs.emplace_back(reinterpret_cast<const char *>(tmp_indices.get()), total_element_count * sizeof(IdxT));
-        data_ptrs.emplace_back(reinterpret_cast<const char *>(tmp_data.get()), total_element_count * sizeof(T));
-        std::tie(target_sparse.chunk_id_, target_sparse.chunk_offset_) = buffer_->fix_heap_mgr_->AppendToHeap(data_ptrs);
+
+        auto tmp_indices = MakeUniqueForOverwrite<IdxT[]>(total_element_count);
+        HashSet<IdxT> index_set;
+        if constexpr (std::is_same_v<T, BooleanT>) {
+            for (u32 i = 0; i < total_element_count; ++i) {
+                auto index = DataType::StringToValue<IdxT>(ele_str_views[i]);
+                if (index < 0) {
+                    RecoverableError(Status::InvalidDataType());
+                }
+                tmp_indices[i] = index;
+                auto [iter, insert_ok] = index_set.insert(index);
+                if (!insert_ok) {
+                    RecoverableError(Status::InvalidDataType());
+                }
+            }
+            std::tie(target_sparse.chunk_id_, target_sparse.chunk_offset_) =
+                buffer_->fix_heap_mgr_->AppendToHeap(reinterpret_cast<const char *>(tmp_indices.get()), total_element_count * sizeof(IdxT));
+        } else {
+            Vector<Pair<const_ptr_t, SizeT>> data_ptrs;
+            auto tmp_data = MakeUniqueForOverwrite<T[]>(total_element_count);
+            for (u32 i = 0; i < total_element_count; ++i) {
+                auto [index, value] = DataType::StringToSparseValue<T, IdxT>(ele_str_views[i]);
+                if (index < 0) {
+                    RecoverableError(Status::InvalidDataType());
+                }
+                tmp_indices[i] = index;
+                tmp_data[i] = value;
+                auto [iter, insert_ok] = index_set.insert(index);
+                if (!insert_ok) {
+                    RecoverableError(Status::InvalidDataType());
+                }
+            }
+            data_ptrs.emplace_back(reinterpret_cast<const char *>(tmp_indices.get()), total_element_count * sizeof(IdxT));
+            data_ptrs.emplace_back(reinterpret_cast<const char *>(tmp_data.get()), total_element_count * sizeof(T));
+            std::tie(target_sparse.chunk_id_, target_sparse.chunk_offset_) = buffer_->fix_heap_mgr_->AppendToHeap(data_ptrs);
+        }
     }
 
     // Used by Append by Ptr

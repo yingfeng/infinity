@@ -25,6 +25,7 @@ import sparse_info;
 import data_type;
 import knn_expr;
 import third_party;
+import logger;
 import status;
 
 namespace infinity {
@@ -60,7 +61,9 @@ public:
     template <class T>
     T &Get() {
         if (type_ != T::TYPE) {
-            UnrecoverableError("ExtraValueInfo type mismatch");
+            String error_message = "ExtraValueInfo type mismatch";
+            LOG_CRITICAL(error_message);
+            UnrecoverableError(error_message);
         }
         return (T &)*this;
     }
@@ -147,7 +150,7 @@ export struct TensorArrayValueInfo : public ExtraValueInfo {
 };
 
 //===--------------------------------------------------------------------===//
-// TensorArray Value Info
+// Sparse Value Info
 //===--------------------------------------------------------------------===//
 
 export struct SparseValueInfo : public ExtraValueInfo {
@@ -155,8 +158,8 @@ export struct SparseValueInfo : public ExtraValueInfo {
     friend struct Value;
 
     template <typename Idx, typename T>
-    SparseValueInfo(const Vector<Idx> &indices_vec, const Vector<T> data_vec)
-        : ExtraValueInfo(ExtraValueInfoType::SPARSE_VALUE_INFO), nnz_(data_vec.size()), indices_(indices_vec), data_(data_vec) {}
+    SparseValueInfo(const Vector<Idx> &indices_vec, const Vector<T> &data_vec)
+        : ExtraValueInfo(ExtraValueInfoType::SPARSE_VALUE_INFO), nnz_(indices_vec.size()), indices_(indices_vec), data_(data_vec) {}
 
     SparseValueInfo(SizeT nnz, const char *raw_indice_ptr, SizeT raw_indice_len, const char *raw_data_ptr, SizeT raw_data_len)
         : ExtraValueInfo(ExtraValueInfoType::SPARSE_VALUE_INFO), nnz_(nnz), indices_(EmbeddingValueInfo(raw_indice_ptr, raw_indice_len)),
@@ -250,7 +253,6 @@ public:
         auto embedding_info_ptr = EmbeddingInfo::Make(ToEmbeddingDataType<T>(), vec.size());
         Value value(LogicalType::kEmbedding, embedding_info_ptr);
         value.value_info_ = MakeShared<EmbeddingValueInfo>(vec);
-
         return value;
     }
 
@@ -269,11 +271,14 @@ public:
                 RecoverableError(Status::InvalidDataType());
             }
         }
-        if (indice_vec.size() != data_vec.size()) {
+        if (indice_vec.size() != data_vec.size() && !data_vec.empty()) {
             UnrecoverableError("Sparse data size mismatch.");
         }
         SizeT sparse_dim = 0;
         if (!indice_vec.empty()) {
+            if (std::any_of(indice_vec.begin(), indice_vec.end(), [](Idx idx) { return idx < 0; })) {
+                RecoverableError(Status::ParserError("Sparse indice should not be negative."));
+            }
             sparse_dim = *std::max_element(indice_vec.begin(), indice_vec.end()) + 1;
         }
         auto sparse_info_ptr = SparseInfo::Make(ToEmbeddingDataType<T>(), ToEmbeddingDataType<Idx>(), sparse_dim);
@@ -313,7 +318,9 @@ public:
     // Value getter template for all types in union
     template <class T>
     T GetValue() const {
-        UnrecoverableError("Not implemented value getter.");
+        String error_message = "Not implemented value getter.";
+        LOG_CRITICAL(error_message);
+        UnrecoverableError(error_message);
         return T();
     }
 
