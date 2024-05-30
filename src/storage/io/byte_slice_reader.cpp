@@ -107,6 +107,8 @@ SizeT ByteSliceReader::ReadMayCopy(void *&value, SizeT len) {
 SizeT ByteSliceReader::Seek(SizeT offset) {
     if (offset < global_offset_) {
         // fmt::format("invalid offset value: seek offset = {}, State: list length = {}, offset = {}", offset, GetSize(), global_offset_));
+        if (global_offset_ == BYTE_SLICE_EOF)
+            return BYTE_SLICE_EOF;
         UnrecoverableError("Invalide offset value");
     }
 
