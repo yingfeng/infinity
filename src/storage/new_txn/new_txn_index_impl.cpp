@@ -946,9 +946,11 @@ NewTxn::AppendMemIndex(SegmentIndexMeta &segment_index_meta, BlockID block_id, c
             if (is_null) {
                 auto [column_def, status] = segment_index_meta.table_index_meta().GetColumnDef();
                 if (!status.ok()) return status;
+                const auto *embedding_info = static_cast<const EmbeddingInfo *>(column_def->type()->type_info().get());
+                u32 dim = static_cast<u32>(embedding_info->Dimension());
                 memory_spfresh_index = std::make_shared<SPFreshIndexInMem>(base_row_id,
                     static_cast<const IndexSPFresh *>(index_base.get()),
-                    static_cast<u32>(DEFAULT_BLOCK_CAPACITY),
+                    dim,
                     DEFAULT_BLOCK_CAPACITY * 32);
                 mem_index->SetSPFreshIndex(memory_spfresh_index);
             } else {
@@ -1711,14 +1713,15 @@ Status NewTxn::PopulateSPFreshIndexInner(std::shared_ptr<IndexBase> index_base,
     const auto *embedding_info = static_cast<const EmbeddingInfo *>(column_def->type()->type_info().get());
     u32 dim = static_cast<u32>(embedding_info->Dimension());
 
-    auto mem_index = std::make_shared<MemIndex>();
-    bool is_null = true;
-    std::shared_ptr<SPFreshIndexInMem> spfresh_index;
-
     auto [block_ids, status] = segment_meta.GetBlockIDs1();
     if (!status.ok()) return status;
     size_t block_capacity = DEFAULT_BLOCK_CAPACITY;
     size_t total_row_cnt = segment_row_cnt > 0 ? segment_row_cnt : block_ids->size() * block_capacity;
+    if (total_row_cnt == 0) return Status::OK();
+
+    // Phase A: Collect all vectors first for K-Means clustering
+    std::vector<f32> all_vectors;
+    all_vectors.reserve(total_row_cnt * dim);
 
     for (BlockID block_id : *block_ids) {
         BlockMeta block_meta(block_id, segment_meta);
@@ -1731,24 +1734,20 @@ Status NewTxn::PopulateSPFreshIndexInner(std::shared_ptr<IndexBase> index_base,
         status = NewCatalog::GetColumnVector(col_meta, column_def, row_cnt, ColumnVectorMode::kReadOnly, col);
         if (!status.ok()) return status;
 
-        SegmentOffset block_offset = static_cast<SegmentOffset>(block_id * DEFAULT_BLOCK_CAPACITY);
-        RowID base_row_id = RowID(segment_index_meta.segment_id(), block_offset);
-
-        if (is_null) {
-            spfresh_index = std::make_shared<SPFreshIndexInMem>(base_row_id, spfresh_def, dim, total_row_cnt);
-            mem_index->SetSPFreshIndex(spfresh_index);
-            is_null = false;
-        } else {
-            spfresh_index = mem_index->GetSPFreshIndex();
-        }
-
-        for (BlockOffset blk_off = 0; blk_off < row_cnt; ++blk_off) {
-            const auto *vec_ptr = reinterpret_cast<const f32 *>(col.data()) + blk_off * dim;
-            spfresh_index->InsertVector(vec_ptr, block_offset + blk_off);
-        }
+        const auto *vec_ptr = reinterpret_cast<const f32 *>(col.data());
+        all_vectors.insert(all_vectors.end(), vec_ptr, vec_ptr + row_cnt * dim);
     }
 
-    if (is_null) return Status::OK();
+    if (all_vectors.empty()) return Status::OK();
+
+    // Create SPFresh index with the first block's base_row_id
+    RowID base_row_id = RowID(segment_index_meta.segment_id(), 0);
+    auto mem_index = std::make_shared<MemIndex>();
+    auto spfresh_index = std::make_shared<SPFreshIndexInMem>(base_row_id, spfresh_def, dim, static_cast<u32>(total_row_cnt));
+    mem_index->SetSPFreshIndex(spfresh_index);
+
+    // Phase A: Bulk build with K-Means + RaBitQ rotation
+    spfresh_index->Build(all_vectors.data(), static_cast<u32>(total_row_cnt));
 
     // Let DumpSegmentMemIndex handle the mem index and file worker
     ChunkID new_chunk_id;
@@ -1764,8 +1763,8 @@ Status NewTxn::PopulateSPFreshIndexInner(std::shared_ptr<IndexBase> index_base,
     }
 
     new_chunk_ids.push_back(new_chunk_id);
-    LOG_INFO(fmt::format("SPFresh index built for segment {}, {} vectors",
-                         segment_meta.segment_id(), spfresh_index->GetRowCount()));
+    LOG_INFO(fmt::format("SPFresh index built for segment {}, {} vectors, {} centroids",
+                         segment_meta.segment_id(), total_row_cnt, spfresh_index->GetNumCentroids()));
     return Status::OK();
 }
 

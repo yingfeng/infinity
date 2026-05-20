@@ -40,6 +40,7 @@ import :ivf_index_data;
 import :ivf_index_search;
 import :spfresh_index;
 import :new_txn;
+import :new_catalog;
 import :table_index_meta;
 import :segment_index_meta;
 import :table_meta;
@@ -47,6 +48,7 @@ import :segment_meta;
 import :block_meta;
 import :column_meta;
 import :mem_index;
+import :column_vector;
 import :mlas_matrix_multiply;
 import :infinity_type;
 import :expression_evaluator;
@@ -697,7 +699,10 @@ void PhysicalKnnScan::ExecuteInternalByColumnDataTypeAndQueryDataType(QueryConte
                                 segment_id,
                                 spfresh_index.get(),
                                 use_bitmask,
-                                bitmask);
+                                bitmask,
+                                block_index,
+                                knn_column_id,
+                                segment_index_meta);
                         }
                     }
                     break;
@@ -991,7 +996,7 @@ void ExecuteHnswSearch(QueryContext *query_context,
     }
 }
 
-// SPFresh search: RaBitQ approximate distance + add to merge heap
+// SPFresh search: RaBitQ approximate distance → centroid pruning → column store reranking
 template <LogicalType t, typename ColumnDataType, template <typename, typename> typename C, typename DistanceDataType>
 void ExecuteSPFreshSearch(KnnScanSharedData *knn_scan_shared_data,
                            MergeKnn<ColumnDataType, C, DistanceDataType> *merge_heap,
@@ -999,10 +1004,15 @@ void ExecuteSPFreshSearch(KnnScanSharedData *knn_scan_shared_data,
                            SegmentID segment_id,
                            SPFreshIndexInMem *spfresh_index,
                            bool use_bitmask,
-                           const Bitmask &bitmask) {
+                           const Bitmask &bitmask,
+                           BlockIndex *block_index,
+                           ColumnID knn_column_id,
+                           SegmentIndexMeta *segment_index_meta) {
     if constexpr (!(IsAnyOf<ColumnDataType, u8, i8, f32>)) return;
 
     const auto query_count = knn_scan_shared_data->query_count_;
+    const u32 topk = knn_scan_shared_data->topk_;
+    const u32 rerank_factor = 3; // return top-K * 3 approximate candidates for reranking
     const auto *queries = static_cast<const ColumnDataType *>(knn_scan_shared_data->query_embedding_);
 
     auto satisfy_filter = [&](SegmentOffset offset) -> bool {
@@ -1010,24 +1020,85 @@ void ExecuteSPFreshSearch(KnnScanSharedData *knn_scan_shared_data,
         return !use_bitmask || !bitmask.IsTrue(offset);
     };
 
+    // Pre-read all column vectors for this segment into a flat f32 buffer for reranking
+    std::vector<f32> segment_vectors;
+    u32 segment_capacity = 0;
+    {
+        TableMeta *table_meta = block_index->table_meta_.get();
+        if (table_meta == nullptr) return;
+        SegmentMeta seg_meta(segment_id, *table_meta);
+
+        // Get the column def for this index
+        auto [col_def_ptr, col_status] = segment_index_meta->table_index_meta().GetColumnDef();
+        if (!col_status.ok()) return;
+
+        // Estimate number of blocks from segment capacity
+        size_t block_cnt = seg_meta.segment_capacity() / DEFAULT_BLOCK_CAPACITY;
+        if (block_cnt == 0) block_cnt = 1;
+
+        for (BlockID block_id = 0; block_id < static_cast<BlockID>(block_cnt); ++block_id) {
+            BlockMeta blk_meta(block_id, seg_meta);
+            ColumnMeta col_meta(knn_column_id, blk_meta);
+
+            size_t row_cnt = DEFAULT_BLOCK_CAPACITY;
+
+            ColumnVector col_vec;
+            Status status = NewCatalog::GetColumnVector(col_meta, col_def_ptr, row_cnt, ColumnVectorMode::kReadOnly, col_vec);
+            if (!status.ok()) continue;
+
+            const f32 *src = reinterpret_cast<const f32 *>(col_vec.data());
+            size_t vec_bytes = row_cnt * embedding_dim;
+            segment_vectors.insert(segment_vectors.end(), src, src + vec_bytes);
+            segment_capacity = static_cast<u32>((block_id + 1) * DEFAULT_BLOCK_CAPACITY);
+        }
+    }
+    if (segment_vectors.empty() || segment_capacity == 0) return;
+
     for (u64 query_idx = 0; query_idx < query_count; ++query_idx) {
         const auto *query = queries + query_idx * embedding_dim;
-
-        // Collect RaBitQ approximate distances
-        std::vector<DistanceDataType> dists;
-        std::vector<RowID> row_ids;
-        dists.reserve(spfresh_index->GetRowCount());
-        row_ids.reserve(spfresh_index->GetRowCount());
-
-        // SPFresh stores RaBitQ codes quantized from f32 data
         const auto *query_f32 = reinterpret_cast<const f32 *>(query);
+
+        // Collect candidate (segment_offset, approx_dist) from SPFresh RaBitQ search
+        struct Candidate { u32 offset; f32 dist; };
+        std::vector<Candidate> candidates;
+        candidates.reserve(spfresh_index->GetRowCount());
+
         spfresh_index->Search(
             query_f32, embedding_dim,
             [&](SegmentOffset offset, f32 approx_dist) {
                 if (!satisfy_filter(offset)) return;
-                dists.push_back(static_cast<DistanceDataType>(approx_dist));
-                row_ids.emplace_back(segment_id, offset);
+                candidates.push_back({offset, approx_dist});
             });
+
+        if (candidates.empty()) continue;
+
+        // Sort by approximate distance, keep top (topk * rerank_factor) for reranking
+        u32 rerank_n = std::min(static_cast<u32>(candidates.size()), topk * rerank_factor);
+        std::partial_sort(candidates.begin(), candidates.begin() + rerank_n, candidates.end(),
+                          [](const Candidate &a, const Candidate &b) { return a.dist < b.dist; });
+        candidates.resize(rerank_n);
+
+        // Rerank: compute exact L2 distance from column store vectors
+        std::vector<DistanceDataType> dists;
+        std::vector<RowID> row_ids;
+        dists.reserve(rerank_n);
+        row_ids.reserve(rerank_n);
+
+        for (const auto &cand : candidates) {
+            u32 offset = cand.offset;
+            if (offset >= segment_capacity) continue;
+
+            const f32 *exact_vec = segment_vectors.data() + static_cast<size_t>(offset) * embedding_dim;
+
+            DistanceDataType exact_dist = 0;
+            for (u32 d = 0; d < embedding_dim; ++d) {
+                f32 diff = query_f32[d] - exact_vec[d];
+                exact_dist += static_cast<DistanceDataType>(diff * diff);
+            }
+
+            dists.push_back(exact_dist);
+            row_ids.emplace_back(segment_id, offset);
+        }
 
         if (!dists.empty()) {
             merge_heap->Search(query_idx, dists.data(), row_ids.data(), dists.size());
