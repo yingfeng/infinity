@@ -38,6 +38,7 @@ import :hnsw_alg;
 import :ivf_index_data_in_mem;
 import :ivf_index_data;
 import :ivf_index_search;
+import :spfresh_index;
 import :new_txn;
 import :table_index_meta;
 import :segment_index_meta;
@@ -429,7 +430,7 @@ void PhysicalKnnScan::PlanWithIndex(QueryContext *query_context) { // TODO: retu
                     continue;
                 }
                 // check index type
-                if (auto index_type = index_base->index_type_; index_type != IndexType::kIVF and index_type != IndexType::kHnsw) {
+                if (auto index_type = index_base->index_type_; index_type != IndexType::kIVF and index_type != IndexType::kHnsw and index_type != IndexType::kSPFresh) {
                     LOG_TRACE(fmt::format("KnnScan: PlanWithIndex(): Skipping non-knn index."));
                     continue;
                 }
@@ -456,7 +457,7 @@ void PhysicalKnnScan::PlanWithIndex(QueryContext *query_context) { // TODO: retu
                 RecoverableError(Status::ColumnNotExist(index_base->column_name()));
             }
             // check index type
-            if (auto index_type = index_base->index_type_; index_type != IndexType::kIVF and index_type != IndexType::kHnsw) {
+            if (auto index_type = index_base->index_type_; index_type != IndexType::kIVF and index_type != IndexType::kHnsw and index_type != IndexType::kSPFresh) {
                 RecoverableError(Status::InvalidIndexType("invalid index"));
             }
 
@@ -682,6 +683,23 @@ void PhysicalKnnScan::ExecuteInternalByColumnDataTypeAndQueryDataType(QueryConte
                                                                               knn_column_id,
                                                                               use_bitmask,
                                                                               bitmask);
+                    break;
+                }
+                case IndexType::kSPFresh: {
+                    auto mem_index = segment_index_meta->GetMemIndex();
+                    if (mem_index != nullptr) {
+                        auto spfresh_index = mem_index->GetSPFreshIndex();
+                        if (spfresh_index != nullptr) {
+                            ExecuteSPFreshSearch<t, ColumnDataType, C, DistanceDataType>(
+                                knn_scan_shared_data,
+                                merge_heap_hnsw,
+                                embedding_dim,
+                                segment_id,
+                                spfresh_index.get(),
+                                use_bitmask,
+                                bitmask);
+                        }
+                    }
                     break;
                 }
                 default: {
@@ -969,6 +987,50 @@ void ExecuteHnswSearch(QueryContext *query_context,
         if (memory_hnsw_index) {
             const HnswHandlerPtr hnsw_handler = memory_hnsw_index->get();
             hnsw_search(hnsw_handler, true);
+        }
+    }
+}
+
+// SPFresh search: RaBitQ approximate distance + add to merge heap
+template <LogicalType t, typename ColumnDataType, template <typename, typename> typename C, typename DistanceDataType>
+void ExecuteSPFreshSearch(KnnScanSharedData *knn_scan_shared_data,
+                           MergeKnn<ColumnDataType, C, DistanceDataType> *merge_heap,
+                           u32 embedding_dim,
+                           SegmentID segment_id,
+                           SPFreshIndexInMem *spfresh_index,
+                           bool use_bitmask,
+                           const Bitmask &bitmask) {
+    if constexpr (!(IsAnyOf<ColumnDataType, u8, i8, f32>)) return;
+
+    const auto query_count = knn_scan_shared_data->query_count_;
+    const auto *queries = static_cast<const ColumnDataType *>(knn_scan_shared_data->query_embedding_);
+
+    auto satisfy_filter = [&](SegmentOffset offset) -> bool {
+        if (use_bitmask && offset >= bitmask.count()) return false;
+        return !use_bitmask || !bitmask.IsTrue(offset);
+    };
+
+    for (u64 query_idx = 0; query_idx < query_count; ++query_idx) {
+        const auto *query = queries + query_idx * embedding_dim;
+
+        // Collect RaBitQ approximate distances
+        std::vector<DistanceDataType> dists;
+        std::vector<RowID> row_ids;
+        dists.reserve(spfresh_index->GetRowCount());
+        row_ids.reserve(spfresh_index->GetRowCount());
+
+        // SPFresh stores RaBitQ codes quantized from f32 data
+        const auto *query_f32 = reinterpret_cast<const f32 *>(query);
+        spfresh_index->Search(
+            query_f32, embedding_dim,
+            [&](SegmentOffset offset, f32 approx_dist) {
+                if (!satisfy_filter(offset)) return;
+                dists.push_back(static_cast<DistanceDataType>(approx_dist));
+                row_ids.emplace_back(segment_id, offset);
+            });
+
+        if (!dists.empty()) {
+            merge_heap->Search(query_idx, dists.data(), row_ids.data(), dists.size());
         }
     }
 }

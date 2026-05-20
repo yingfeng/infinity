@@ -58,6 +58,8 @@ import :plaid_index_file_worker;
 import :plaid_index;
 import :plaid_index_disk_merger;
 import :index_plaid;
+import :spfresh_index;
+import :index_spfresh;
 import :emvb_index;
 import :meta_key;
 import :data_access_state;
@@ -939,6 +941,27 @@ NewTxn::AppendMemIndex(SegmentIndexMeta &segment_index_meta, BlockID block_id, c
             memory_emvb_index->Insert(col, offset, row_cnt, segment_index_meta.kv_instance(), begin_ts, meta_cache);
             break;
         }
+        case IndexType::kSPFresh: {
+            std::shared_ptr<SPFreshIndexInMem> memory_spfresh_index;
+            if (is_null) {
+                auto [column_def, status] = segment_index_meta.table_index_meta().GetColumnDef();
+                if (!status.ok()) return status;
+                memory_spfresh_index = std::make_shared<SPFreshIndexInMem>(base_row_id,
+                    static_cast<const IndexSPFresh *>(index_base.get()),
+                    static_cast<u32>(DEFAULT_BLOCK_CAPACITY),
+                    DEFAULT_BLOCK_CAPACITY * 32);
+                mem_index->SetSPFreshIndex(memory_spfresh_index);
+            } else {
+                memory_spfresh_index = mem_index->GetSPFreshIndex();
+            }
+            // Read f32 vectors from column
+            const auto *vectors = reinterpret_cast<const f32 *>(col.data());
+            for (BlockOffset blk_off = offset; blk_off < offset + row_cnt; ++blk_off) {
+                u64 row_id = base_row_id.segment_offset_ + blk_off;
+                memory_spfresh_index->InsertDelta(vectors + (blk_off - offset) * memory_spfresh_index->dim(), row_id);
+            }
+            break;
+        }
         case IndexType::kPLAID: {
             std::shared_ptr<PlaidIndexInMem> memory_plaid_index;
             auto &table_meta = segment_index_meta.table_index_meta().table_meta();
@@ -1114,6 +1137,22 @@ Status NewTxn::PopulateIndex(const std::string &db_name,
         case IndexType::kDiskAnn: { // TODO
             LOG_WARN("Not implemented yet");
             return Status::OK();
+        }
+        case IndexType::kSPFresh: {
+            auto status = PopulateSPFreshIndexInner(index_base,
+                                                    *segment_index_meta,
+                                                    segment_meta,
+                                                    segment_row_cnt,
+                                                    column_id,
+                                                    column_def,
+                                                    new_chunk_ids);
+            if (!status.ok()) {
+                return status;
+            }
+            if (new_chunk_ids.empty()) {
+                table_index_meta.RemoveSegmentIndexIDs({segment_meta.segment_id()});
+            }
+            break;
         }
         case IndexType::kPLAID: {
             auto status = PopulatePlaidIndexInner(index_base, *segment_index_meta, segment_meta, column_def, new_chunk_ids);
@@ -1658,6 +1697,75 @@ Status NewTxn::PopulatePlaidIndexInner(std::shared_ptr<IndexBase> index_base,
     }
     plaid_index_in_mem.reset();
 
+    return Status::OK();
+}
+
+Status NewTxn::PopulateSPFreshIndexInner(std::shared_ptr<IndexBase> index_base,
+                                         SegmentIndexMeta &segment_index_meta,
+                                         SegmentMeta &segment_meta,
+                                         size_t segment_row_cnt,
+                                         ColumnID column_id,
+                                         std::shared_ptr<ColumnDef> column_def,
+                                         std::vector<ChunkID> &new_chunk_ids) {
+    const auto *spfresh_def = static_cast<const IndexSPFresh *>(index_base.get());
+    const auto *embedding_info = static_cast<const EmbeddingInfo *>(column_def->type()->type_info().get());
+    u32 dim = static_cast<u32>(embedding_info->Dimension());
+
+    auto mem_index = std::make_shared<MemIndex>();
+    bool is_null = true;
+    std::shared_ptr<SPFreshIndexInMem> spfresh_index;
+
+    auto [block_ids, status] = segment_meta.GetBlockIDs1();
+    if (!status.ok()) return status;
+    size_t block_capacity = DEFAULT_BLOCK_CAPACITY;
+    size_t total_row_cnt = segment_row_cnt > 0 ? segment_row_cnt : block_ids->size() * block_capacity;
+
+    for (BlockID block_id : *block_ids) {
+        BlockMeta block_meta(block_id, segment_meta);
+        ColumnMeta col_meta(column_id, block_meta);
+
+        size_t row_cnt = block_id == block_ids->back() ? total_row_cnt - block_capacity * (block_ids->size() - 1) : block_capacity;
+        if (row_cnt == 0) continue;
+
+        ColumnVector col;
+        status = NewCatalog::GetColumnVector(col_meta, column_def, row_cnt, ColumnVectorMode::kReadOnly, col);
+        if (!status.ok()) return status;
+
+        SegmentOffset block_offset = static_cast<SegmentOffset>(block_id * DEFAULT_BLOCK_CAPACITY);
+        RowID base_row_id = RowID(segment_index_meta.segment_id(), block_offset);
+
+        if (is_null) {
+            spfresh_index = std::make_shared<SPFreshIndexInMem>(base_row_id, spfresh_def, dim, total_row_cnt);
+            mem_index->SetSPFreshIndex(spfresh_index);
+            is_null = false;
+        } else {
+            spfresh_index = mem_index->GetSPFreshIndex();
+        }
+
+        for (BlockOffset blk_off = 0; blk_off < row_cnt; ++blk_off) {
+            const auto *vec_ptr = reinterpret_cast<const f32 *>(col.data()) + blk_off * dim;
+            spfresh_index->InsertVector(vec_ptr, block_offset + blk_off);
+        }
+    }
+
+    if (is_null) return Status::OK();
+
+    // Let DumpSegmentMemIndex handle the mem index and file worker
+    ChunkID new_chunk_id;
+    std::tie(new_chunk_id, status) = segment_index_meta.GetAndSetNextChunkID();
+    if (!status.ok()) return status;
+
+    status = DumpSegmentMemIndex(segment_index_meta, new_chunk_id);
+    if (!status.ok()) {
+        if (status.code() != ErrorCode::kEmptyMemIndex) {
+            return status;
+        }
+        return Status::OK();
+    }
+
+    new_chunk_ids.push_back(new_chunk_id);
+    LOG_INFO(fmt::format("SPFresh index built for segment {}, {} vectors",
+                         segment_meta.segment_id(), spfresh_index->GetRowCount()));
     return Status::OK();
 }
 

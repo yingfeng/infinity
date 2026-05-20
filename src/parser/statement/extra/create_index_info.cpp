@@ -51,6 +51,9 @@ std::string IndexInfo::IndexTypeToString(IndexType index_type) {
         case IndexType::kPLAID: {
             return "PLAID";
         }
+        case IndexType::kSPFresh: {
+            return "SPFRESH";
+        }
         case IndexType::kInvalid: {
             ParserError("Invalid conflict type.");
         }
@@ -77,6 +80,8 @@ IndexType IndexInfo::StringToIndexType(const std::string &index_type_str) {
         return IndexType::kSecondaryFunctional;
     } else if (index_type_str == "PLAID") {
         return IndexType::kPLAID;
+    } else if (index_type_str == "SPFRESH") {
+        return IndexType::kSPFresh;
     } else {
         return IndexType::kInvalid;
     }

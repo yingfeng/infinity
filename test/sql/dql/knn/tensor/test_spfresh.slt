@@ -1,0 +1,45 @@
+# name: test/sql/dql/knn/tensor/test_spfresh.slt
+# description: SPFresh index creation, insertion, and search
+# group: [dql, knn, tensor, spfresh]
+
+statement ok
+DROP TABLE IF EXISTS test_spfresh;
+
+statement ok
+CREATE TABLE test_spfresh (id INTEGER, c1 EMBEDDING(FLOAT, 4));
+
+statement ok
+INSERT INTO test_spfresh VALUES (1, [1.0, 0.0, 0.0, 0.0]);
+
+statement ok
+INSERT INTO test_spfresh VALUES (2, [0.0, 1.0, 0.0, 0.0]);
+
+statement ok
+INSERT INTO test_spfresh VALUES (3, [0.0, 0.0, 1.0, 0.0]);
+
+statement ok
+INSERT INTO test_spfresh VALUES (4, [0.0, 0.0, 0.0, 1.0]);
+
+statement ok
+INSERT INTO test_spfresh VALUES (5, [1.0, 1.0, 0.0, 0.0]);
+
+query I
+SELECT COUNT(*) FROM test_spfresh;
+----
+5
+
+statement ok
+CREATE INDEX spfresh_idx ON test_spfresh (c1) USING SPFRESH WITH (metric = l2, num_centroids = 2);
+
+# Query without explicit index (should work via brute force)
+query I
+SELECT id FROM test_spfresh SEARCH MATCH VECTOR (c1, [1.0, 0.0, 0.0, 0.0], 'float', 'l2', 1);
+----
+1
+
+# With SPFresh index
+statement ok
+SELECT id FROM test_spfresh SEARCH MATCH VECTOR (c1, [1.0, 0.0, 0.0, 0.0], 'float', 'l2', 3) WITH (nprobe = 10);
+
+statement ok
+DROP TABLE IF EXISTS test_spfresh;

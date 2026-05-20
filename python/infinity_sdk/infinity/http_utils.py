@@ -271,6 +271,9 @@ index_type_transfrom = {
     5: "SECONDARYFUNCTIONAL",
     6: "EMVB",
     7: "BMP",
+    8: "DISKANN",
+    9: "PLAID",
+    10: "SPFRESH",
 }
 
 baseResponse = {

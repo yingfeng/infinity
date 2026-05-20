@@ -121,6 +121,8 @@ func (t *Table) CreateIndex(indexName string, indexInfo *IndexInfo, conflictType
 		thriftIndexType = thriftapi.IndexType_DiskAnn
 	case IndexTypePLAID:
 		thriftIndexType = thriftapi.IndexType_PLAID
+	case IndexTypeSPFresh:
+		thriftIndexType = thriftapi.IndexType_SPFresh
 	default:
 		return nil, NewInfinityException(int(ErrorCodeInvalidIndexType), "Invalid index type")
 	}

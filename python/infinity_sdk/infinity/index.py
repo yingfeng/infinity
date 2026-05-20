@@ -22,15 +22,16 @@ from sqlglot import maybe_parse
 
 
 class IndexType(Enum):
-    IVF = 1
-    Hnsw = 2
-    FullText = 3
+    IVF = 0
+    Hnsw = 1
+    FullText = 2
+    BMP = 3
     Secondary = 4
     SecondaryFunctional = 5
     EMVB = 6
-    BMP = 7
-    DiskAnn = 8
-    PLAID = 9
+    DiskAnn = 7
+    PLAID = 8
+    SPFresh = 9
 
     def to_ttype(self):
         match self:
@@ -52,6 +53,8 @@ class IndexType(Enum):
                 return ttypes.IndexType.DiskAnn
             case IndexType.PLAID:
                 return ttypes.IndexType.PLAID
+            case IndexType.SPFresh:
+                return ttypes.IndexType.SPFresh
             case _:
                 raise InfinityException(ErrorCode.INVALID_INDEX_TYPE, "Unknown index type")
 

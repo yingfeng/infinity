@@ -24,6 +24,7 @@ import :index_secondary_functional;
 import :index_emvb;
 import :index_bmp;
 import :index_plaid;
+import :index_spfresh;
 import :bmp_util;
 import :infinity_exception;
 import :index_defines;
@@ -205,6 +206,23 @@ std::shared_ptr<IndexBase> IndexBase::ReadAdv(const char *&ptr, int32_t maxbytes
             res = std::make_shared<IndexPLAID>(index_name, index_comment, file_name, std::move(column_names), nbits, n_centroids);
             break;
         }
+        case IndexType::kSPFresh: {
+            MetricType metric_type = ReadBufAdv<MetricType>(ptr);
+            u32 num_centroids = ReadBufAdv<u32>(ptr);
+            u32 replica_count = ReadBufAdv<u32>(ptr);
+            u32 bucket_size_limit = ReadBufAdv<u32>(ptr);
+            bool compress_to_rabitq = ReadBufAdv<bool>(ptr);
+            res = std::make_shared<IndexSPFresh>(index_name,
+                                                 index_comment,
+                                                 file_name,
+                                                 std::move(column_names),
+                                                 metric_type,
+                                                 num_centroids,
+                                                 replica_count,
+                                                 bucket_size_limit,
+                                                 compress_to_rabitq);
+            break;
+        }
         case IndexType::kInvalid: {
             UnrecoverableError("Error index method while reading");
         }
@@ -370,6 +388,23 @@ std::shared_ptr<IndexBase> IndexBase::Deserialize(std::string_view index_def_str
             u32 nbits = doc["nbits"].get<u32>();
             u32 n_centroids = doc["n_centroids"].get<u32>();
             res = std::make_shared<IndexPLAID>(index_name, index_comment, file_name, std::move(column_names), nbits, n_centroids);
+            break;
+        }
+        case IndexType::kSPFresh: {
+            MetricType metric_type = StringToMetricType(doc["metric_type"].get<std::string>());
+            u32 num_centroids = doc["num_centroids"].get<u32>();
+            u32 replica_count = doc["replica_count"].get<u32>();
+            u32 bucket_size_limit = doc["bucket_size_limit"].get<u32>();
+            bool compress_to_rabitq = doc["compress_to_rabitq"].get<bool>();
+            res = std::make_shared<IndexSPFresh>(index_name,
+                                                 index_comment,
+                                                 file_name,
+                                                 std::move(column_names),
+                                                 metric_type,
+                                                 num_centroids,
+                                                 replica_count,
+                                                 bucket_size_limit,
+                                                 compress_to_rabitq);
             break;
         }
         case IndexType::kInvalid: {

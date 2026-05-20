@@ -34,6 +34,7 @@ export enum class FileWorkerType {
     kEMVBIndexFile,
     kBMPIndexFile,
     kPLAIDIndexFile,
+    kSPFreshIndexFile,
     kInvalid,
 };
 
@@ -71,6 +72,9 @@ export std::string FileWorkerType2Str(FileWorkerType type) {
         }
         case FileWorkerType::kPLAIDIndexFile: {
             return "PLAID index";
+        }
+        case FileWorkerType::kSPFreshIndexFile: {
+            return "SPFresh index";
         }
         case FileWorkerType::kInvalid: {
             UnrecoverableError("Invalid file worker type");

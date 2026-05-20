@@ -460,8 +460,9 @@ BMP,
 Secondary,
 SecondaryFunctional,
 EMVB,
-DiskAnn,
-PLAID,
+    DiskAnn,
+    PLAID,
+    SPFresh,
 }
 
 struct IndexInfo {
