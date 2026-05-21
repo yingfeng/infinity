@@ -32,6 +32,7 @@ import :raw_file_worker;
 import :hnsw_file_worker;
 import :bmp_index_file_worker;
 import :emvb_index_file_worker;
+import :spfresh_index_file_worker;
 import :infinity_exception;
 import :persistence_manager;
 import :persist_result_handler;
@@ -231,6 +232,19 @@ Status ChunkIndexMeta::InitSet(const ChunkIndexMetaInfo &chunk_info) {
                                                            column_def,
                                                            segment_start_offset,
                                                            buffer_mgr->persistence_manager());
+                index_buffer_ = buffer_mgr->AllocateBufferObject(std::move(file_worker));
+                break;
+            }
+            case IndexType::kSPFresh: {
+                auto spfresh_index_file_name = std::make_shared<std::string>(IndexFileName(chunk_id_));
+                auto file_worker =
+                    std::make_unique<SPFreshIndexFileWorker>(std::make_shared<std::string>(InfinityContext::instance().config()->DataDir()),
+                                                              std::make_shared<std::string>(InfinityContext::instance().config()->TempDir()),
+                                                              index_dir,
+                                                              std::move(spfresh_index_file_name),
+                                                              index_base,
+                                                              column_def,
+                                                              buffer_mgr->persistence_manager());
                 index_buffer_ = buffer_mgr->AllocateBufferObject(std::move(file_worker));
                 break;
             }

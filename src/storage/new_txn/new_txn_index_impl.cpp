@@ -1756,24 +1756,40 @@ Status NewTxn::PopulateSPFreshIndexInner(std::shared_ptr<IndexBase> index_base,
 
     // Create SPFresh index with the first block's base_row_id
     RowID base_row_id = RowID(segment_index_meta.segment_id(), 0);
-    auto mem_index = std::make_shared<MemIndex>();
     auto spfresh_index = std::make_shared<SPFreshIndexInMem>(base_row_id, spfresh_def, dim, static_cast<u32>(total_row_cnt));
-    mem_index->SetSPFreshIndex(spfresh_index);
 
     // Phase A: Bulk build with K-Means + RaBitQ rotation
     spfresh_index->Build(all_vectors.data(), static_cast<u32>(total_row_cnt));
 
-    // Let DumpSegmentMemIndex handle the mem index and file worker
+    // Phase B: Directly persist to buffer (following EMVB pattern, bypassing DumpSegmentMemIndex)
     ChunkID new_chunk_id;
     std::tie(new_chunk_id, status) = segment_index_meta.GetAndSetNextChunkID();
     if (!status.ok()) return status;
 
-    status = DumpSegmentMemIndex(segment_index_meta, new_chunk_id);
-    if (!status.ok()) {
-        if (status.code() != ErrorCode::kEmptyMemIndex) {
-            return status;
+    {
+        std::optional<ChunkIndexMeta> chunk_index_meta;
+        BufferObj *buffer_obj = nullptr;
+        status = NewCatalog::AddNewChunkIndex1(segment_index_meta,
+                                               this,
+                                               new_chunk_id,
+                                               base_row_id,
+                                               total_row_cnt,
+                                               0 /*term_cnt*/,
+                                               "" /*base_name*/,
+                                               0 /*index_size*/,
+                                               chunk_index_meta);
+        if (!status.ok()) return status;
+        status = chunk_index_meta->GetIndexBuffer(buffer_obj);
+        if (!status.ok()) return status;
+
+        // Load buffer, transfer index data into file worker's SPFreshIndexInMem, save
+        {
+            BufferHandle handle = buffer_obj->Load();
+            auto *target = static_cast<SPFreshIndexInMem *>(handle.GetDataMut());
+            spfresh_index->TransferTo(target);
+            // handle released here — buffer_obj keeps data
         }
-        return Status::OK();
+        buffer_obj->Save();
     }
 
     new_chunk_ids.push_back(new_chunk_id);
