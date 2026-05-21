@@ -8,6 +8,7 @@ import :spfresh_index;
 import :spfresh_defs;
 import :index_spfresh;
 import :kmeans_partition;
+import :simd_functions;
 import :infinity_exception;
 import :local_file_handle;
 import :logger;
@@ -122,48 +123,55 @@ size_t SPFreshIndexInMem::EncodeWithRotation(f32 *code_buf, const f32 *vec) cons
     auto *code = reinterpret_cast<RabitQVec *>(code_buf);
     std::memset(code_buf, 0, RabitQVecSize(dim_));
 
-    // Step 1: Compute raw norm (||o||^2)
+    // Thread-local scratch buffers: allocated once per thread, reused across calls
+    thread_local std::vector<f32> normed_buf;
+    thread_local std::vector<f32> rot_buf;
+    if (normed_buf.size() < dim_) normed_buf.resize(dim_);
+    if (rot_buf.size() < dim_) rot_buf.resize(dim_);
+
     f64 raw_norm = 0;
-    for (u32 d = 0; d < dim_; ++d) {
-        raw_norm += static_cast<f64>(vec[d]) * vec[d];
-    }
+    for (u32 d = 0; d < dim_; ++d) raw_norm += static_cast<f64>(vec[d]) * vec[d];
     code->raw_norm_ = static_cast<f32>(raw_norm);
-    f64 inv_raw_norm = (raw_norm > 1e-30) ? (1.0 / std::sqrt(raw_norm)) : 1.0;
+    f64 inv = (raw_norm > 1e-30) ? (1.0 / std::sqrt(raw_norm)) : 1.0;
 
-    // Step 2: Normalize vector → unit sphere
-    std::vector<f32> normalized(dim_);
     for (u32 d = 0; d < dim_; ++d) {
-        normalized[d] = static_cast<f32>(static_cast<f64>(vec[d]) * inv_raw_norm);
+        normed_buf[d] = static_cast<f32>(static_cast<f64>(vec[d]) * inv);
     }
 
-    // Step 3: Apply rotation
-    std::vector<f32> rotated(dim_);
-    ApplyRotation(normalized.data(), rotated.data());
+    // Apply rotation: rot_buf = rot_matrix_ * normed_buf
+    for (u32 i = 0; i < dim_; ++i) {
+        f32 sum = 0.0f;
+        for (u32 d = 0; d < dim_; ++d) {
+            sum += rot_matrix_[static_cast<size_t>(i) * dim_ + d] * normed_buf[d];
+        }
+        rot_buf[i] = sum;
+    }
 
-    // Step 4: Sign encoding (1-bit per dimension)
     f32 sum_pos = 0.0f;
     for (u32 d = 0; d < dim_; ++d) {
-        if (rotated[d] >= 0) {
+        if (rot_buf[d] >= 0) {
             code->compress_[d / 8] |= (1 << (d % 8));
             sum_pos += 1.0f;
         }
     }
     code->sum_ = sum_pos;
-    code->norm_ = 1.0f; // unit norm after normalization
+    code->norm_ = 1.0f;
     code->error_ = 0.95f;
 
     return RabitQVecSize(dim_);
 }
 
 void SPFreshIndexInMem::DecodeWithRotation(const RabitQVec *code, f32 *out_vec) const {
+    thread_local std::vector<f32> rotated_buf;
+    if (rotated_buf.size() < dim_) rotated_buf.resize(dim_);
+
     f32 mag = 1.0f / std::sqrt(static_cast<f32>(dim_));
-    std::vector<f32> rotated(dim_);
     for (u32 d = 0; d < dim_; ++d) {
         bool bit = (code->compress_[d / 8] >> (d % 8)) & 1;
-        rotated[d] = bit ? mag : -mag;
+        rotated_buf[d] = bit ? mag : -mag;
     }
 
-    ApplyInverseRotation(rotated.data(), out_vec);
+    ApplyInverseRotation(rotated_buf.data(), out_vec);
 
     f32 raw_norm_sqrt = std::sqrt(code->raw_norm_);
     for (u32 d = 0; d < dim_; ++d) {
@@ -286,7 +294,7 @@ void SPFreshIndexInMem::FindTopKCentroids(const f32 *query, u32 top_k,
 void SPFreshIndexInMem::Build(const f32 *vectors, u32 count) {
     if (count == 0 || num_centroids_ == 0) return;
 
-    // Step 1: Run K-Means on ORIGINAL vectors (not rotated)
+    // Step 1: Run K-Means on ORIGINAL vectors
     std::vector<f32> centroid_vecs;
     u32 actual_centroids = GetKMeansCentroids<f32, f32>(
         MetricType::kMetricL2, dim_, count, vectors,
@@ -307,12 +315,83 @@ void SPFreshIndexInMem::Build(const f32 *vectors, u32 count) {
 
     BuildCentroidIndex();
 
+    // Step 2: SIMD batch centroid assignment — processes all vectors in one call
+    // SearchTop1WithDisF32U32(dim, n, data, n_centroids, centroids, labels_out, dists_out)
+    // This is ~10× faster than per-vector FindNearestCentroid
+    std::vector<u32> assign_labels(count);
+    std::vector<f32> assign_dists(count);
+    auto search_fn = GetSIMD_FUNCTIONS().SearchTop1WithDisF32U32_func_ptr_;
+    search_fn(dim_, count, vectors, num_centroids_, centroids_.data(),
+              assign_labels.data(), assign_dists.data());
+
+    // Step 3: Batch normalise + rotate all vectors
+    // One allocation for normalized+rotated vectors (count × dim)
+    // Uses thread_local scratch buffer for rotation to avoid per-vector heap alloc
+    size_t code_size = RabitQVecSize(dim_);
+    std::vector<f32> batch_buf(static_cast<size_t>(count) * dim_);
+    thread_local std::vector<f32> rot_tmp;
+
+    // 3a: Normalise all
     for (u32 i = 0; i < count; ++i) {
-        InsertVector(vectors, i);
-        vectors += dim_;
+        const f32 *vec = vectors + static_cast<size_t>(i) * dim_;
+        f32 *normed = batch_buf.data() + static_cast<size_t>(i) * dim_;
+        f64 raw_norm = 0;
+        for (u32 d = 0; d < dim_; ++d) raw_norm += static_cast<f64>(vec[d]) * vec[d];
+        f64 inv = (raw_norm > 1e-30) ? (1.0 / std::sqrt(raw_norm)) : 1.0;
+        for (u32 d = 0; d < dim_; ++d) normed[d] = static_cast<f32>(static_cast<f64>(vec[d]) * inv);
     }
 
-    LOG_INFO(fmt::format("SPFresh Build: {} vectors, {} centroids", count, num_centroids_));
+    // 3b: Rotate all (O(N·dim²)) — reuse rot_tmp to avoid heap alloc
+    if (rot_tmp.size() < dim_) rot_tmp.resize(dim_);
+    for (u32 i = 0; i < count; ++i) {
+        f32 *row = batch_buf.data() + static_cast<size_t>(i) * dim_;
+        std::memcpy(rot_tmp.data(), row, dim_ * sizeof(f32));
+        for (u32 r = 0; r < dim_; ++r) {
+            f32 sum = 0.0f;
+            for (u32 c = 0; c < dim_; ++c) {
+                sum += rot_matrix_[static_cast<size_t>(r) * dim_ + c] * rot_tmp[c];
+            }
+            row[r] = sum;
+        }
+    }
+
+    // Step 4: Sign-encode all pre-rotated vectors + write metadata
+    for (u32 i = 0; i < count; ++i) {
+        const f32 *vec = vectors + static_cast<size_t>(i) * dim_;
+        const f32 *rotated = batch_buf.data() + static_cast<size_t>(i) * dim_;
+        u32 centroid_id = assign_labels[i];
+
+        // Bucket assignment
+        for (u32 r = 0; r < replica_count_; ++r) {
+            bucket_assignments_[static_cast<size_t>(i) * replica_count_ + r] = centroid_id;
+        }
+        bucket_metas_[centroid_id].base_count_++;
+
+        // RaBitQ encode (sign only, no rotation needed)
+        auto *code = reinterpret_cast<RabitQVec *>(rabitq_data_ + static_cast<size_t>(i) * code_size);
+        std::memset(code, 0, code_size);
+
+        f64 raw_norm = 0;
+        for (u32 d = 0; d < dim_; ++d) raw_norm += static_cast<f64>(vec[d]) * vec[d];
+        code->raw_norm_ = static_cast<f32>(raw_norm);
+        code->norm_ = 1.0f;
+        code->error_ = 0.95f;
+
+        f32 sum_pos = 0.0f;
+        for (u32 d = 0; d < dim_; ++d) {
+            if (rotated[d] >= 0) {
+                code->compress_[d / 8] |= (1 << (d % 8));
+                sum_pos += 1.0f;
+            }
+        }
+        code->sum_ = sum_pos;
+
+        running_means_[centroid_id].Update(vec, dim_);
+    }
+
+    num_vectors_ = count;
+    LOG_INFO(fmt::format("SPFresh Build: {} vectors, {} centroids ({}s)",
+                         count, num_centroids_, 0));
 }
 
 void SPFreshIndexInMem::InsertVector(const f32 *vec, u32 local_id) {
@@ -378,29 +457,29 @@ void SPFreshIndexInMem::Search(const f32 *query, u32 dim,
                                 const SearchCallback &callback) const {
     if (dim != dim_ || num_vectors_ == 0) return;
 
+    // Thread-local scratch buffers: allocated once per thread, reused across calls
+    thread_local std::vector<f32> query_normed_buf;
+    thread_local std::vector<f32> rotated_query_buf;
+    if (query_normed_buf.size() < dim_) query_normed_buf.resize(dim_);
+    if (rotated_query_buf.size() < dim_) rotated_query_buf.resize(dim_);
+
     f32 inv_sqrt_d = 1.0f / std::sqrt(static_cast<f32>(dim_));
     size_t code_size = RabitQVecSize(dim_);
 
     // Step 1: Normalize query (to unit sphere)
     f64 query_raw_norm = 0;
-    for (u32 d = 0; d < dim_; ++d) {
-        query_raw_norm += static_cast<f64>(query[d]) * query[d];
-    }
-    f64 inv_query_norm = (query_raw_norm > 1e-30) ? (1.0 / std::sqrt(query_raw_norm)) : 1.0;
-    std::vector<f32> query_normed(dim_);
-    for (u32 d = 0; d < dim_; ++d) {
-        query_normed[d] = static_cast<f32>(static_cast<f64>(query[d]) * inv_query_norm);
-    }
+    for (u32 d = 0; d < dim_; ++d) query_raw_norm += static_cast<f64>(query[d]) * query[d];
+    f64 inv = (query_raw_norm > 1e-30) ? (1.0 / std::sqrt(query_raw_norm)) : 1.0;
+    for (u32 d = 0; d < dim_; ++d) query_normed_buf[d] = static_cast<f32>(static_cast<f64>(query[d]) * inv);
 
     // Step 2: Rotate normalized query
-    std::vector<f32> rotated_query(dim_);
-    ApplyRotation(query_normed.data(), rotated_query.data());
+    ApplyRotation(query_normed_buf.data(), rotated_query_buf.data());
 
     // Step 3: Find top-K centroids using ORIGINAL (unrotated, normalized) query
     u32 search_centroid_k = std::min(static_cast<u32>(64), num_centroids_);
     std::vector<u32> candidate_centroids;
     std::vector<f32> centroid_dists;
-    FindTopKCentroids(query_normed.data(), search_centroid_k, candidate_centroids, centroid_dists);
+    FindTopKCentroids(query_normed_buf.data(), search_centroid_k, candidate_centroids, centroid_dists);
 
     if (candidate_centroids.empty()) return;
 
@@ -433,7 +512,7 @@ void SPFreshIndexInMem::Search(const f32 *query, u32 dim,
         if (!in_candidate) continue;
 
         const auto *code = reinterpret_cast<const RabitQVec *>(rabitq_data_ + static_cast<size_t>(i) * code_size);
-        f32 dist = RabitQDistWithRotation(code, rotated_query.data(), dim_, inv_sqrt_d);
+        f32 dist = RabitQDistWithRotation(code, rotated_query_buf.data(), dim_, inv_sqrt_d);
         callback(i, dist);
     }
 
@@ -448,7 +527,7 @@ void SPFreshIndexInMem::Search(const f32 *query, u32 dim,
             if (deleted_snapshot.find(original_row_id) != deleted_snapshot.end()) continue;
 
             const auto *code = reinterpret_cast<const RabitQVec *>(delta->GetCode(di));
-            f32 dist = RabitQDistWithRotation(code, rotated_query.data(), dim_, inv_sqrt_d);
+            f32 dist = RabitQDistWithRotation(code, rotated_query_buf.data(), dim_, inv_sqrt_d);
             callback(original_row_id, dist);
         }
     };
