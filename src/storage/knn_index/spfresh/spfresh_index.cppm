@@ -29,92 +29,66 @@ export class SPFreshIndexInMem : public BaseMemIndex {
 public:
     SPFreshIndexInMem()
         : begin_row_id_(), rabitq_data_(nullptr), num_vectors_(0), max_vectors_(0), dim_(0),
-          rot_matrix_(nullptr), centroid_hnsw_(nullptr), num_centroids_(0),
-          centroids_(), bucket_metas_(), replica_count_(0),
+          pad_dim_(0), hadamard_flip_(nullptr), num_centroids_(0), coarse_count_(0),
+          centroids_(), centroid_to_coarse_(), coarse_centroids_(), coarse_hnsw_(nullptr),
+          bucket_metas_(), replica_count_(0),
           bucket_assignments_(), delta_a_(nullptr), delta_b_(nullptr), active_delta_idx_(0),
-          compact_mtx_(), bucket_locks_(nullptr), bucket_locks_count_(0),
-          running_means_(), deleted_set_(), delete_mtx_(), mem_used_(0) {}
+          bucket_locks_(nullptr), bucket_locks_count_(0),
+          running_means_(), deleted_set_(), mem_used_(0) {}
 
     SPFreshIndexInMem(RowID begin_row_id, const IndexSPFresh *index_def, u32 embedding_dim, u32 max_vectors);
     ~SPFreshIndexInMem() override;
 
-    // BaseMemIndex interface
     MemIndexTracerInfo GetInfo() const override;
     const ChunkIndexMetaInfo GetChunkIndexMetaInfo() const override;
     RowID GetBeginRowID() const override { return begin_row_id_; }
 
-    // ── Phase A: Full RaBitQ with rotation ──
-
-    // Bulk build: K-Means clustering + centroid HNSW + RaBitQ compress
+    // Bulk build
     void Build(const f32 *vectors, u32 count);
-
-    // Insert a single vector into base array (used during Build)
     void InsertVector(const f32 *vec, u32 local_id);
 
-    // ── Phase A+B: RaBitQ encode/decode with rotation matrix ──
-
-    // RaBitQ compressed vector format (with rotation)
+    // RaBitQ format
     struct RabitQVec {
-        f32 raw_norm_;   // ||o||^2
-        f32 norm_;       // ||o_r|| (after rotation + normalization)
-        f32 sum_;        // sum of positive bits after rotation
-        f32 error_;      // encoding error
-        u8 compress_[];  // 1-bit code [dim/8 bytes]
+        f32 raw_norm_;
+        f32 norm_;
+        f32 sum_;
+        f32 error_;
+        u8 compress_[];
     };
-
     static size_t RabitQVecSize(u32 dim) { return sizeof(RabitQVec) + dim / 8; }
 
-    // Encode with Givens rotation (Phase A)
     size_t EncodeWithRotation(f32 *code_buf, const f32 *vec) const;
-    // Decode (inverse rotation + dequantize)
     void DecodeWithRotation(const RabitQVec *code, f32 *out_vec) const;
 
-    // Distance with rotation-aware correction (Phase A)
-    // Both code and query must be in normalized-rotated space (unit norm)
+    // SIMD RaBitQ distance (P0.2)
     static f32 RabitQDistWithRotation(const RabitQVec *code, const f32 *rotated_query_normed,
                                        u32 dim, f32 inv_sqrt_d);
 
-    // ── Phase A: Centroid HNSW routing ──
+    // Centroid routing: HNSW on coarse centroids (P1.2)
     using HnswType = KnnHnsw<PlainL2VecStoreType<f32>, u32>;
 
-    // Build centroid HNSW from centroids_ array
     void BuildCentroidIndex();
-
-    // Find top-K centroids for a query
-    void FindTopKCentroids(const f32 *rotated_query, u32 top_k,
-                           std::vector<u32> &out_centroid_ids,
+    void FindTopKCentroids(const f32 *query, u32 top_k,
+                           std::vector<u32> &out_ids,
                            std::vector<f32> &out_dists) const;
-
-    // ── Phase B: Incremental insert (RNGSelection + delta double-buffer) ──
 
     void InsertDelta(const f32 *vec, u32 row_id);
 
-    // ── Phase B+C: Delta double-buffer ──
-
-    // Compact: merge delta into base (COW)
+    // P0.3: Atomic Compact with temp buffer
     void Compact();
 
-    // Search with centroid pruning (Phase A) + delta merge (Phase B) + rerank
     using SearchCallback = std::function<void(SegmentOffset, f32)>;
     void Search(const f32 *query, u32 dim, const SearchCallback &callback) const;
 
-    // ── Phase B: Delete (lazy) ──
-
     void MarkDeleted(u32 row_id);
-
-    // ── Phase C: Rebalancer ──
 
     bool TryAutoCompact(u32 delta_threshold = 8192);
     void Rebalance(u32 bucket_size_limit = 10000);
     std::vector<u32> SplitBucket(u32 bucket_id);
 
-    // ── Persistence ──
-
     void Save(LocalFileHandle &file_handle) const;
     void Load(LocalFileHandle &file_handle, size_t file_size);
     void Dump(BufferObj *buffer_obj, size_t *p_dump_size = nullptr);
-
-    // ── Accessors ──
 
     u32 GetRowCount() const { return num_vectors_ + GetDeltaCount() - static_cast<u32>(deleted_set_.size()); }
     u32 GetBaseRowCount() const { return num_vectors_; }
@@ -128,62 +102,56 @@ public:
     u32 GetNumCentroids() const { return num_centroids_; }
 
 private:
-    // Generate random orthogonal matrix via Givens rotations (Phase A)
-    void GenerateRotationMatrix();
+    // P0.1: Global structure lock (protects centroids, bucket_locks, assignments)
+    mutable std::shared_mutex global_mtx_;
 
-    // Apply rotation: out = rot_matrix * vec
-    void ApplyRotation(const f32 *vec, f32 *out) const;
-
-    // Apply inverse rotation: out = rot_matrix^T * vec
-    void ApplyInverseRotation(const f32 *vec, f32 *out) const;
-
-    // Find nearest centroid (exhaustive, used during build)
+    // P1.1: Hadamard rotation (flip_signs_ replaces rot_matrix_)
+    void GenerateHadamardParams();       // generates flip_signs_
+    void ApplyHadamard(f32 *vec, u32 n) const; // in-place, n must be power of 2
+    void ApplyRotation(const f32 *vec, f32 *out) const; // pad + Hadamard
+    void ApplyInverseRotation(const f32 *vec, f32 *out) const; // same as forward (Hadamard is self-inverse up to scale)
+    // Find nearest centroid (brute-force, used during build)
     u32 FindNearestCentroid(const f32 *vec) const;
 
 private:
     RowID begin_row_id_;
 
-    // ── Base RaBitQ compressed data ──
     char *rabitq_data_;
     u32 num_vectors_;
     u32 max_vectors_;
     u32 dim_;
+    u32 pad_dim_;                 // next power of 2 for Hadamard (P1.1)
 
-    // ── Phase A: Rotation matrix (dim_ x dim_) ──
-    f32 *rot_matrix_;  // random orthogonal matrix
+    // P1.1: Hadamard sign flip vector (one bool per pad_dim)
+    bool *hadamard_flip_;          // random ±1 signs for Hadamard
 
-    // ── Phase A: Centroid HNSW index ──
-    std::unique_ptr<HnswType> centroid_hnsw_;
+    // P1.2: Hierarchical coarse/fine centroids
+    u32 num_centroids_;            // fine centroids
+    u32 coarse_count_;             // ∼sqrt(num_centroids_)
+    std::vector<f32> centroids_;                // fine centroids
+    std::vector<u32> centroid_to_coarse_;       // fine→coarse mapping
+    std::vector<f32> coarse_centroids_;         // coarse centroids
+    std::unique_ptr<HnswType> coarse_hnsw_;     // HNSW on coarse
 
-    u32 num_centroids_;
-    std::vector<f32> centroids_;
     std::vector<SPFreshBucketMeta> bucket_metas_;
 
-    // ── Phase B: Replica assignments ──
     u32 replica_count_;
-    // For each vector, which centroids it belongs to (flat array: vector_id * replica_count_ + replica_idx)
     std::vector<u32> bucket_assignments_;
 
-    // ── Phase B: Delta double-buffer ──
-    // Phase C: COW compaction
+    // P0.3: Delta double-buffer
     SPFreshDeltaBuffer *delta_a_;
     SPFreshDeltaBuffer *delta_b_;
-    std::atomic<u32> active_delta_idx_; // 0 = delta_a_, 1 = delta_b_
-    mutable std::shared_mutex compact_mtx_; // lock during compaction
+    std::atomic<u32> active_delta_idx_;
+    mutable std::shared_mutex compact_mtx_;
 
-    // ── Phase B: Per-bucket locks ──
-    // Use mutex array (non-copyable, allocated in constructor)
+    // P0.1: Per-bucket locks (protected by global_mtx_)
     mutable std::mutex *bucket_locks_;
     u32 bucket_locks_count_;
 
-    // ── Phase C: Running means for centroids ──
     std::vector<SPFreshRunningMean> running_means_;
-
-    // ── Phase B: Deleted set ──
     std::unordered_set<u32> deleted_set_;
     mutable std::shared_mutex delete_mtx_;
 
-    // ── Memory tracking ──
     size_t mem_used_{0};
 };
 
