@@ -359,6 +359,8 @@ Status NewTxn::OptimizeIndexInner(SegmentIndexMeta &segment_index_meta,
         if (!status.ok()) {
             return status;
         }
+    } else if (index_base->index_type_ == IndexType::kSPFresh) {
+        // SPFresh: handled in the type-specific switch below
     } else {
         base_rowid = RowID(segment_id, 0);
         RowID last_rowid = base_rowid;
@@ -491,6 +493,18 @@ Status NewTxn::OptimizeIndexInner(SegmentIndexMeta &segment_index_meta,
             BufferHandle buffer_handle = buffer_obj->Load();
             auto *data_ptr = static_cast<EMVBIndex *>(buffer_handle.GetDataMut());
             data_ptr->BuildEMVBIndex(base_rowid, row_cnt, segment_meta, column_def);
+            break;
+        }
+        case IndexType::kSPFresh: {
+            // SPFresh optimize: trigger rebalance on in-memory index
+            auto mem_index = segment_index_meta.GetMemIndex();
+            if (mem_index != nullptr) {
+                auto spfresh_idx = mem_index->GetSPFreshIndex();
+                if (spfresh_idx != nullptr) {
+                    spfresh_idx->Rebalance(10000);
+                    LOG_INFO(fmt::format("SPFresh Optimize (Rebalance) on segment {}", segment_id));
+                }
+            }
             break;
         }
         case IndexType::kPLAID: {

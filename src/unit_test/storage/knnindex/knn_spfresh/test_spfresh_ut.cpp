@@ -27,7 +27,7 @@ TEST_F(SPFreshTest, test_build_and_search) {
     auto index_def = std::make_shared<IndexSPFresh>(
         std::make_shared<std::string>("test_idx"), std::make_shared<std::string>(""),
         "test", std::vector<std::string>{"col1"},
-        MetricType::kMetricL2, 2, 1, 10000, true);
+        MetricType::kMetricL2, 2, 1, 10000, true, 512);
     SPFreshIndexInMem idx(RowID(0, 0), index_def.get(), 4, 100);
 
     f32 vecs[] = {1.0f, 0.0f, 0.0f, 0.0f,
@@ -50,7 +50,7 @@ TEST_F(SPFreshTest, test_insert_delta_and_search) {
     auto index_def = std::make_shared<IndexSPFresh>(
         std::make_shared<std::string>("test_idx"), std::make_shared<std::string>(""),
         "test", std::vector<std::string>{"col1"},
-        MetricType::kMetricL2, 2, 1, 10000, true);
+        MetricType::kMetricL2, 2, 1, 10000, true, 512);
     SPFreshIndexInMem idx(RowID(0, 0), index_def.get(), 4, 100);
 
     f32 base[] = {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f};
@@ -76,7 +76,7 @@ TEST_F(SPFreshTest, test_compact) {
     auto index_def = std::make_shared<IndexSPFresh>(
         std::make_shared<std::string>("test_idx"), std::make_shared<std::string>(""),
         "test", std::vector<std::string>{"col1"},
-        MetricType::kMetricL2, 2, 1, 10000, true);
+        MetricType::kMetricL2, 2, 1, 10000, true, 512);
     SPFreshIndexInMem idx(RowID(0, 0), index_def.get(), 4, 100);
 
     f32 base[] = {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f};
@@ -96,7 +96,7 @@ TEST_F(SPFreshTest, test_delete_and_gc) {
     auto index_def = std::make_shared<IndexSPFresh>(
         std::make_shared<std::string>("test_idx"), std::make_shared<std::string>(""),
         "test", std::vector<std::string>{"col1"},
-        MetricType::kMetricL2, 2, 1, 10000, true);
+        MetricType::kMetricL2, 2, 1, 10000, true, 512);
     SPFreshIndexInMem idx(RowID(0, 0), index_def.get(), 4, 100);
 
     f32 base[] = {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f};
@@ -120,7 +120,7 @@ TEST_F(SPFreshTest, test_auto_compact) {
     auto index_def = std::make_shared<IndexSPFresh>(
         std::make_shared<std::string>("test_idx"), std::make_shared<std::string>(""),
         "test", std::vector<std::string>{"col1"},
-        MetricType::kMetricL2, 1, 1, 10000, true);
+        MetricType::kMetricL2, 1, 1, 10000, true, 512);
     SPFreshIndexInMem idx(RowID(0, 0), index_def.get(), 4, 100);
 
     f32 base[] = {1.0f, 0.0f, 0.0f, 0.0f, 0.5f, 0.5f, 0.0f, 0.0f};
@@ -143,7 +143,7 @@ TEST_F(SPFreshTest, test_rebalance_no_crash) {
     auto index_def = std::make_shared<IndexSPFresh>(
         std::make_shared<std::string>("test_idx"), std::make_shared<std::string>(""),
         "test", std::vector<std::string>{"col1"},
-        MetricType::kMetricL2, 2, 1, 10000, true);
+        MetricType::kMetricL2, 2, 1, 10000, true, 512);
     SPFreshIndexInMem idx(RowID(0, 0), index_def.get(), 4, 100);
 
     f32 base[] = {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f};
@@ -158,7 +158,7 @@ TEST_F(SPFreshTest, test_rabitq_distance) {
     auto index_def = std::make_shared<IndexSPFresh>(
         std::make_shared<std::string>("test_idx"), std::make_shared<std::string>(""),
         "test", std::vector<std::string>{"col1"},
-        MetricType::kMetricL2, 1, 1, 10000, true);
+        MetricType::kMetricL2, 1, 1, 10000, true, 512);
     SPFreshIndexInMem idx(RowID(0, 0), index_def.get(), 4, 100);
 
     f32 base[] = {1.0f, 0.0f, 0.0f, 0.0f, 0.5f, 0.5f, 0.0f, 0.0f};

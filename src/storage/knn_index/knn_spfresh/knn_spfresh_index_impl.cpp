@@ -5,6 +5,9 @@
 module;
 
 #include <immintrin.h>
+#include <sys/mman.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 module infinity_core:spfresh_index.impl;
 
@@ -24,26 +27,58 @@ import embedding_info;
 
 namespace infinity {
 
+// P3.1: Background maintenance thread function
+static void SpfreshMaintenanceLoop(std::stop_token st, SPFreshIndexInMem *index) {
+    u32 cycle = 0;
+    while (!st.stop_requested()) {
+        std::this_thread::sleep_for(std::chrono::seconds(60));
+        if (st.stop_requested()) break;
+        ++cycle;
+        index->TryAutoCompact(8192);
+        if (cycle % 10 == 0) {
+            index->Rebalance(10000);
+        }
+    }
+}
+
 // ========== Construction / Destruction ==========
 
-SPFreshIndexInMem::SPFreshIndexInMem(RowID begin_row_id, const IndexSPFresh *index_def, u32 embedding_dim, u32 max_vectors)
+SPFreshIndexInMem::SPFreshIndexInMem(RowID begin_row_id, const IndexSPFresh *index_def, u32 embedding_dim, u32 max_vectors,
+                                      const std::string &base_path)
     : begin_row_id_(begin_row_id), rabitq_data_(nullptr),
       num_vectors_(0), max_vectors_(max_vectors), dim_(embedding_dim),
-      pad_dim_(1), hadamard_flip_(nullptr),
+      pad_dim_(1),
+      max_delta_bytes_(static_cast<u64>(index_def ? index_def->max_delta_mb_ : 512) * 1024 * 1024),
+      base_file_path_(base_path), base_fd_(-1), base_file_size_(0),
+      hadamard_flip_(nullptr),
       num_centroids_(index_def ? index_def->num_centroids_ : 1000), coarse_count_(0),
-      replica_count_(index_def ? index_def->replica_count_ : 1),
+      centroids_(), centroid_to_coarse_(), coarse_centroids_(), coarse_hnsw_(nullptr),
+      bucket_metas_(), replica_count_(index_def ? index_def->replica_count_ : 1),
+      bucket_assignments_(),
       delta_a_(nullptr), delta_b_(nullptr), active_delta_idx_(0),
-      bucket_locks_(nullptr), bucket_locks_count_(0) {
+      bucket_locks_(nullptr), bucket_locks_count_(0),
+      running_means_(), deleted_set_(), mem_used_(0) {
 
     while (pad_dim_ < dim_) pad_dim_ <<= 1;
-
     size_t code_size = RabitQVecSize(dim_);
     size_t data_size = static_cast<size_t>(max_vectors) * code_size;
-    rabitq_data_ = new char[data_size];
-    std::memset(rabitq_data_, 0, data_size);
+
+    // P2.3: File-backed storage (mmap) or DRAM
+    if (!base_file_path_.empty()) {
+        base_fd_ = ::open(base_file_path_.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0644);
+        if (base_fd_ >= 0) {
+            base_file_size_ = data_size;
+            ::ftruncate(base_fd_, static_cast<off_t>(base_file_size_));
+            rabitq_data_ = static_cast<char *>(::mmap(nullptr, base_file_size_, PROT_READ | PROT_WRITE, MAP_SHARED, base_fd_, 0));
+            if (rabitq_data_ == MAP_FAILED) { rabitq_data_ = nullptr; ::close(base_fd_); base_fd_ = -1; }
+        }
+    }
+    if (rabitq_data_ == nullptr) {
+        // DRAM fallback
+        rabitq_data_ = new char[data_size]();
+    }
     mem_used_ += data_size;
 
-    // P1.1: Hadamard params: pad_dim_ random ±1 signs
     hadamard_flip_ = new bool[pad_dim_];
     GenerateHadamardParams();
     mem_used_ += pad_dim_ * sizeof(bool);
@@ -62,7 +97,13 @@ SPFreshIndexInMem::SPFreshIndexInMem(RowID begin_row_id, const IndexSPFresh *ind
 }
 
 SPFreshIndexInMem::~SPFreshIndexInMem() {
-    delete[] rabitq_data_;
+    if (base_fd_ >= 0 && rabitq_data_ != nullptr) {
+        ::munmap(rabitq_data_, base_file_size_);
+        ::close(base_fd_);
+        ::unlink(base_file_path_.c_str());
+    } else {
+        delete[] rabitq_data_;
+    }
     delete[] hadamard_flip_;
     delete[] bucket_locks_;
     delete delta_a_;
@@ -429,10 +470,32 @@ void SPFreshIndexInMem::InsertVector(const f32 *vec, u32 local_id) {
     ++num_vectors_;
 }
 
+// ========== P3.1: Background Maintenance ==========
+
+void SPFreshIndexInMem::StartBackgroundMaintenance() {
+    if (maintenance_thread_.joinable()) return;
+    maintenance_stop_.store(false, std::memory_order_relaxed);
+    maintenance_thread_ = std::jthread(SpfreshMaintenanceLoop, this);
+}
+
+void SPFreshIndexInMem::StopBackgroundMaintenance() {
+    if (maintenance_thread_.joinable()) {
+        maintenance_thread_.request_stop();
+        maintenance_thread_.join();
+    }
+}
+
 // ========== Incremental Insert (P0.1: protected by global_mtx_) ==========
 
 void SPFreshIndexInMem::InsertDelta(const f32 *vec, u32 row_id) {
     if (!delta_a_ || !delta_b_ || num_centroids_ == 0) return;
+
+    // P2.2: Check memory budget — auto-compact if delta exceeds limit
+    u32 idx_snap = active_delta_idx_.load(std::memory_order_acquire);
+    auto *active_snap = (idx_snap == 0) ? delta_a_ : delta_b_;
+    if (active_snap->data_.size() > max_delta_bytes_) {
+        Compact();
+    }
 
     std::vector<u32> centroid_ids;
     std::vector<f32> centroid_dists;
@@ -543,7 +606,7 @@ void SPFreshIndexInMem::MarkDeleted(u32 row_id) {
     deleted_set_.insert(row_id);
 }
 
-// ========== P0.3: Atomic Compact (temp buffer + atomic swap) ==========
+// ========== P0.3 + P2.3: Atomic Compact (mmap-aware) ==========
 
 void SPFreshIndexInMem::Compact() {
     if (!delta_a_ || !delta_b_) return;
@@ -557,13 +620,13 @@ void SPFreshIndexInMem::Compact() {
     u32 new_idx = 1 - old_idx;
     auto *old_delta = (old_idx == 0) ? delta_a_ : delta_b_;
 
+    // Collect live entries
     struct Entry { u32 rid; const char *code; };
     std::vector<Entry> live;
     live.reserve(num_vectors_ + old_delta->entry_count_);
-    for (u32 i = 0; i < num_vectors_; ++i) {
+    for (u32 i = 0; i < num_vectors_; ++i)
         if (deleted.find(i) == deleted.end())
             live.push_back({i, static_cast<const char *>(rabitq_data_) + static_cast<size_t>(i) * code_size});
-    }
     for (u32 di = 0; di < old_delta->entry_count_; ++di) {
         u32 orig = old_delta->GetRowId(di);
         if (deleted.find(orig) == deleted.end())
@@ -571,23 +634,35 @@ void SPFreshIndexInMem::Compact() {
     }
 
     u32 new_count = static_cast<u32>(live.size());
+    size_t new_data_size = static_cast<size_t>(new_count) * code_size;
+
+    // Handle empty case
     if (new_count == 0) {
-        delete[] static_cast<char *>(rabitq_data_);
-        rabitq_data_ = new char[code_size];
+        char *new_empty = nullptr;
+        if (base_fd_ >= 0) {
+            ::ftruncate(base_fd_, static_cast<off_t>(code_size));
+            new_empty = static_cast<char *>(::mmap(nullptr, code_size, PROT_READ | PROT_WRITE, MAP_SHARED, base_fd_, 0));
+            ::munmap(rabitq_data_, base_file_size_);
+            rabitq_data_ = (new_empty != MAP_FAILED) ? new_empty : new char[code_size]();
+            base_file_size_ = code_size;
+        } else {
+            delete[] static_cast<char *>(rabitq_data_);
+            rabitq_data_ = new char[code_size]();
+        }
         std::memset(rabitq_data_, 0, code_size);
         num_vectors_ = 0; max_vectors_ = 1;
         old_delta->Clear(); active_delta_idx_.store(new_idx, std::memory_order_release);
         return;
     }
 
-    // P0.3: Build into temp buffer first, then atomic swap
-    auto *new_data = new char[static_cast<size_t>(new_count) * code_size];
+    // Build temp buffer with live data
+    std::vector<char> tmp_buf(new_data_size);
     std::vector<u32> new_assign(static_cast<size_t>(new_count) * replica_count_, u32(-1));
     std::unordered_map<u32, u32> old2new;
     old2new.reserve(new_count);
 
     for (u32 j = 0; j < new_count; ++j) {
-        std::memcpy(new_data + static_cast<size_t>(j) * code_size, live[j].code, code_size);
+        std::memcpy(tmp_buf.data() + static_cast<size_t>(j) * code_size, live[j].code, code_size);
         old2new[live[j].rid] = j;
         u32 orig = live[j].rid;
         if (orig < bucket_assignments_.size() / replica_count_) {
@@ -597,11 +672,33 @@ void SPFreshIndexInMem::Compact() {
         }
     }
 
-    // Atomic swap: update all pointers before clearing old
+    // Atomic swap (P0.3) with mmap support (P2.3)
     {
         std::lock_guard wlock(global_mtx_);
-        delete[] static_cast<char *>(rabitq_data_);
-        rabitq_data_ = new_data;
+
+        if (base_fd_ >= 0) {
+            // Write temp file → rename → munmap old → ftruncate → mmap new
+            std::string tmp_path = base_file_path_ + ".compact";
+            int tmp_fd = ::open(tmp_path.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0644);
+            if (tmp_fd >= 0) {
+                ::write(tmp_fd, tmp_buf.data(), new_data_size);
+                ::close(tmp_fd);
+                if (::rename(tmp_path.c_str(), base_file_path_.c_str()) == 0) {
+                    ::munmap(rabitq_data_, base_file_size_);
+                    ::ftruncate(base_fd_, static_cast<off_t>(new_data_size));
+                    char *m = static_cast<char *>(::mmap(nullptr, new_data_size, PROT_READ | PROT_WRITE, MAP_SHARED, base_fd_, 0));
+                    rabitq_data_ = (m != MAP_FAILED) ? m : new char[new_data_size]();
+                    base_file_size_ = new_data_size;
+                }
+            }
+        } else {
+            // DRAM mode: allocate new, copy, delete old
+            auto *new_data = new char[new_data_size];
+            std::memcpy(new_data, tmp_buf.data(), new_data_size);
+            delete[] static_cast<char *>(rabitq_data_);
+            rabitq_data_ = new_data;
+        }
+
         num_vectors_ = new_count;
         max_vectors_ = new_count;
         bucket_assignments_ = std::move(new_assign);
@@ -617,6 +714,12 @@ void SPFreshIndexInMem::Compact() {
 
     old_delta->Clear();
     active_delta_idx_.store(new_idx, std::memory_order_release);
+    compact_count_.fetch_add(1, std::memory_order_relaxed);
+
+    // P3.3: Track peak delta
+    size_t da = delta_a_->data_.size() + delta_b_->data_.size();
+    size_t prev = peak_delta_bytes_.load(std::memory_order_relaxed);
+    while (da > prev && !peak_delta_bytes_.compare_exchange_weak(prev, da, std::memory_order_relaxed)) {}
 }
 
 // ========== Auto Compact ==========
@@ -694,6 +797,7 @@ std::vector<u32> SPFreshIndexInMem::SplitBucket(u32 bucket_id) {
         }
     }
 
+    split_count_.fetch_add(1, std::memory_order_relaxed);
     BuildCentroidIndex();
     LOG_INFO(fmt::format("SPFresh SplitBucket: {} → {} (c1={}, c2={})", bucket_id, num_centroids_, nc1, nc2));
     return {nc1, nc2};
@@ -840,10 +944,16 @@ void SPFreshIndexInMem::Dump(BufferObj *, size_t *) {}
 MemIndexTracerInfo SPFreshIndexInMem::GetInfo() const {
     u32 dc = GetDeltaCount();
     size_t dm = dc * (sizeof(u32) * 2 + RabitQVecSize(dim_));
+    size_t total_mem = mem_used_ + dm;
+    // P3.3: Include all components in memory estimate
+    total_mem += centroids_.size() * sizeof(f32);
+    total_mem += bucket_metas_.size() * sizeof(SPFreshBucketMeta);
+    total_mem += bucket_assignments_.size() * sizeof(u32);
+    total_mem += running_means_.size() * sizeof(SPFreshRunningMean);
     return MemIndexTracerInfo(std::make_shared<std::string>(index_name_),
                               std::make_shared<std::string>(table_name_),
                               std::make_shared<std::string>(db_name_),
-                              mem_used_ + dm, GetRowCount());
+                              total_mem, GetRowCount());
 }
 
 const ChunkIndexMetaInfo SPFreshIndexInMem::GetChunkIndexMetaInfo() const {

@@ -42,6 +42,7 @@ std::shared_ptr<IndexBase> IndexSPFresh::Make(std::shared_ptr<std::string> index
     u32 replica_count = 8;
     u32 bucket_size_limit = 10000;
     bool compress_to_rabitq = true;
+    u32 max_delta_mb = 512;
 
     for (const auto *param : index_param_list) {
         if (param->param_name_ == "metric") {
@@ -54,6 +55,8 @@ std::shared_ptr<IndexBase> IndexSPFresh::Make(std::shared_ptr<std::string> index
             bucket_size_limit = std::stoul(param->param_value_);
         } else if (param->param_name_ == "compress_to_rabitq") {
             compress_to_rabitq = (param->param_value_ == "true" || param->param_value_ == "1");
+        } else if (param->param_name_ == "max_delta_mb") {
+            max_delta_mb = std::stoul(param->param_value_);
         } else {
             Status status = Status::InvalidIndexParam(param->param_name_);
             RecoverableError(status);
@@ -73,13 +76,14 @@ std::shared_ptr<IndexBase> IndexSPFresh::Make(std::shared_ptr<std::string> index
                                           num_centroids,
                                           replica_count,
                                           bucket_size_limit,
-                                          compress_to_rabitq);
+                                          compress_to_rabitq,
+                                          max_delta_mb);
 }
 
 bool IndexSPFresh::operator==(const IndexSPFresh &other) const {
     return IndexBase::operator==(other) && metric_type_ == other.metric_type_ && num_centroids_ == other.num_centroids_ &&
            replica_count_ == other.replica_count_ && bucket_size_limit_ == other.bucket_size_limit_ &&
-           compress_to_rabitq_ == other.compress_to_rabitq_;
+           compress_to_rabitq_ == other.compress_to_rabitq_ && max_delta_mb_ == other.max_delta_mb_;
 }
 
 bool IndexSPFresh::operator!=(const IndexSPFresh &other) const { return !(*this == other); }
@@ -91,6 +95,7 @@ i32 IndexSPFresh::GetSizeInBytes() const {
     size += sizeof(replica_count_);
     size += sizeof(bucket_size_limit_);
     size += sizeof(compress_to_rabitq_);
+    size += sizeof(max_delta_mb_);
     return i32(size);
 }
 
@@ -101,13 +106,15 @@ void IndexSPFresh::WriteAdv(char *&ptr) const {
     WriteBufAdv(ptr, replica_count_);
     WriteBufAdv(ptr, bucket_size_limit_);
     WriteBufAdv(ptr, compress_to_rabitq_);
+    WriteBufAdv(ptr, max_delta_mb_);
 }
 
 std::string IndexSPFresh::ToString() const {
     std::stringstream ss;
     ss << IndexBase::ToString() << ", " << MetricTypeToString(metric_type_)
        << ", num_centroids=" << num_centroids_ << ", replica_count=" << replica_count_
-       << ", bucket_size_limit=" << bucket_size_limit_ << ", rabitq=" << (compress_to_rabitq_ ? "true" : "false");
+       << ", bucket_size_limit=" << bucket_size_limit_ << ", rabitq=" << (compress_to_rabitq_ ? "true" : "false")
+       << ", max_delta_mb=" << max_delta_mb_;
     return ss.str();
 }
 
@@ -117,7 +124,8 @@ std::string IndexSPFresh::BuildOtherParamsString() const {
        << ", num_centroids = " << num_centroids_
        << ", replica_count = " << replica_count_
        << ", bucket_size_limit = " << bucket_size_limit_
-       << ", compress_to_rabitq = " << (compress_to_rabitq_ ? "true" : "false");
+       << ", compress_to_rabitq = " << (compress_to_rabitq_ ? "true" : "false")
+       << ", max_delta_mb = " << max_delta_mb_;
     return ss.str();
 }
 
@@ -128,6 +136,7 @@ nlohmann::json IndexSPFresh::Serialize() const {
     res["replica_count"] = replica_count_;
     res["bucket_size_limit"] = bucket_size_limit_;
     res["compress_to_rabitq"] = compress_to_rabitq_;
+    res["max_delta_mb"] = max_delta_mb_;
     return res;
 }
 

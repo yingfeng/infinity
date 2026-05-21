@@ -40,10 +40,11 @@ public:
                  u32 num_centroids,
                  u32 replica_count,
                  u32 bucket_size_limit,
-                 bool compress_to_rabitq)
+                 bool compress_to_rabitq,
+                 u32 max_delta_mb)
         : IndexBase(IndexType::kSPFresh, index_name, index_comment, file_name, std::move(column_names)), metric_type_(metric_type),
           num_centroids_(num_centroids), replica_count_(replica_count), bucket_size_limit_(bucket_size_limit),
-          compress_to_rabitq_(compress_to_rabitq) {}
+          compress_to_rabitq_(compress_to_rabitq), max_delta_mb_(max_delta_mb) {}
 
     ~IndexSPFresh() final = default;
 
@@ -68,6 +69,7 @@ public:
     const u32 replica_count_{8};
     const u32 bucket_size_limit_{10000};
     const bool compress_to_rabitq_{true};
+    const u32 max_delta_mb_{512};
 };
 
 } // namespace infinity

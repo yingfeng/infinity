@@ -36,7 +36,8 @@ public:
           bucket_locks_(nullptr), bucket_locks_count_(0),
           running_means_(), deleted_set_(), mem_used_(0) {}
 
-    SPFreshIndexInMem(RowID begin_row_id, const IndexSPFresh *index_def, u32 embedding_dim, u32 max_vectors);
+    SPFreshIndexInMem(RowID begin_row_id, const IndexSPFresh *index_def, u32 embedding_dim, u32 max_vectors,
+                      const std::string &base_path = "");
     ~SPFreshIndexInMem() override;
 
     MemIndexTracerInfo GetInfo() const override;
@@ -82,6 +83,10 @@ public:
 
     void MarkDeleted(u32 row_id);
 
+    // P3.1: Background maintenance
+    void StartBackgroundMaintenance();
+    void StopBackgroundMaintenance();
+
     bool TryAutoCompact(u32 delta_threshold = 8192);
     void Rebalance(u32 bucket_size_limit = 10000);
     std::vector<u32> SplitBucket(u32 bucket_id);
@@ -100,6 +105,25 @@ public:
     u32 dim() const { return dim_; }
     u32 GetDeletedCount() const { return static_cast<u32>(deleted_set_.size()); }
     u32 GetNumCentroids() const { return num_centroids_; }
+
+    // P3.3: Monitoring metrics
+    u64 GetCompactCount() const { return compact_count_; }
+    u64 GetSplitCount() const { return split_count_; }
+    u64 GetPeakDeltaBytes() const { return peak_delta_bytes_; }
+    f64 GetAvgBucketSize() const {
+        return (num_centroids_ > 0) ? static_cast<f64>(num_vectors_) / num_centroids_ : 0.0;
+    }
+    f64 GetImbalanceRatio() const {
+        if (num_centroids_ == 0 || num_vectors_ == 0) return 0.0;
+        f64 avg = static_cast<f64>(num_vectors_) / num_centroids_;
+        if (avg == 0) return 0.0;
+        u32 max_b = 0;
+        for (auto &m : bucket_metas_) {
+            u32 c = m.base_count_;
+            if (c > max_b) max_b = c;
+        }
+        return static_cast<f64>(max_b) / avg;
+    }
 
 private:
     // P0.1: Global structure lock (protects centroids, bucket_locks, assignments)
@@ -121,6 +145,14 @@ private:
     u32 max_vectors_;
     u32 dim_;
     u32 pad_dim_;                 // next power of 2 for Hadamard (P1.1)
+
+    // P2.2: Memory budget (max delta bytes before auto-compact)
+    u64 max_delta_bytes_ = 512ULL * 1024 * 1024; // 512 MB default
+
+    // P2.3: File-backed storage via mmap
+    std::string base_file_path_;
+    int base_fd_ = -1;            // file descriptor for mmap, -1 = DRAM mode
+    size_t base_file_size_ = 0;   // current mmap size
 
     // P1.1: Hadamard sign flip vector (one bool per pad_dim)
     bool *hadamard_flip_;          // random ±1 signs for Hadamard
@@ -151,6 +183,15 @@ private:
     std::vector<SPFreshRunningMean> running_means_;
     std::unordered_set<u32> deleted_set_;
     mutable std::shared_mutex delete_mtx_;
+
+    // P3.1: Background maintenance thread
+    std::jthread maintenance_thread_;
+    std::atomic<bool> maintenance_stop_{false};
+
+    // P3.3: Metrics
+    std::atomic<u64> compact_count_{0};
+    std::atomic<u64> split_count_{0};
+    std::atomic<size_t> peak_delta_bytes_{0};
 
     size_t mem_used_{0};
 };

@@ -213,6 +213,11 @@ std::shared_ptr<IndexBase> IndexBase::ReadAdv(const char *&ptr, int32_t maxbytes
             u32 replica_count = ReadBufAdv<u32>(ptr);
             u32 bucket_size_limit = ReadBufAdv<u32>(ptr);
             bool compress_to_rabitq = ReadBufAdv<bool>(ptr);
+            // P2.2: max_delta_mb — backward compatible with old WAL files
+            u32 max_delta_mb = 512;
+            if (ptr + static_cast<i32>(sizeof(u32)) <= ptr_end) {
+                max_delta_mb = ReadBufAdv<u32>(ptr);
+            }
             res = std::make_shared<IndexSPFresh>(index_name,
                                                  index_comment,
                                                  file_name,
@@ -221,7 +226,8 @@ std::shared_ptr<IndexBase> IndexBase::ReadAdv(const char *&ptr, int32_t maxbytes
                                                  num_centroids,
                                                  replica_count,
                                                  bucket_size_limit,
-                                                 compress_to_rabitq);
+                                                 compress_to_rabitq,
+                                                 max_delta_mb);
             break;
         }
         case IndexType::kInvalid: {
@@ -406,6 +412,11 @@ std::shared_ptr<IndexBase> IndexBase::Deserialize(std::string_view index_def_str
             u32 replica_count = doc["replica_count"].get<u32>();
             u32 bucket_size_limit = doc["bucket_size_limit"].get<u32>();
             bool compress_to_rabitq = doc["compress_to_rabitq"].get<bool>();
+            // P2.2: backward compatible (old JSON may not have max_delta_mb)
+            u32 max_delta_mb = 512;
+            if (doc.contains("max_delta_mb")) {
+                max_delta_mb = doc["max_delta_mb"].get<u32>();
+            }
             res = std::make_shared<IndexSPFresh>(index_name,
                                                  index_comment,
                                                  file_name,
@@ -414,7 +425,8 @@ std::shared_ptr<IndexBase> IndexBase::Deserialize(std::string_view index_def_str
                                                  num_centroids,
                                                  replica_count,
                                                  bucket_size_limit,
-                                                 compress_to_rabitq);
+                                                 compress_to_rabitq,
+                                                 max_delta_mb);
             break;
         }
         case IndexType::kInvalid: {
