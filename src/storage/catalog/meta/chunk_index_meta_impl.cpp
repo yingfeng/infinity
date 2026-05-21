@@ -392,6 +392,18 @@ Status ChunkIndexMeta::LoadSet() {
             index_buffer_ = buffer_mgr->GetBufferObject(std::move(file_worker));
             break;
         }
+        case IndexType::kSPFresh: {
+            auto spfresh_index_file_name = std::make_shared<std::string>(IndexFileName(chunk_id_));
+            auto file_worker = std::make_unique<SPFreshIndexFileWorker>(std::make_shared<std::string>(InfinityContext::instance().config()->DataDir()),
+                                                                        std::make_shared<std::string>(InfinityContext::instance().config()->TempDir()),
+                                                                        index_dir,
+                                                                        std::move(spfresh_index_file_name),
+                                                                        index_base,
+                                                                        column_def,
+                                                                        buffer_mgr->persistence_manager());
+            index_buffer_ = buffer_mgr->GetBufferObject(std::move(file_worker));
+            break;
+        }
         default: {
             UnrecoverableError("Not implemented yet");
         }
@@ -514,6 +526,17 @@ Status ChunkIndexMeta::RestoreSet() {
                                                                        buffer_mgr->persistence_manager());
             break;
         }
+        case IndexType::kSPFresh: {
+            auto spfresh_index_file_name = std::make_shared<std::string>(IndexFileName(chunk_id_));
+            index_file_worker = std::make_unique<SPFreshIndexFileWorker>(std::make_shared<std::string>(InfinityContext::instance().config()->DataDir()),
+                                                                         std::make_shared<std::string>(InfinityContext::instance().config()->TempDir()),
+                                                                         index_dir,
+                                                                         std::move(spfresh_index_file_name),
+                                                                         index_base,
+                                                                         column_def,
+                                                                         buffer_mgr->persistence_manager());
+            break;
+        }
         default: {
             UnrecoverableError("Not implemented yet");
         }
@@ -609,7 +632,7 @@ Status ChunkIndexMeta::UninitSet(UsageFlag usage_flag) {
                 VirtualStore::DeleteFile(absolute_posting_file);
                 VirtualStore::DeleteFile(absolute_dict_file);
             }
-        } else if (index_def->index_type_ == IndexType::kPLAID) {
+        } else if (index_def->index_type_ == IndexType::kPLAID || index_def->index_type_ == IndexType::kSPFresh) {
             // Delete chunk index file for these index types
             std::shared_ptr<std::string> index_dir = segment_index_meta_.GetSegmentIndexDir();
             std::string file_name = IndexFileName(chunk_id_);
@@ -687,7 +710,8 @@ Status ChunkIndexMeta::FilePaths(std::vector<std::string> &paths) {
             [[fallthrough]];
         case IndexType::kBMP:
             [[fallthrough]];
-        case IndexType::kPLAID: {
+        case IndexType::kPLAID:
+        case IndexType::kSPFresh: {
             std::string file_name = IndexFileName(chunk_id_);
             std::string file_path = fmt::format("{}/{}", *index_dir, file_name);
             paths.push_back(file_path);
@@ -737,7 +761,8 @@ Status ChunkIndexMeta::LoadIndexBuffer() {
             }
             break;
         }
-        case IndexType::kPLAID: {
+        case IndexType::kPLAID:
+        case IndexType::kSPFresh: {
             std::string index_file_name = IndexFileName(chunk_id_);
             std::string index_filepath = fmt::format("{}/{}", index_dir, index_file_name);
             index_buffer_ = buffer_mgr->GetBufferObject(index_filepath);
