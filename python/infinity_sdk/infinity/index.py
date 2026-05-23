@@ -31,7 +31,8 @@ class IndexType(Enum):
     EMVB = 6
     DiskAnn = 7
     PLAID = 8
-    SPFresh = 9
+    SMVE = 9
+    SPFresh = 10
 
     def to_ttype(self):
         match self:
@@ -53,6 +54,8 @@ class IndexType(Enum):
                 return ttypes.IndexType.DiskAnn
             case IndexType.PLAID:
                 return ttypes.IndexType.PLAID
+            case IndexType.SMVE:
+                return ttypes.IndexType.SMVE
             case IndexType.SPFresh:
                 return ttypes.IndexType.SPFresh
             case _:

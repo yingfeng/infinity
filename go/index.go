@@ -29,7 +29,8 @@ const (
 	IndexTypeBMP                 IndexType = 7
 	IndexTypeDiskAnn             IndexType = 8
 	IndexTypePLAID               IndexType = 9
-	IndexTypeSPFresh             IndexType = 10
+	IndexTypeSMVE                IndexType = 10
+	IndexTypeSPFresh             IndexType = 11
 )
 
 func (it IndexType) String() string {
@@ -52,6 +53,8 @@ func (it IndexType) String() string {
 		return "DiskAnn"
 	case IndexTypePLAID:
 		return "PLAID"
+	case IndexTypeSMVE:
+		return "SMVE"
 	case IndexTypeSPFresh:
 		return "SPFresh"
 	default:

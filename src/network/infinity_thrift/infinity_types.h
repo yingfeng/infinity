@@ -228,7 +228,8 @@ struct IndexType {
     EMVB = 6,
     DiskAnn = 7,
     PLAID = 8,
-    SPFresh = 9
+    SMVE = 9,
+    SPFresh = 10
   };
 };
 

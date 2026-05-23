@@ -25,6 +25,7 @@ import :index_emvb;
 import :index_bmp;
 import :index_plaid;
 import :index_spfresh;
+import :index_smve;
 import :bmp_util;
 import :infinity_exception;
 import :index_defines;
@@ -207,6 +208,11 @@ std::shared_ptr<IndexBase> IndexBase::ReadAdv(const char *&ptr, int32_t maxbytes
             res = std::make_shared<IndexPLAID>(index_name, index_comment, file_name, std::move(column_names), nbits, n_centroids);
             break;
         }
+        case IndexType::kSMVE: {
+            u32 width = ReadBufAdv<u32>(ptr);
+            u32 topk = ReadBufAdv<u32>(ptr);
+            res = std::make_shared<IndexSMVE>(index_name, index_comment, file_name, std::move(column_names), width, topk);
+        }
         case IndexType::kSPFresh: {
             MetricType metric_type = ReadBufAdv<MetricType>(ptr);
             u32 num_centroids = ReadBufAdv<u32>(ptr);
@@ -227,8 +233,7 @@ std::shared_ptr<IndexBase> IndexBase::ReadAdv(const char *&ptr, int32_t maxbytes
                                                  replica_count,
                                                  bucket_size_limit,
                                                  compress_to_rabitq,
-                                                 max_delta_mb);
-            break;
+                                                 max_delta_mb);            break;
         }
         case IndexType::kInvalid: {
             UnrecoverableError("Error index method while reading");
@@ -406,6 +411,11 @@ std::shared_ptr<IndexBase> IndexBase::Deserialize(std::string_view index_def_str
             res = std::make_shared<IndexPLAID>(index_name, index_comment, file_name, std::move(column_names), nbits, n_centroids);
             break;
         }
+        case IndexType::kSMVE: {
+            u32 width = doc["width"].get<u32>();
+            u32 topk = doc["topk"].get<u32>();
+            res = std::make_shared<IndexSMVE>(index_name, index_comment, file_name, std::move(column_names), width, topk);
+        }
         case IndexType::kSPFresh: {
             MetricType metric_type = StringToMetricType(doc["metric_type"].get<std::string>());
             u32 num_centroids = doc["num_centroids"].get<u32>();
@@ -426,8 +436,7 @@ std::shared_ptr<IndexBase> IndexBase::Deserialize(std::string_view index_def_str
                                                  replica_count,
                                                  bucket_size_limit,
                                                  compress_to_rabitq,
-                                                 max_delta_mb);
-            break;
+                                                 max_delta_mb);            break;
         }
         case IndexType::kInvalid: {
             UnrecoverableError("Error index method while deserializing");

@@ -28,8 +28,7 @@ namespace infinity {
 export class SPFreshIndexInMem : public BaseMemIndex {
 public:
     SPFreshIndexInMem();
-    SPFreshIndexInMem(RowID begin_row_id, const IndexSPFresh *index_def, u32 embedding_dim, u32 max_vectors,
-                      const std::string &base_path = "");
+    SPFreshIndexInMem(RowID begin_row_id, const IndexSPFresh *index_def, u32 embedding_dim, u32 max_vectors, const std::string &base_path = "");
     ~SPFreshIndexInMem() override;
 
     MemIndexTracerInfo GetInfo() const override;
@@ -52,8 +51,7 @@ public:
     // LIRE: centroid routing
     using HnswType = KnnHnsw<PlainL2VecStoreType<f32>, u32>;
     void BuildCentroidIndex();
-    void FindTopKCentroids(const f32 *query, u32 top_k,
-                           std::vector<u32> &out_ids, std::vector<f32> &out_dists) const;
+    void FindTopKCentroids(const f32 *query, u32 top_k, std::vector<u32> &out_ids, std::vector<f32> &out_dists) const;
 
     // LIRE: InsertDelta → global delta
     void InsertDelta(const f32 *vec, u32 row_id);
@@ -81,7 +79,8 @@ public:
     u32 GetRowCount() const;
     u32 GetBaseRowCount() const;
     u32 GetDeltaCount() const {
-        if (!delta_a_ || !delta_b_) return 0;
+        if (!delta_a_ || !delta_b_)
+            return 0;
         u32 idx = active_delta_idx_.load(std::memory_order_acquire);
         return (idx == 0 ? delta_a_ : delta_b_)->entry_count_;
     }

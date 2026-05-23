@@ -30,7 +30,11 @@ export struct SPFreshBucketData {
         ++count_;
     }
 
-    void Clear() { codes_.clear(); row_ids_.clear(); count_ = 0; }
+    void Clear() {
+        codes_.clear();
+        row_ids_.clear();
+        count_ = 0;
+    }
 };
 
 // Running mean tracker for centroid updates
@@ -39,14 +43,18 @@ export struct SPFreshRunningMean {
     u64 count_{0};
 
     void Update(const f32 *vec, u32 dim) {
-        if (sum_.empty()) sum_.resize(dim, 0.0);
-        for (u32 i = 0; i < dim; ++i) sum_[i] += static_cast<f64>(vec[i]);
+        if (sum_.empty())
+            sum_.resize(dim, 0.0);
+        for (u32 i = 0; i < dim; ++i)
+            sum_[i] += static_cast<f64>(vec[i]);
         ++count_;
     }
     void GetCentroid(f32 *out, u32 dim) const {
-        if (count_ == 0) return;
+        if (count_ == 0)
+            return;
         f64 inv = 1.0 / static_cast<f64>(count_);
-        for (u32 i = 0; i < dim; ++i) out[i] = static_cast<f32>(sum_[i] * inv);
+        for (u32 i = 0; i < dim; ++i)
+            out[i] = static_cast<f32>(sum_[i] * inv);
     }
 };
 
@@ -74,7 +82,10 @@ export struct SPFreshDeltaBuffer {
         std::memcpy(data_.data() + pos + sizeof(u32) * 2, code, entry_size_);
         ++entry_count_;
     }
-    void Clear() { data_.clear(); entry_count_ = 0; }
+    void Clear() {
+        data_.clear();
+        entry_count_ = 0;
+    }
     size_t GetEntrySize() const { return sizeof(u32) * 2 + entry_size_; }
     u32 GetBucketId(size_t index) const {
         u32 id;
@@ -86,9 +97,7 @@ export struct SPFreshDeltaBuffer {
         std::memcpy(&id, data_.data() + index * GetEntrySize() + sizeof(u32), sizeof(u32));
         return id;
     }
-    const char *GetCode(size_t index) const {
-        return data_.data() + index * GetEntrySize() + sizeof(u32) * 2;
-    }
+    const char *GetCode(size_t index) const { return data_.data() + index * GetEntrySize() + sizeof(u32) * 2; }
 };
 
 } // namespace infinity

@@ -35,6 +35,7 @@ export enum class FileWorkerType {
     kBMPIndexFile,
     kPLAIDIndexFile,
     kSPFreshIndexFile,
+    kSMVEIndexFile,
     kInvalid,
 };
 
@@ -72,6 +73,9 @@ export std::string FileWorkerType2Str(FileWorkerType type) {
         }
         case FileWorkerType::kPLAIDIndexFile: {
             return "PLAID index";
+        }
+        case FileWorkerType::kSMVEIndexFile: {
+            return "SMVE index";
         }
         case FileWorkerType::kSPFreshIndexFile: {
             return "SPFresh index";

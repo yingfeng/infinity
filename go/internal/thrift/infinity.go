@@ -8,12 +8,12 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
-	thrift "github.com/apache/thrift/lib/go/thrift"
 	"iter"
 	"log/slog"
-	"regexp"
-	"strings"
 	"time"
+	thrift "github.com/apache/thrift/lib/go/thrift"
+	"strings"
+	"regexp"
 )
 
 // (needed to ensure safety because of naive import list construction.)
@@ -25,7 +25,6 @@ var _ = iter.Pull[int]
 var _ = slog.Log
 var _ = time.Now
 var _ = thrift.ZERO
-
 // (needed by validator.)
 var _ = strings.Contains
 var _ = regexp.MatchString
@@ -33,31 +32,31 @@ var _ = regexp.MatchString
 type LogicType int64
 
 const (
-	LogicType_Boolean     LogicType = 0
-	LogicType_TinyInt     LogicType = 1
-	LogicType_SmallInt    LogicType = 2
-	LogicType_Integer     LogicType = 3
-	LogicType_BigInt      LogicType = 4
-	LogicType_HugeInt     LogicType = 5
-	LogicType_Decimal     LogicType = 6
-	LogicType_Float       LogicType = 7
-	LogicType_Double      LogicType = 8
-	LogicType_Float16     LogicType = 9
-	LogicType_BFloat16    LogicType = 10
-	LogicType_Varchar     LogicType = 11
-	LogicType_Embedding   LogicType = 12
-	LogicType_Tensor      LogicType = 13
+	LogicType_Boolean LogicType = 0
+	LogicType_TinyInt LogicType = 1
+	LogicType_SmallInt LogicType = 2
+	LogicType_Integer LogicType = 3
+	LogicType_BigInt LogicType = 4
+	LogicType_HugeInt LogicType = 5
+	LogicType_Decimal LogicType = 6
+	LogicType_Float LogicType = 7
+	LogicType_Double LogicType = 8
+	LogicType_Float16 LogicType = 9
+	LogicType_BFloat16 LogicType = 10
+	LogicType_Varchar LogicType = 11
+	LogicType_Embedding LogicType = 12
+	LogicType_Tensor LogicType = 13
 	LogicType_TensorArray LogicType = 14
-	LogicType_Sparse      LogicType = 15
+	LogicType_Sparse LogicType = 15
 	LogicType_MultiVector LogicType = 16
-	LogicType_Date        LogicType = 17
-	LogicType_Time        LogicType = 18
-	LogicType_DateTime    LogicType = 19
-	LogicType_Timestamp   LogicType = 20
-	LogicType_Interval    LogicType = 21
-	LogicType_Array       LogicType = 22
-	LogicType_Json        LogicType = 23
-	LogicType_Invalid     LogicType = 24
+	LogicType_Date LogicType = 17
+	LogicType_Time LogicType = 18
+	LogicType_DateTime LogicType = 19
+	LogicType_Timestamp LogicType = 20
+	LogicType_Interval LogicType = 21
+	LogicType_Array LogicType = 22
+	LogicType_Json LogicType = 23
+	LogicType_Invalid LogicType = 24
 )
 
 var knownLogicTypeValues = []LogicType{
@@ -100,115 +99,66 @@ func LogicTypeValues() iter.Seq[LogicType] {
 
 func (p LogicType) String() string {
 	switch p {
-	case LogicType_Boolean:
-		return "Boolean"
-	case LogicType_TinyInt:
-		return "TinyInt"
-	case LogicType_SmallInt:
-		return "SmallInt"
-	case LogicType_Integer:
-		return "Integer"
-	case LogicType_BigInt:
-		return "BigInt"
-	case LogicType_HugeInt:
-		return "HugeInt"
-	case LogicType_Decimal:
-		return "Decimal"
-	case LogicType_Float:
-		return "Float"
-	case LogicType_Double:
-		return "Double"
-	case LogicType_Float16:
-		return "Float16"
-	case LogicType_BFloat16:
-		return "BFloat16"
-	case LogicType_Varchar:
-		return "Varchar"
-	case LogicType_Embedding:
-		return "Embedding"
-	case LogicType_Tensor:
-		return "Tensor"
-	case LogicType_TensorArray:
-		return "TensorArray"
-	case LogicType_Sparse:
-		return "Sparse"
-	case LogicType_MultiVector:
-		return "MultiVector"
-	case LogicType_Date:
-		return "Date"
-	case LogicType_Time:
-		return "Time"
-	case LogicType_DateTime:
-		return "DateTime"
-	case LogicType_Timestamp:
-		return "Timestamp"
-	case LogicType_Interval:
-		return "Interval"
-	case LogicType_Array:
-		return "Array"
-	case LogicType_Json:
-		return "Json"
-	case LogicType_Invalid:
-		return "Invalid"
+	case LogicType_Boolean: return "Boolean"
+	case LogicType_TinyInt: return "TinyInt"
+	case LogicType_SmallInt: return "SmallInt"
+	case LogicType_Integer: return "Integer"
+	case LogicType_BigInt: return "BigInt"
+	case LogicType_HugeInt: return "HugeInt"
+	case LogicType_Decimal: return "Decimal"
+	case LogicType_Float: return "Float"
+	case LogicType_Double: return "Double"
+	case LogicType_Float16: return "Float16"
+	case LogicType_BFloat16: return "BFloat16"
+	case LogicType_Varchar: return "Varchar"
+	case LogicType_Embedding: return "Embedding"
+	case LogicType_Tensor: return "Tensor"
+	case LogicType_TensorArray: return "TensorArray"
+	case LogicType_Sparse: return "Sparse"
+	case LogicType_MultiVector: return "MultiVector"
+	case LogicType_Date: return "Date"
+	case LogicType_Time: return "Time"
+	case LogicType_DateTime: return "DateTime"
+	case LogicType_Timestamp: return "Timestamp"
+	case LogicType_Interval: return "Interval"
+	case LogicType_Array: return "Array"
+	case LogicType_Json: return "Json"
+	case LogicType_Invalid: return "Invalid"
 	}
 	return "<UNSET>"
 }
 
 func LogicTypeFromString(s string) (LogicType, error) {
 	switch s {
-	case "Boolean":
-		return LogicType_Boolean, nil
-	case "TinyInt":
-		return LogicType_TinyInt, nil
-	case "SmallInt":
-		return LogicType_SmallInt, nil
-	case "Integer":
-		return LogicType_Integer, nil
-	case "BigInt":
-		return LogicType_BigInt, nil
-	case "HugeInt":
-		return LogicType_HugeInt, nil
-	case "Decimal":
-		return LogicType_Decimal, nil
-	case "Float":
-		return LogicType_Float, nil
-	case "Double":
-		return LogicType_Double, nil
-	case "Float16":
-		return LogicType_Float16, nil
-	case "BFloat16":
-		return LogicType_BFloat16, nil
-	case "Varchar":
-		return LogicType_Varchar, nil
-	case "Embedding":
-		return LogicType_Embedding, nil
-	case "Tensor":
-		return LogicType_Tensor, nil
-	case "TensorArray":
-		return LogicType_TensorArray, nil
-	case "Sparse":
-		return LogicType_Sparse, nil
-	case "MultiVector":
-		return LogicType_MultiVector, nil
-	case "Date":
-		return LogicType_Date, nil
-	case "Time":
-		return LogicType_Time, nil
-	case "DateTime":
-		return LogicType_DateTime, nil
-	case "Timestamp":
-		return LogicType_Timestamp, nil
-	case "Interval":
-		return LogicType_Interval, nil
-	case "Array":
-		return LogicType_Array, nil
-	case "Json":
-		return LogicType_Json, nil
-	case "Invalid":
-		return LogicType_Invalid, nil
+	case "Boolean": return LogicType_Boolean, nil
+	case "TinyInt": return LogicType_TinyInt, nil
+	case "SmallInt": return LogicType_SmallInt, nil
+	case "Integer": return LogicType_Integer, nil
+	case "BigInt": return LogicType_BigInt, nil
+	case "HugeInt": return LogicType_HugeInt, nil
+	case "Decimal": return LogicType_Decimal, nil
+	case "Float": return LogicType_Float, nil
+	case "Double": return LogicType_Double, nil
+	case "Float16": return LogicType_Float16, nil
+	case "BFloat16": return LogicType_BFloat16, nil
+	case "Varchar": return LogicType_Varchar, nil
+	case "Embedding": return LogicType_Embedding, nil
+	case "Tensor": return LogicType_Tensor, nil
+	case "TensorArray": return LogicType_TensorArray, nil
+	case "Sparse": return LogicType_Sparse, nil
+	case "MultiVector": return LogicType_MultiVector, nil
+	case "Date": return LogicType_Date, nil
+	case "Time": return LogicType_Time, nil
+	case "DateTime": return LogicType_DateTime, nil
+	case "Timestamp": return LogicType_Timestamp, nil
+	case "Interval": return LogicType_Interval, nil
+	case "Array": return LogicType_Array, nil
+	case "Json": return LogicType_Json, nil
+	case "Invalid": return LogicType_Invalid, nil
 	}
 	return LogicType(0), fmt.Errorf("not a valid LogicType string")
 }
+
 
 func LogicTypePtr(v LogicType) *LogicType { return &v }
 
@@ -244,8 +194,8 @@ func (p *LogicType) Value() (driver.Value, error) {
 type CreateConflict int64
 
 const (
-	CreateConflict_Ignore  CreateConflict = 0
-	CreateConflict_Error   CreateConflict = 1
+	CreateConflict_Ignore CreateConflict = 0
+	CreateConflict_Error CreateConflict = 1
 	CreateConflict_Replace CreateConflict = 2
 )
 
@@ -267,27 +217,22 @@ func CreateConflictValues() iter.Seq[CreateConflict] {
 
 func (p CreateConflict) String() string {
 	switch p {
-	case CreateConflict_Ignore:
-		return "Ignore"
-	case CreateConflict_Error:
-		return "Error"
-	case CreateConflict_Replace:
-		return "Replace"
+	case CreateConflict_Ignore: return "Ignore"
+	case CreateConflict_Error: return "Error"
+	case CreateConflict_Replace: return "Replace"
 	}
 	return "<UNSET>"
 }
 
 func CreateConflictFromString(s string) (CreateConflict, error) {
 	switch s {
-	case "Ignore":
-		return CreateConflict_Ignore, nil
-	case "Error":
-		return CreateConflict_Error, nil
-	case "Replace":
-		return CreateConflict_Replace, nil
+	case "Ignore": return CreateConflict_Ignore, nil
+	case "Error": return CreateConflict_Error, nil
+	case "Replace": return CreateConflict_Replace, nil
 	}
 	return CreateConflict(0), fmt.Errorf("not a valid CreateConflict string")
 }
+
 
 func CreateConflictPtr(v CreateConflict) *CreateConflict { return &v }
 
@@ -324,7 +269,7 @@ type DropConflict int64
 
 const (
 	DropConflict_Ignore DropConflict = 0
-	DropConflict_Error  DropConflict = 1
+	DropConflict_Error DropConflict = 1
 )
 
 var knownDropConflictValues = []DropConflict{
@@ -344,23 +289,20 @@ func DropConflictValues() iter.Seq[DropConflict] {
 
 func (p DropConflict) String() string {
 	switch p {
-	case DropConflict_Ignore:
-		return "Ignore"
-	case DropConflict_Error:
-		return "Error"
+	case DropConflict_Ignore: return "Ignore"
+	case DropConflict_Error: return "Error"
 	}
 	return "<UNSET>"
 }
 
 func DropConflictFromString(s string) (DropConflict, error) {
 	switch s {
-	case "Ignore":
-		return DropConflict_Ignore, nil
-	case "Error":
-		return DropConflict_Error, nil
+	case "Ignore": return DropConflict_Ignore, nil
+	case "Error": return DropConflict_Error, nil
 	}
 	return DropConflict(0), fmt.Errorf("not a valid DropConflict string")
 }
+
 
 func DropConflictPtr(v DropConflict) *DropConflict { return &v }
 
@@ -396,15 +338,15 @@ func (p *DropConflict) Value() (driver.Value, error) {
 type ElementType int64
 
 const (
-	ElementType_ElementBit      ElementType = 0
-	ElementType_ElementUInt8    ElementType = 1
-	ElementType_ElementInt8     ElementType = 2
-	ElementType_ElementInt16    ElementType = 3
-	ElementType_ElementInt32    ElementType = 4
-	ElementType_ElementInt64    ElementType = 5
-	ElementType_ElementFloat32  ElementType = 6
-	ElementType_ElementFloat64  ElementType = 7
-	ElementType_ElementFloat16  ElementType = 8
+	ElementType_ElementBit ElementType = 0
+	ElementType_ElementUInt8 ElementType = 1
+	ElementType_ElementInt8 ElementType = 2
+	ElementType_ElementInt16 ElementType = 3
+	ElementType_ElementInt32 ElementType = 4
+	ElementType_ElementInt64 ElementType = 5
+	ElementType_ElementFloat32 ElementType = 6
+	ElementType_ElementFloat64 ElementType = 7
+	ElementType_ElementFloat16 ElementType = 8
 	ElementType_ElementBFloat16 ElementType = 9
 )
 
@@ -433,55 +375,36 @@ func ElementTypeValues() iter.Seq[ElementType] {
 
 func (p ElementType) String() string {
 	switch p {
-	case ElementType_ElementBit:
-		return "ElementBit"
-	case ElementType_ElementUInt8:
-		return "ElementUInt8"
-	case ElementType_ElementInt8:
-		return "ElementInt8"
-	case ElementType_ElementInt16:
-		return "ElementInt16"
-	case ElementType_ElementInt32:
-		return "ElementInt32"
-	case ElementType_ElementInt64:
-		return "ElementInt64"
-	case ElementType_ElementFloat32:
-		return "ElementFloat32"
-	case ElementType_ElementFloat64:
-		return "ElementFloat64"
-	case ElementType_ElementFloat16:
-		return "ElementFloat16"
-	case ElementType_ElementBFloat16:
-		return "ElementBFloat16"
+	case ElementType_ElementBit: return "ElementBit"
+	case ElementType_ElementUInt8: return "ElementUInt8"
+	case ElementType_ElementInt8: return "ElementInt8"
+	case ElementType_ElementInt16: return "ElementInt16"
+	case ElementType_ElementInt32: return "ElementInt32"
+	case ElementType_ElementInt64: return "ElementInt64"
+	case ElementType_ElementFloat32: return "ElementFloat32"
+	case ElementType_ElementFloat64: return "ElementFloat64"
+	case ElementType_ElementFloat16: return "ElementFloat16"
+	case ElementType_ElementBFloat16: return "ElementBFloat16"
 	}
 	return "<UNSET>"
 }
 
 func ElementTypeFromString(s string) (ElementType, error) {
 	switch s {
-	case "ElementBit":
-		return ElementType_ElementBit, nil
-	case "ElementUInt8":
-		return ElementType_ElementUInt8, nil
-	case "ElementInt8":
-		return ElementType_ElementInt8, nil
-	case "ElementInt16":
-		return ElementType_ElementInt16, nil
-	case "ElementInt32":
-		return ElementType_ElementInt32, nil
-	case "ElementInt64":
-		return ElementType_ElementInt64, nil
-	case "ElementFloat32":
-		return ElementType_ElementFloat32, nil
-	case "ElementFloat64":
-		return ElementType_ElementFloat64, nil
-	case "ElementFloat16":
-		return ElementType_ElementFloat16, nil
-	case "ElementBFloat16":
-		return ElementType_ElementBFloat16, nil
+	case "ElementBit": return ElementType_ElementBit, nil
+	case "ElementUInt8": return ElementType_ElementUInt8, nil
+	case "ElementInt8": return ElementType_ElementInt8, nil
+	case "ElementInt16": return ElementType_ElementInt16, nil
+	case "ElementInt32": return ElementType_ElementInt32, nil
+	case "ElementInt64": return ElementType_ElementInt64, nil
+	case "ElementFloat32": return ElementType_ElementFloat32, nil
+	case "ElementFloat64": return ElementType_ElementFloat64, nil
+	case "ElementFloat16": return ElementType_ElementFloat16, nil
+	case "ElementBFloat16": return ElementType_ElementBFloat16, nil
 	}
 	return ElementType(0), fmt.Errorf("not a valid ElementType string")
 }
+
 
 func ElementTypePtr(v ElementType) *ElementType { return &v }
 
@@ -518,9 +441,9 @@ type Constraint int64
 
 const (
 	Constraint_PrimaryKey Constraint = 0
-	Constraint_NotNull    Constraint = 1
-	Constraint_Null       Constraint = 2
-	Constraint_Unique     Constraint = 3
+	Constraint_NotNull Constraint = 1
+	Constraint_Null Constraint = 2
+	Constraint_Unique Constraint = 3
 )
 
 var knownConstraintValues = []Constraint{
@@ -542,31 +465,24 @@ func ConstraintValues() iter.Seq[Constraint] {
 
 func (p Constraint) String() string {
 	switch p {
-	case Constraint_PrimaryKey:
-		return "PrimaryKey"
-	case Constraint_NotNull:
-		return "NotNull"
-	case Constraint_Null:
-		return "Null"
-	case Constraint_Unique:
-		return "Unique"
+	case Constraint_PrimaryKey: return "PrimaryKey"
+	case Constraint_NotNull: return "NotNull"
+	case Constraint_Null: return "Null"
+	case Constraint_Unique: return "Unique"
 	}
 	return "<UNSET>"
 }
 
 func ConstraintFromString(s string) (Constraint, error) {
 	switch s {
-	case "PrimaryKey":
-		return Constraint_PrimaryKey, nil
-	case "NotNull":
-		return Constraint_NotNull, nil
-	case "Null":
-		return Constraint_Null, nil
-	case "Unique":
-		return Constraint_Unique, nil
+	case "PrimaryKey": return Constraint_PrimaryKey, nil
+	case "NotNull": return Constraint_NotNull, nil
+	case "Null": return Constraint_Null, nil
+	case "Unique": return Constraint_Unique, nil
 	}
 	return Constraint(0), fmt.Errorf("not a valid Constraint string")
 }
+
 
 func ConstraintPtr(v Constraint) *Constraint { return &v }
 
@@ -602,24 +518,24 @@ func (p *Constraint) Value() (driver.Value, error) {
 type LiteralType int64
 
 const (
-	LiteralType_Boolean            LiteralType = 0
-	LiteralType_Double             LiteralType = 1
-	LiteralType_String             LiteralType = 2
-	LiteralType_Int64              LiteralType = 3
-	LiteralType_Null               LiteralType = 4
-	LiteralType_IntegerArray       LiteralType = 5
-	LiteralType_DoubleArray        LiteralType = 6
-	LiteralType_IntegerTensor      LiteralType = 7
-	LiteralType_DoubleTensor       LiteralType = 8
+	LiteralType_Boolean LiteralType = 0
+	LiteralType_Double LiteralType = 1
+	LiteralType_String LiteralType = 2
+	LiteralType_Int64 LiteralType = 3
+	LiteralType_Null LiteralType = 4
+	LiteralType_IntegerArray LiteralType = 5
+	LiteralType_DoubleArray LiteralType = 6
+	LiteralType_IntegerTensor LiteralType = 7
+	LiteralType_DoubleTensor LiteralType = 8
 	LiteralType_IntegerTensorArray LiteralType = 9
-	LiteralType_DoubleTensorArray  LiteralType = 10
+	LiteralType_DoubleTensorArray LiteralType = 10
 	LiteralType_SparseIntegerArray LiteralType = 11
-	LiteralType_SparseDoubleArray  LiteralType = 12
-	LiteralType_Date               LiteralType = 13
-	LiteralType_Time               LiteralType = 14
-	LiteralType_Inteval            LiteralType = 15
-	LiteralType_DateTime           LiteralType = 16
-	LiteralType_Timestamp          LiteralType = 17
+	LiteralType_SparseDoubleArray LiteralType = 12
+	LiteralType_Date LiteralType = 13
+	LiteralType_Time LiteralType = 14
+	LiteralType_Inteval LiteralType = 15
+	LiteralType_DateTime LiteralType = 16
+	LiteralType_Timestamp LiteralType = 17
 	LiteralType_CurlyBracketsArray LiteralType = 18
 )
 
@@ -657,91 +573,54 @@ func LiteralTypeValues() iter.Seq[LiteralType] {
 
 func (p LiteralType) String() string {
 	switch p {
-	case LiteralType_Boolean:
-		return "Boolean"
-	case LiteralType_Double:
-		return "Double"
-	case LiteralType_String:
-		return "String"
-	case LiteralType_Int64:
-		return "Int64"
-	case LiteralType_Null:
-		return "Null"
-	case LiteralType_IntegerArray:
-		return "IntegerArray"
-	case LiteralType_DoubleArray:
-		return "DoubleArray"
-	case LiteralType_IntegerTensor:
-		return "IntegerTensor"
-	case LiteralType_DoubleTensor:
-		return "DoubleTensor"
-	case LiteralType_IntegerTensorArray:
-		return "IntegerTensorArray"
-	case LiteralType_DoubleTensorArray:
-		return "DoubleTensorArray"
-	case LiteralType_SparseIntegerArray:
-		return "SparseIntegerArray"
-	case LiteralType_SparseDoubleArray:
-		return "SparseDoubleArray"
-	case LiteralType_Date:
-		return "Date"
-	case LiteralType_Time:
-		return "Time"
-	case LiteralType_Inteval:
-		return "Inteval"
-	case LiteralType_DateTime:
-		return "DateTime"
-	case LiteralType_Timestamp:
-		return "Timestamp"
-	case LiteralType_CurlyBracketsArray:
-		return "CurlyBracketsArray"
+	case LiteralType_Boolean: return "Boolean"
+	case LiteralType_Double: return "Double"
+	case LiteralType_String: return "String"
+	case LiteralType_Int64: return "Int64"
+	case LiteralType_Null: return "Null"
+	case LiteralType_IntegerArray: return "IntegerArray"
+	case LiteralType_DoubleArray: return "DoubleArray"
+	case LiteralType_IntegerTensor: return "IntegerTensor"
+	case LiteralType_DoubleTensor: return "DoubleTensor"
+	case LiteralType_IntegerTensorArray: return "IntegerTensorArray"
+	case LiteralType_DoubleTensorArray: return "DoubleTensorArray"
+	case LiteralType_SparseIntegerArray: return "SparseIntegerArray"
+	case LiteralType_SparseDoubleArray: return "SparseDoubleArray"
+	case LiteralType_Date: return "Date"
+	case LiteralType_Time: return "Time"
+	case LiteralType_Inteval: return "Inteval"
+	case LiteralType_DateTime: return "DateTime"
+	case LiteralType_Timestamp: return "Timestamp"
+	case LiteralType_CurlyBracketsArray: return "CurlyBracketsArray"
 	}
 	return "<UNSET>"
 }
 
 func LiteralTypeFromString(s string) (LiteralType, error) {
 	switch s {
-	case "Boolean":
-		return LiteralType_Boolean, nil
-	case "Double":
-		return LiteralType_Double, nil
-	case "String":
-		return LiteralType_String, nil
-	case "Int64":
-		return LiteralType_Int64, nil
-	case "Null":
-		return LiteralType_Null, nil
-	case "IntegerArray":
-		return LiteralType_IntegerArray, nil
-	case "DoubleArray":
-		return LiteralType_DoubleArray, nil
-	case "IntegerTensor":
-		return LiteralType_IntegerTensor, nil
-	case "DoubleTensor":
-		return LiteralType_DoubleTensor, nil
-	case "IntegerTensorArray":
-		return LiteralType_IntegerTensorArray, nil
-	case "DoubleTensorArray":
-		return LiteralType_DoubleTensorArray, nil
-	case "SparseIntegerArray":
-		return LiteralType_SparseIntegerArray, nil
-	case "SparseDoubleArray":
-		return LiteralType_SparseDoubleArray, nil
-	case "Date":
-		return LiteralType_Date, nil
-	case "Time":
-		return LiteralType_Time, nil
-	case "Inteval":
-		return LiteralType_Inteval, nil
-	case "DateTime":
-		return LiteralType_DateTime, nil
-	case "Timestamp":
-		return LiteralType_Timestamp, nil
-	case "CurlyBracketsArray":
-		return LiteralType_CurlyBracketsArray, nil
+	case "Boolean": return LiteralType_Boolean, nil
+	case "Double": return LiteralType_Double, nil
+	case "String": return LiteralType_String, nil
+	case "Int64": return LiteralType_Int64, nil
+	case "Null": return LiteralType_Null, nil
+	case "IntegerArray": return LiteralType_IntegerArray, nil
+	case "DoubleArray": return LiteralType_DoubleArray, nil
+	case "IntegerTensor": return LiteralType_IntegerTensor, nil
+	case "DoubleTensor": return LiteralType_DoubleTensor, nil
+	case "IntegerTensorArray": return LiteralType_IntegerTensorArray, nil
+	case "DoubleTensorArray": return LiteralType_DoubleTensorArray, nil
+	case "SparseIntegerArray": return LiteralType_SparseIntegerArray, nil
+	case "SparseDoubleArray": return LiteralType_SparseDoubleArray, nil
+	case "Date": return LiteralType_Date, nil
+	case "Time": return LiteralType_Time, nil
+	case "Inteval": return LiteralType_Inteval, nil
+	case "DateTime": return LiteralType_DateTime, nil
+	case "Timestamp": return LiteralType_Timestamp, nil
+	case "CurlyBracketsArray": return LiteralType_CurlyBracketsArray, nil
 	}
 	return LiteralType(0), fmt.Errorf("not a valid LiteralType string")
 }
+
 
 func LiteralTypePtr(v LiteralType) *LiteralType { return &v }
 
@@ -777,10 +656,10 @@ func (p *LiteralType) Value() (driver.Value, error) {
 type KnnDistanceType int64
 
 const (
-	KnnDistanceType_L2           KnnDistanceType = 0
-	KnnDistanceType_Cosine       KnnDistanceType = 1
+	KnnDistanceType_L2 KnnDistanceType = 0
+	KnnDistanceType_Cosine KnnDistanceType = 1
 	KnnDistanceType_InnerProduct KnnDistanceType = 2
-	KnnDistanceType_Hamming      KnnDistanceType = 3
+	KnnDistanceType_Hamming KnnDistanceType = 3
 )
 
 var knownKnnDistanceTypeValues = []KnnDistanceType{
@@ -802,31 +681,24 @@ func KnnDistanceTypeValues() iter.Seq[KnnDistanceType] {
 
 func (p KnnDistanceType) String() string {
 	switch p {
-	case KnnDistanceType_L2:
-		return "L2"
-	case KnnDistanceType_Cosine:
-		return "Cosine"
-	case KnnDistanceType_InnerProduct:
-		return "InnerProduct"
-	case KnnDistanceType_Hamming:
-		return "Hamming"
+	case KnnDistanceType_L2: return "L2"
+	case KnnDistanceType_Cosine: return "Cosine"
+	case KnnDistanceType_InnerProduct: return "InnerProduct"
+	case KnnDistanceType_Hamming: return "Hamming"
 	}
 	return "<UNSET>"
 }
 
 func KnnDistanceTypeFromString(s string) (KnnDistanceType, error) {
 	switch s {
-	case "L2":
-		return KnnDistanceType_L2, nil
-	case "Cosine":
-		return KnnDistanceType_Cosine, nil
-	case "InnerProduct":
-		return KnnDistanceType_InnerProduct, nil
-	case "Hamming":
-		return KnnDistanceType_Hamming, nil
+	case "L2": return KnnDistanceType_L2, nil
+	case "Cosine": return KnnDistanceType_Cosine, nil
+	case "InnerProduct": return KnnDistanceType_InnerProduct, nil
+	case "Hamming": return KnnDistanceType_Hamming, nil
 	}
 	return KnnDistanceType(0), fmt.Errorf("not a valid KnnDistanceType string")
 }
+
 
 func KnnDistanceTypePtr(v KnnDistanceType) *KnnDistanceType { return &v }
 
@@ -862,11 +734,11 @@ func (p *KnnDistanceType) Value() (driver.Value, error) {
 type CopyFileType int64
 
 const (
-	CopyFileType_CSV   CopyFileType = 0
-	CopyFileType_JSON  CopyFileType = 1
+	CopyFileType_CSV CopyFileType = 0
+	CopyFileType_JSON CopyFileType = 1
 	CopyFileType_JSONL CopyFileType = 2
 	CopyFileType_FVECS CopyFileType = 3
-	CopyFileType_CSR   CopyFileType = 4
+	CopyFileType_CSR CopyFileType = 4
 	CopyFileType_BVECS CopyFileType = 5
 )
 
@@ -891,39 +763,28 @@ func CopyFileTypeValues() iter.Seq[CopyFileType] {
 
 func (p CopyFileType) String() string {
 	switch p {
-	case CopyFileType_CSV:
-		return "CSV"
-	case CopyFileType_JSON:
-		return "JSON"
-	case CopyFileType_JSONL:
-		return "JSONL"
-	case CopyFileType_FVECS:
-		return "FVECS"
-	case CopyFileType_CSR:
-		return "CSR"
-	case CopyFileType_BVECS:
-		return "BVECS"
+	case CopyFileType_CSV: return "CSV"
+	case CopyFileType_JSON: return "JSON"
+	case CopyFileType_JSONL: return "JSONL"
+	case CopyFileType_FVECS: return "FVECS"
+	case CopyFileType_CSR: return "CSR"
+	case CopyFileType_BVECS: return "BVECS"
 	}
 	return "<UNSET>"
 }
 
 func CopyFileTypeFromString(s string) (CopyFileType, error) {
 	switch s {
-	case "CSV":
-		return CopyFileType_CSV, nil
-	case "JSON":
-		return CopyFileType_JSON, nil
-	case "JSONL":
-		return CopyFileType_JSONL, nil
-	case "FVECS":
-		return CopyFileType_FVECS, nil
-	case "CSR":
-		return CopyFileType_CSR, nil
-	case "BVECS":
-		return CopyFileType_BVECS, nil
+	case "CSV": return CopyFileType_CSV, nil
+	case "JSON": return CopyFileType_JSON, nil
+	case "JSONL": return CopyFileType_JSONL, nil
+	case "FVECS": return CopyFileType_FVECS, nil
+	case "CSR": return CopyFileType_CSR, nil
+	case "BVECS": return CopyFileType_BVECS, nil
 	}
 	return CopyFileType(0), fmt.Errorf("not a valid CopyFileType string")
 }
+
 
 func CopyFileTypePtr(v CopyFileType) *CopyFileType { return &v }
 
@@ -959,30 +820,30 @@ func (p *CopyFileType) Value() (driver.Value, error) {
 type ColumnType int64
 
 const (
-	ColumnType_ColumnBool        ColumnType = 0
-	ColumnType_ColumnInt8        ColumnType = 1
-	ColumnType_ColumnInt16       ColumnType = 2
-	ColumnType_ColumnInt32       ColumnType = 3
-	ColumnType_ColumnInt64       ColumnType = 4
-	ColumnType_ColumnFloat32     ColumnType = 5
-	ColumnType_ColumnFloat64     ColumnType = 6
-	ColumnType_ColumnFloat16     ColumnType = 7
-	ColumnType_ColumnBFloat16    ColumnType = 8
-	ColumnType_ColumnVarchar     ColumnType = 9
-	ColumnType_ColumnEmbedding   ColumnType = 10
-	ColumnType_ColumnTensor      ColumnType = 11
+	ColumnType_ColumnBool ColumnType = 0
+	ColumnType_ColumnInt8 ColumnType = 1
+	ColumnType_ColumnInt16 ColumnType = 2
+	ColumnType_ColumnInt32 ColumnType = 3
+	ColumnType_ColumnInt64 ColumnType = 4
+	ColumnType_ColumnFloat32 ColumnType = 5
+	ColumnType_ColumnFloat64 ColumnType = 6
+	ColumnType_ColumnFloat16 ColumnType = 7
+	ColumnType_ColumnBFloat16 ColumnType = 8
+	ColumnType_ColumnVarchar ColumnType = 9
+	ColumnType_ColumnEmbedding ColumnType = 10
+	ColumnType_ColumnTensor ColumnType = 11
 	ColumnType_ColumnTensorArray ColumnType = 12
-	ColumnType_ColumnSparse      ColumnType = 13
+	ColumnType_ColumnSparse ColumnType = 13
 	ColumnType_ColumnMultiVector ColumnType = 14
-	ColumnType_ColumnRowID       ColumnType = 15
-	ColumnType_ColumnDate        ColumnType = 16
-	ColumnType_ColumnTime        ColumnType = 17
-	ColumnType_ColumnDateTime    ColumnType = 18
-	ColumnType_ColumnTimestamp   ColumnType = 19
-	ColumnType_ColumnInterval    ColumnType = 20
-	ColumnType_ColumnArray       ColumnType = 21
-	ColumnType_ColumnJson        ColumnType = 22
-	ColumnType_ColumnInvalid     ColumnType = 23
+	ColumnType_ColumnRowID ColumnType = 15
+	ColumnType_ColumnDate ColumnType = 16
+	ColumnType_ColumnTime ColumnType = 17
+	ColumnType_ColumnDateTime ColumnType = 18
+	ColumnType_ColumnTimestamp ColumnType = 19
+	ColumnType_ColumnInterval ColumnType = 20
+	ColumnType_ColumnArray ColumnType = 21
+	ColumnType_ColumnJson ColumnType = 22
+	ColumnType_ColumnInvalid ColumnType = 23
 )
 
 var knownColumnTypeValues = []ColumnType{
@@ -1024,111 +885,64 @@ func ColumnTypeValues() iter.Seq[ColumnType] {
 
 func (p ColumnType) String() string {
 	switch p {
-	case ColumnType_ColumnBool:
-		return "ColumnBool"
-	case ColumnType_ColumnInt8:
-		return "ColumnInt8"
-	case ColumnType_ColumnInt16:
-		return "ColumnInt16"
-	case ColumnType_ColumnInt32:
-		return "ColumnInt32"
-	case ColumnType_ColumnInt64:
-		return "ColumnInt64"
-	case ColumnType_ColumnFloat32:
-		return "ColumnFloat32"
-	case ColumnType_ColumnFloat64:
-		return "ColumnFloat64"
-	case ColumnType_ColumnFloat16:
-		return "ColumnFloat16"
-	case ColumnType_ColumnBFloat16:
-		return "ColumnBFloat16"
-	case ColumnType_ColumnVarchar:
-		return "ColumnVarchar"
-	case ColumnType_ColumnEmbedding:
-		return "ColumnEmbedding"
-	case ColumnType_ColumnTensor:
-		return "ColumnTensor"
-	case ColumnType_ColumnTensorArray:
-		return "ColumnTensorArray"
-	case ColumnType_ColumnSparse:
-		return "ColumnSparse"
-	case ColumnType_ColumnMultiVector:
-		return "ColumnMultiVector"
-	case ColumnType_ColumnRowID:
-		return "ColumnRowID"
-	case ColumnType_ColumnDate:
-		return "ColumnDate"
-	case ColumnType_ColumnTime:
-		return "ColumnTime"
-	case ColumnType_ColumnDateTime:
-		return "ColumnDateTime"
-	case ColumnType_ColumnTimestamp:
-		return "ColumnTimestamp"
-	case ColumnType_ColumnInterval:
-		return "ColumnInterval"
-	case ColumnType_ColumnArray:
-		return "ColumnArray"
-	case ColumnType_ColumnJson:
-		return "ColumnJson"
-	case ColumnType_ColumnInvalid:
-		return "ColumnInvalid"
+	case ColumnType_ColumnBool: return "ColumnBool"
+	case ColumnType_ColumnInt8: return "ColumnInt8"
+	case ColumnType_ColumnInt16: return "ColumnInt16"
+	case ColumnType_ColumnInt32: return "ColumnInt32"
+	case ColumnType_ColumnInt64: return "ColumnInt64"
+	case ColumnType_ColumnFloat32: return "ColumnFloat32"
+	case ColumnType_ColumnFloat64: return "ColumnFloat64"
+	case ColumnType_ColumnFloat16: return "ColumnFloat16"
+	case ColumnType_ColumnBFloat16: return "ColumnBFloat16"
+	case ColumnType_ColumnVarchar: return "ColumnVarchar"
+	case ColumnType_ColumnEmbedding: return "ColumnEmbedding"
+	case ColumnType_ColumnTensor: return "ColumnTensor"
+	case ColumnType_ColumnTensorArray: return "ColumnTensorArray"
+	case ColumnType_ColumnSparse: return "ColumnSparse"
+	case ColumnType_ColumnMultiVector: return "ColumnMultiVector"
+	case ColumnType_ColumnRowID: return "ColumnRowID"
+	case ColumnType_ColumnDate: return "ColumnDate"
+	case ColumnType_ColumnTime: return "ColumnTime"
+	case ColumnType_ColumnDateTime: return "ColumnDateTime"
+	case ColumnType_ColumnTimestamp: return "ColumnTimestamp"
+	case ColumnType_ColumnInterval: return "ColumnInterval"
+	case ColumnType_ColumnArray: return "ColumnArray"
+	case ColumnType_ColumnJson: return "ColumnJson"
+	case ColumnType_ColumnInvalid: return "ColumnInvalid"
 	}
 	return "<UNSET>"
 }
 
 func ColumnTypeFromString(s string) (ColumnType, error) {
 	switch s {
-	case "ColumnBool":
-		return ColumnType_ColumnBool, nil
-	case "ColumnInt8":
-		return ColumnType_ColumnInt8, nil
-	case "ColumnInt16":
-		return ColumnType_ColumnInt16, nil
-	case "ColumnInt32":
-		return ColumnType_ColumnInt32, nil
-	case "ColumnInt64":
-		return ColumnType_ColumnInt64, nil
-	case "ColumnFloat32":
-		return ColumnType_ColumnFloat32, nil
-	case "ColumnFloat64":
-		return ColumnType_ColumnFloat64, nil
-	case "ColumnFloat16":
-		return ColumnType_ColumnFloat16, nil
-	case "ColumnBFloat16":
-		return ColumnType_ColumnBFloat16, nil
-	case "ColumnVarchar":
-		return ColumnType_ColumnVarchar, nil
-	case "ColumnEmbedding":
-		return ColumnType_ColumnEmbedding, nil
-	case "ColumnTensor":
-		return ColumnType_ColumnTensor, nil
-	case "ColumnTensorArray":
-		return ColumnType_ColumnTensorArray, nil
-	case "ColumnSparse":
-		return ColumnType_ColumnSparse, nil
-	case "ColumnMultiVector":
-		return ColumnType_ColumnMultiVector, nil
-	case "ColumnRowID":
-		return ColumnType_ColumnRowID, nil
-	case "ColumnDate":
-		return ColumnType_ColumnDate, nil
-	case "ColumnTime":
-		return ColumnType_ColumnTime, nil
-	case "ColumnDateTime":
-		return ColumnType_ColumnDateTime, nil
-	case "ColumnTimestamp":
-		return ColumnType_ColumnTimestamp, nil
-	case "ColumnInterval":
-		return ColumnType_ColumnInterval, nil
-	case "ColumnArray":
-		return ColumnType_ColumnArray, nil
-	case "ColumnJson":
-		return ColumnType_ColumnJson, nil
-	case "ColumnInvalid":
-		return ColumnType_ColumnInvalid, nil
+	case "ColumnBool": return ColumnType_ColumnBool, nil
+	case "ColumnInt8": return ColumnType_ColumnInt8, nil
+	case "ColumnInt16": return ColumnType_ColumnInt16, nil
+	case "ColumnInt32": return ColumnType_ColumnInt32, nil
+	case "ColumnInt64": return ColumnType_ColumnInt64, nil
+	case "ColumnFloat32": return ColumnType_ColumnFloat32, nil
+	case "ColumnFloat64": return ColumnType_ColumnFloat64, nil
+	case "ColumnFloat16": return ColumnType_ColumnFloat16, nil
+	case "ColumnBFloat16": return ColumnType_ColumnBFloat16, nil
+	case "ColumnVarchar": return ColumnType_ColumnVarchar, nil
+	case "ColumnEmbedding": return ColumnType_ColumnEmbedding, nil
+	case "ColumnTensor": return ColumnType_ColumnTensor, nil
+	case "ColumnTensorArray": return ColumnType_ColumnTensorArray, nil
+	case "ColumnSparse": return ColumnType_ColumnSparse, nil
+	case "ColumnMultiVector": return ColumnType_ColumnMultiVector, nil
+	case "ColumnRowID": return ColumnType_ColumnRowID, nil
+	case "ColumnDate": return ColumnType_ColumnDate, nil
+	case "ColumnTime": return ColumnType_ColumnTime, nil
+	case "ColumnDateTime": return ColumnType_ColumnDateTime, nil
+	case "ColumnTimestamp": return ColumnType_ColumnTimestamp, nil
+	case "ColumnInterval": return ColumnType_ColumnInterval, nil
+	case "ColumnArray": return ColumnType_ColumnArray, nil
+	case "ColumnJson": return ColumnType_ColumnJson, nil
+	case "ColumnInvalid": return ColumnType_ColumnInvalid, nil
 	}
 	return ColumnType(0), fmt.Errorf("not a valid ColumnType string")
 }
+
 
 func ColumnTypePtr(v ColumnType) *ColumnType { return &v }
 
@@ -1164,16 +978,17 @@ func (p *ColumnType) Value() (driver.Value, error) {
 type IndexType int64
 
 const (
-	IndexType_IVF                 IndexType = 0
-	IndexType_Hnsw                IndexType = 1
-	IndexType_FullText            IndexType = 2
-	IndexType_BMP                 IndexType = 3
-	IndexType_Secondary           IndexType = 4
+	IndexType_IVF IndexType = 0
+	IndexType_Hnsw IndexType = 1
+	IndexType_FullText IndexType = 2
+	IndexType_BMP IndexType = 3
+	IndexType_Secondary IndexType = 4
 	IndexType_SecondaryFunctional IndexType = 5
-	IndexType_EMVB                IndexType = 6
-	IndexType_DiskAnn             IndexType = 7
-	IndexType_PLAID               IndexType = 8
-	IndexType_SPFresh             IndexType = 9
+	IndexType_EMVB IndexType = 6
+	IndexType_DiskAnn IndexType = 7
+	IndexType_PLAID IndexType = 8
+	IndexType_SMVE IndexType = 9
+	IndexType_SPFresh IndexType = 10
 )
 
 var knownIndexTypeValues = []IndexType{
@@ -1186,6 +1001,7 @@ var knownIndexTypeValues = []IndexType{
 	IndexType_EMVB,
 	IndexType_DiskAnn,
 	IndexType_PLAID,
+	IndexType_SMVE,
 	IndexType_SPFresh,
 }
 
@@ -1201,55 +1017,38 @@ func IndexTypeValues() iter.Seq[IndexType] {
 
 func (p IndexType) String() string {
 	switch p {
-	case IndexType_IVF:
-		return "IVF"
-	case IndexType_Hnsw:
-		return "Hnsw"
-	case IndexType_FullText:
-		return "FullText"
-	case IndexType_BMP:
-		return "BMP"
-	case IndexType_Secondary:
-		return "Secondary"
-	case IndexType_SecondaryFunctional:
-		return "SecondaryFunctional"
-	case IndexType_EMVB:
-		return "EMVB"
-	case IndexType_DiskAnn:
-		return "DiskAnn"
-	case IndexType_PLAID:
-		return "PLAID"
-	case IndexType_SPFresh:
-		return "SPFresh"
+	case IndexType_IVF: return "IVF"
+	case IndexType_Hnsw: return "Hnsw"
+	case IndexType_FullText: return "FullText"
+	case IndexType_BMP: return "BMP"
+	case IndexType_Secondary: return "Secondary"
+	case IndexType_SecondaryFunctional: return "SecondaryFunctional"
+	case IndexType_EMVB: return "EMVB"
+	case IndexType_DiskAnn: return "DiskAnn"
+	case IndexType_PLAID: return "PLAID"
+	case IndexType_SMVE: return "SMVE"
+	case IndexType_SPFresh: return "SPFresh"
 	}
 	return "<UNSET>"
 }
 
 func IndexTypeFromString(s string) (IndexType, error) {
 	switch s {
-	case "IVF":
-		return IndexType_IVF, nil
-	case "Hnsw":
-		return IndexType_Hnsw, nil
-	case "FullText":
-		return IndexType_FullText, nil
-	case "BMP":
-		return IndexType_BMP, nil
-	case "Secondary":
-		return IndexType_Secondary, nil
-	case "SecondaryFunctional":
-		return IndexType_SecondaryFunctional, nil
-	case "EMVB":
-		return IndexType_EMVB, nil
-	case "DiskAnn":
-		return IndexType_DiskAnn, nil
-	case "PLAID":
-		return IndexType_PLAID, nil
-	case "SPFresh":
-		return IndexType_SPFresh, nil
+	case "IVF": return IndexType_IVF, nil
+	case "Hnsw": return IndexType_Hnsw, nil
+	case "FullText": return IndexType_FullText, nil
+	case "BMP": return IndexType_BMP, nil
+	case "Secondary": return IndexType_Secondary, nil
+	case "SecondaryFunctional": return IndexType_SecondaryFunctional, nil
+	case "EMVB": return IndexType_EMVB, nil
+	case "DiskAnn": return IndexType_DiskAnn, nil
+	case "PLAID": return IndexType_PLAID, nil
+	case "SMVE": return IndexType_SMVE, nil
+	case "SPFresh": return IndexType_SPFresh, nil
 	}
 	return IndexType(0), fmt.Errorf("not a valid IndexType string")
 }
+
 
 func IndexTypePtr(v IndexType) *IndexType { return &v }
 
@@ -1285,10 +1084,10 @@ func (p *IndexType) Value() (driver.Value, error) {
 type ExplainType int64
 
 const (
-	ExplainType_Analyze  ExplainType = 0
-	ExplainType_Ast      ExplainType = 1
-	ExplainType_UnOpt    ExplainType = 2
-	ExplainType_Opt      ExplainType = 3
+	ExplainType_Analyze ExplainType = 0
+	ExplainType_Ast ExplainType = 1
+	ExplainType_UnOpt ExplainType = 2
+	ExplainType_Opt ExplainType = 3
 	ExplainType_Physical ExplainType = 4
 	ExplainType_Pipeline ExplainType = 5
 	ExplainType_Fragment ExplainType = 6
@@ -1316,43 +1115,30 @@ func ExplainTypeValues() iter.Seq[ExplainType] {
 
 func (p ExplainType) String() string {
 	switch p {
-	case ExplainType_Analyze:
-		return "Analyze"
-	case ExplainType_Ast:
-		return "Ast"
-	case ExplainType_UnOpt:
-		return "UnOpt"
-	case ExplainType_Opt:
-		return "Opt"
-	case ExplainType_Physical:
-		return "Physical"
-	case ExplainType_Pipeline:
-		return "Pipeline"
-	case ExplainType_Fragment:
-		return "Fragment"
+	case ExplainType_Analyze: return "Analyze"
+	case ExplainType_Ast: return "Ast"
+	case ExplainType_UnOpt: return "UnOpt"
+	case ExplainType_Opt: return "Opt"
+	case ExplainType_Physical: return "Physical"
+	case ExplainType_Pipeline: return "Pipeline"
+	case ExplainType_Fragment: return "Fragment"
 	}
 	return "<UNSET>"
 }
 
 func ExplainTypeFromString(s string) (ExplainType, error) {
 	switch s {
-	case "Analyze":
-		return ExplainType_Analyze, nil
-	case "Ast":
-		return ExplainType_Ast, nil
-	case "UnOpt":
-		return ExplainType_UnOpt, nil
-	case "Opt":
-		return ExplainType_Opt, nil
-	case "Physical":
-		return ExplainType_Physical, nil
-	case "Pipeline":
-		return ExplainType_Pipeline, nil
-	case "Fragment":
-		return ExplainType_Fragment, nil
+	case "Analyze": return ExplainType_Analyze, nil
+	case "Ast": return ExplainType_Ast, nil
+	case "UnOpt": return ExplainType_UnOpt, nil
+	case "Opt": return ExplainType_Opt, nil
+	case "Physical": return ExplainType_Physical, nil
+	case "Pipeline": return ExplainType_Pipeline, nil
+	case "Fragment": return ExplainType_Fragment, nil
 	}
 	return ExplainType(0), fmt.Errorf("not a valid ExplainType string")
 }
+
 
 func ExplainTypePtr(v ExplainType) *ExplainType { return &v }
 
@@ -1386,10 +1172,11 @@ func (p *ExplainType) Value() (driver.Value, error) {
 }
 
 // Attributes:
-//   - Key
-//   - Value
+//  - Key
+//  - Value
+// 
 type Property struct {
-	Key   string `thrift:"key,1" db:"key" json:"key"`
+	Key string `thrift:"key,1" db:"key" json:"key"`
 	Value string `thrift:"value,2" db:"value" json:"value"`
 }
 
@@ -1397,9 +1184,13 @@ func NewProperty() *Property {
 	return &Property{}
 }
 
+
+
 func (p *Property) GetKey() string {
 	return p.Key
 }
+
+
 
 func (p *Property) GetValue() string {
 	return p.Value
@@ -1409,6 +1200,7 @@ func (p *Property) Read(ctx context.Context, iprot thrift.TProtocol) error {
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -1477,12 +1269,8 @@ func (p *Property) Write(ctx context.Context, oprot thrift.TProtocol) error {
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -1525,12 +1313,8 @@ func (p *Property) Equals(other *Property) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.Key != other.Key {
-		return false
-	}
-	if p.Value != other.Value {
-		return false
-	}
+	if p.Key != other.Key { return false }
+	if p.Value != other.Value { return false }
 	return true
 }
 
@@ -1546,7 +1330,7 @@ func (p *Property) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.Property",
+		Type: "*infinity.Property",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -1559,22 +1343,28 @@ func (p *Property) Validate() error {
 }
 
 // Attributes:
-//   - ConflictType
-//   - Properties
+//  - ConflictType
+//  - Properties
+// 
 type CreateOption struct {
 	ConflictType CreateConflict `thrift:"conflict_type,1" db:"conflict_type" json:"conflict_type"`
-	Properties   []*Property    `thrift:"properties,2" db:"properties" json:"properties"`
+	Properties []*Property `thrift:"properties,2" db:"properties" json:"properties"`
 }
 
 func NewCreateOption() *CreateOption {
 	return &CreateOption{
-		Properties: []*Property{},
+		Properties: []*Property{
+		},
 	}
 }
+
+
 
 func (p *CreateOption) GetConflictType() CreateConflict {
 	return p.ConflictType
 }
+
+
 
 func (p *CreateOption) GetProperties() []*Property {
 	return p.Properties
@@ -1584,6 +1374,7 @@ func (p *CreateOption) Read(ctx context.Context, iprot thrift.TProtocol) error {
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -1664,12 +1455,8 @@ func (p *CreateOption) Write(ctx context.Context, oprot thrift.TProtocol) error 
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -1720,17 +1507,11 @@ func (p *CreateOption) Equals(other *CreateOption) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.ConflictType != other.ConflictType {
-		return false
-	}
-	if len(p.Properties) != len(other.Properties) {
-		return false
-	}
+	if p.ConflictType != other.ConflictType { return false }
+	if len(p.Properties) != len(other.Properties) { return false }
 	for i, _tgt := range p.Properties {
 		_src1 := other.Properties[i]
-		if !_tgt.Equals(_src1) {
-			return false
-		}
+		if !_tgt.Equals(_src1) { return false }
 	}
 	return true
 }
@@ -1747,7 +1528,7 @@ func (p *CreateOption) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.CreateOption",
+		Type: "*infinity.CreateOption",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -1760,7 +1541,8 @@ func (p *CreateOption) Validate() error {
 }
 
 // Attributes:
-//   - ConflictType
+//  - ConflictType
+// 
 type DropOption struct {
 	ConflictType DropConflict `thrift:"conflict_type,1" db:"conflict_type" json:"conflict_type"`
 }
@@ -1768,6 +1550,8 @@ type DropOption struct {
 func NewDropOption() *DropOption {
 	return &DropOption{}
 }
+
+
 
 func (p *DropOption) GetConflictType() DropConflict {
 	return p.ConflictType
@@ -1777,6 +1561,7 @@ func (p *DropOption) Read(ctx context.Context, iprot thrift.TProtocol) error {
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -1827,9 +1612,7 @@ func (p *DropOption) Write(ctx context.Context, oprot thrift.TProtocol) error {
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -1859,9 +1642,7 @@ func (p *DropOption) Equals(other *DropOption) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.ConflictType != other.ConflictType {
-		return false
-	}
+	if p.ConflictType != other.ConflictType { return false }
 	return true
 }
 
@@ -1877,7 +1658,7 @@ func (p *DropOption) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.DropOption",
+		Type: "*infinity.DropOption",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -1900,6 +1681,7 @@ func (p *NumberType) Read(ctx context.Context, iprot thrift.TProtocol) error {
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -1958,7 +1740,7 @@ func (p *NumberType) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.NumberType",
+		Type: "*infinity.NumberType",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -1981,6 +1763,7 @@ func (p *VarcharType) Read(ctx context.Context, iprot thrift.TProtocol) error {
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -2039,7 +1822,7 @@ func (p *VarcharType) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.VarcharType",
+		Type: "*infinity.VarcharType",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -2052,10 +1835,11 @@ func (p *VarcharType) Validate() error {
 }
 
 // Attributes:
-//   - Dimension
-//   - ElementType
+//  - Dimension
+//  - ElementType
+// 
 type EmbeddingType struct {
-	Dimension   int32       `thrift:"dimension,1" db:"dimension" json:"dimension"`
+	Dimension int32 `thrift:"dimension,1" db:"dimension" json:"dimension"`
 	ElementType ElementType `thrift:"element_type,2" db:"element_type" json:"element_type"`
 }
 
@@ -2063,9 +1847,13 @@ func NewEmbeddingType() *EmbeddingType {
 	return &EmbeddingType{}
 }
 
+
+
 func (p *EmbeddingType) GetDimension() int32 {
 	return p.Dimension
 }
+
+
 
 func (p *EmbeddingType) GetElementType() ElementType {
 	return p.ElementType
@@ -2075,6 +1863,7 @@ func (p *EmbeddingType) Read(ctx context.Context, iprot thrift.TProtocol) error 
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -2144,12 +1933,8 @@ func (p *EmbeddingType) Write(ctx context.Context, oprot thrift.TProtocol) error
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -2192,12 +1977,8 @@ func (p *EmbeddingType) Equals(other *EmbeddingType) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.Dimension != other.Dimension {
-		return false
-	}
-	if p.ElementType != other.ElementType {
-		return false
-	}
+	if p.Dimension != other.Dimension { return false }
+	if p.ElementType != other.ElementType { return false }
 	return true
 }
 
@@ -2213,7 +1994,7 @@ func (p *EmbeddingType) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.EmbeddingType",
+		Type: "*infinity.EmbeddingType",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -2226,26 +2007,33 @@ func (p *EmbeddingType) Validate() error {
 }
 
 // Attributes:
-//   - Dimension
-//   - ElementType
-//   - IndexType
+//  - Dimension
+//  - ElementType
+//  - IndexType
+// 
 type SparseType struct {
-	Dimension   int64       `thrift:"dimension,1" db:"dimension" json:"dimension"`
+	Dimension int64 `thrift:"dimension,1" db:"dimension" json:"dimension"`
 	ElementType ElementType `thrift:"element_type,2" db:"element_type" json:"element_type"`
-	IndexType   ElementType `thrift:"index_type,3" db:"index_type" json:"index_type"`
+	IndexType ElementType `thrift:"index_type,3" db:"index_type" json:"index_type"`
 }
 
 func NewSparseType() *SparseType {
 	return &SparseType{}
 }
 
+
+
 func (p *SparseType) GetDimension() int64 {
 	return p.Dimension
 }
 
+
+
 func (p *SparseType) GetElementType() ElementType {
 	return p.ElementType
 }
+
+
 
 func (p *SparseType) GetIndexType() ElementType {
 	return p.IndexType
@@ -2255,6 +2043,7 @@ func (p *SparseType) Read(ctx context.Context, iprot thrift.TProtocol) error {
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -2344,15 +2133,9 @@ func (p *SparseType) Write(ctx context.Context, oprot thrift.TProtocol) error {
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -2408,15 +2191,9 @@ func (p *SparseType) Equals(other *SparseType) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.Dimension != other.Dimension {
-		return false
-	}
-	if p.ElementType != other.ElementType {
-		return false
-	}
-	if p.IndexType != other.IndexType {
-		return false
-	}
+	if p.Dimension != other.Dimension { return false }
+	if p.ElementType != other.ElementType { return false }
+	if p.IndexType != other.IndexType { return false }
 	return true
 }
 
@@ -2432,7 +2209,7 @@ func (p *SparseType) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.SparseType",
+		Type: "*infinity.SparseType",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -2445,7 +2222,8 @@ func (p *SparseType) Validate() error {
 }
 
 // Attributes:
-//   - ElementDataType
+//  - ElementDataType
+// 
 type ArrayType struct {
 	ElementDataType *DataType `thrift:"element_data_type,1" db:"element_data_type" json:"element_data_type"`
 }
@@ -2471,6 +2249,7 @@ func (p *ArrayType) Read(ctx context.Context, iprot thrift.TProtocol) error {
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -2519,9 +2298,7 @@ func (p *ArrayType) Write(ctx context.Context, oprot thrift.TProtocol) error {
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -2551,9 +2328,7 @@ func (p *ArrayType) Equals(other *ArrayType) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if !p.ElementDataType.Equals(other.ElementDataType) {
-		return false
-	}
+	if !p.ElementDataType.Equals(other.ElementDataType) { return false }
 	return true
 }
 
@@ -2569,7 +2344,7 @@ func (p *ArrayType) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.ArrayType",
+		Type: "*infinity.ArrayType",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -2582,17 +2357,18 @@ func (p *ArrayType) Validate() error {
 }
 
 // Attributes:
-//   - NumberType
-//   - VarcharType
-//   - EmbeddingType
-//   - SparseType
-//   - ArrayType
+//  - NumberType
+//  - VarcharType
+//  - EmbeddingType
+//  - SparseType
+//  - ArrayType
+// 
 type PhysicalType struct {
-	NumberType    *NumberType    `thrift:"number_type,1" db:"number_type" json:"number_type,omitempty"`
-	VarcharType   *VarcharType   `thrift:"varchar_type,2" db:"varchar_type" json:"varchar_type,omitempty"`
+	NumberType *NumberType `thrift:"number_type,1" db:"number_type" json:"number_type,omitempty"`
+	VarcharType *VarcharType `thrift:"varchar_type,2" db:"varchar_type" json:"varchar_type,omitempty"`
 	EmbeddingType *EmbeddingType `thrift:"embedding_type,3" db:"embedding_type" json:"embedding_type,omitempty"`
-	SparseType    *SparseType    `thrift:"sparse_type,4" db:"sparse_type" json:"sparse_type,omitempty"`
-	ArrayType     *ArrayType     `thrift:"array_type,5" db:"array_type" json:"array_type,omitempty"`
+	SparseType *SparseType `thrift:"sparse_type,4" db:"sparse_type" json:"sparse_type,omitempty"`
+	ArrayType *ArrayType `thrift:"array_type,5" db:"array_type" json:"array_type,omitempty"`
 }
 
 func NewPhysicalType() *PhysicalType {
@@ -2646,19 +2422,19 @@ func (p *PhysicalType) GetArrayType() *ArrayType {
 
 func (p *PhysicalType) CountSetFieldsPhysicalType() int {
 	count := 0
-	if p.IsSetNumberType() {
+	if (p.IsSetNumberType()) {
 		count++
 	}
-	if p.IsSetVarcharType() {
+	if (p.IsSetVarcharType()) {
 		count++
 	}
-	if p.IsSetEmbeddingType() {
+	if (p.IsSetEmbeddingType()) {
 		count++
 	}
-	if p.IsSetSparseType() {
+	if (p.IsSetSparseType()) {
 		count++
 	}
-	if p.IsSetArrayType() {
+	if (p.IsSetArrayType()) {
 		count++
 	}
 	return count
@@ -2689,6 +2465,7 @@ func (p *PhysicalType) Read(ctx context.Context, iprot thrift.TProtocol) error {
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -2812,21 +2589,11 @@ func (p *PhysicalType) Write(ctx context.Context, oprot thrift.TProtocol) error 
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField4(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField5(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField4(ctx, oprot); err != nil { return err }
+		if err := p.writeField5(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -2918,21 +2685,11 @@ func (p *PhysicalType) Equals(other *PhysicalType) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if !p.NumberType.Equals(other.NumberType) {
-		return false
-	}
-	if !p.VarcharType.Equals(other.VarcharType) {
-		return false
-	}
-	if !p.EmbeddingType.Equals(other.EmbeddingType) {
-		return false
-	}
-	if !p.SparseType.Equals(other.SparseType) {
-		return false
-	}
-	if !p.ArrayType.Equals(other.ArrayType) {
-		return false
-	}
+	if !p.NumberType.Equals(other.NumberType) { return false }
+	if !p.VarcharType.Equals(other.VarcharType) { return false }
+	if !p.EmbeddingType.Equals(other.EmbeddingType) { return false }
+	if !p.SparseType.Equals(other.SparseType) { return false }
+	if !p.ArrayType.Equals(other.ArrayType) { return false }
 	return true
 }
 
@@ -2948,7 +2705,7 @@ func (p *PhysicalType) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.PhysicalType",
+		Type: "*infinity.PhysicalType",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -2961,16 +2718,19 @@ func (p *PhysicalType) Validate() error {
 }
 
 // Attributes:
-//   - LogicType
-//   - PhysicalType
+//  - LogicType
+//  - PhysicalType
+// 
 type DataType struct {
-	LogicType    LogicType     `thrift:"logic_type,1" db:"logic_type" json:"logic_type"`
+	LogicType LogicType `thrift:"logic_type,1" db:"logic_type" json:"logic_type"`
 	PhysicalType *PhysicalType `thrift:"physical_type,2" db:"physical_type" json:"physical_type"`
 }
 
 func NewDataType() *DataType {
 	return &DataType{}
 }
+
+
 
 func (p *DataType) GetLogicType() LogicType {
 	return p.LogicType
@@ -2993,6 +2753,7 @@ func (p *DataType) Read(ctx context.Context, iprot thrift.TProtocol) error {
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -3061,12 +2822,8 @@ func (p *DataType) Write(ctx context.Context, oprot thrift.TProtocol) error {
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -3109,12 +2866,8 @@ func (p *DataType) Equals(other *DataType) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.LogicType != other.LogicType {
-		return false
-	}
-	if !p.PhysicalType.Equals(other.PhysicalType) {
-		return false
-	}
+	if p.LogicType != other.LogicType { return false }
+	if !p.PhysicalType.Equals(other.PhysicalType) { return false }
 	return true
 }
 
@@ -3130,7 +2883,7 @@ func (p *DataType) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.DataType",
+		Type: "*infinity.DataType",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -3143,31 +2896,32 @@ func (p *DataType) Validate() error {
 }
 
 // Attributes:
-//   - ConstantExpr
-//   - ColumnExpr
-//   - FunctionExpr
-//   - BetweenExpr
-//   - KnnExpr
-//   - MatchSparseExpr
-//   - MatchTensorExpr
-//   - MatchExpr
-//   - FusionExpr
-//   - SearchExpr
-//   - InExpr
-//   - CastExpr
+//  - ConstantExpr
+//  - ColumnExpr
+//  - FunctionExpr
+//  - BetweenExpr
+//  - KnnExpr
+//  - MatchSparseExpr
+//  - MatchTensorExpr
+//  - MatchExpr
+//  - FusionExpr
+//  - SearchExpr
+//  - InExpr
+//  - CastExpr
+// 
 type ParsedExprType struct {
-	ConstantExpr    *ConstantExpr    `thrift:"constant_expr,1" db:"constant_expr" json:"constant_expr,omitempty"`
-	ColumnExpr      *ColumnExpr      `thrift:"column_expr,2" db:"column_expr" json:"column_expr,omitempty"`
-	FunctionExpr    *FunctionExpr    `thrift:"function_expr,3" db:"function_expr" json:"function_expr,omitempty"`
-	BetweenExpr     *BetweenExpr     `thrift:"between_expr,4" db:"between_expr" json:"between_expr,omitempty"`
-	KnnExpr         *KnnExpr         `thrift:"knn_expr,5" db:"knn_expr" json:"knn_expr,omitempty"`
+	ConstantExpr *ConstantExpr `thrift:"constant_expr,1" db:"constant_expr" json:"constant_expr,omitempty"`
+	ColumnExpr *ColumnExpr `thrift:"column_expr,2" db:"column_expr" json:"column_expr,omitempty"`
+	FunctionExpr *FunctionExpr `thrift:"function_expr,3" db:"function_expr" json:"function_expr,omitempty"`
+	BetweenExpr *BetweenExpr `thrift:"between_expr,4" db:"between_expr" json:"between_expr,omitempty"`
+	KnnExpr *KnnExpr `thrift:"knn_expr,5" db:"knn_expr" json:"knn_expr,omitempty"`
 	MatchSparseExpr *MatchSparseExpr `thrift:"match_sparse_expr,6" db:"match_sparse_expr" json:"match_sparse_expr,omitempty"`
 	MatchTensorExpr *MatchTensorExpr `thrift:"match_tensor_expr,7" db:"match_tensor_expr" json:"match_tensor_expr,omitempty"`
-	MatchExpr       *MatchExpr       `thrift:"match_expr,8" db:"match_expr" json:"match_expr,omitempty"`
-	FusionExpr      *FusionExpr      `thrift:"fusion_expr,9" db:"fusion_expr" json:"fusion_expr,omitempty"`
-	SearchExpr      *SearchExpr      `thrift:"search_expr,10" db:"search_expr" json:"search_expr,omitempty"`
-	InExpr          *InExpr          `thrift:"in_expr,11" db:"in_expr" json:"in_expr,omitempty"`
-	CastExpr        *CastExpr        `thrift:"cast_expr,12" db:"cast_expr" json:"cast_expr,omitempty"`
+	MatchExpr *MatchExpr `thrift:"match_expr,8" db:"match_expr" json:"match_expr,omitempty"`
+	FusionExpr *FusionExpr `thrift:"fusion_expr,9" db:"fusion_expr" json:"fusion_expr,omitempty"`
+	SearchExpr *SearchExpr `thrift:"search_expr,10" db:"search_expr" json:"search_expr,omitempty"`
+	InExpr *InExpr `thrift:"in_expr,11" db:"in_expr" json:"in_expr,omitempty"`
+	CastExpr *CastExpr `thrift:"cast_expr,12" db:"cast_expr" json:"cast_expr,omitempty"`
 }
 
 func NewParsedExprType() *ParsedExprType {
@@ -3284,40 +3038,40 @@ func (p *ParsedExprType) GetCastExpr() *CastExpr {
 
 func (p *ParsedExprType) CountSetFieldsParsedExprType() int {
 	count := 0
-	if p.IsSetConstantExpr() {
+	if (p.IsSetConstantExpr()) {
 		count++
 	}
-	if p.IsSetColumnExpr() {
+	if (p.IsSetColumnExpr()) {
 		count++
 	}
-	if p.IsSetFunctionExpr() {
+	if (p.IsSetFunctionExpr()) {
 		count++
 	}
-	if p.IsSetBetweenExpr() {
+	if (p.IsSetBetweenExpr()) {
 		count++
 	}
-	if p.IsSetKnnExpr() {
+	if (p.IsSetKnnExpr()) {
 		count++
 	}
-	if p.IsSetMatchSparseExpr() {
+	if (p.IsSetMatchSparseExpr()) {
 		count++
 	}
-	if p.IsSetMatchTensorExpr() {
+	if (p.IsSetMatchTensorExpr()) {
 		count++
 	}
-	if p.IsSetMatchExpr() {
+	if (p.IsSetMatchExpr()) {
 		count++
 	}
-	if p.IsSetFusionExpr() {
+	if (p.IsSetFusionExpr()) {
 		count++
 	}
-	if p.IsSetSearchExpr() {
+	if (p.IsSetSearchExpr()) {
 		count++
 	}
-	if p.IsSetInExpr() {
+	if (p.IsSetInExpr()) {
 		count++
 	}
-	if p.IsSetCastExpr() {
+	if (p.IsSetCastExpr()) {
 		count++
 	}
 	return count
@@ -3376,6 +3130,7 @@ func (p *ParsedExprType) Read(ctx context.Context, iprot thrift.TProtocol) error
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -3531,7 +3286,8 @@ func (p *ParsedExprType) ReadField1(ctx context.Context, iprot thrift.TProtocol)
 
 func (p *ParsedExprType) ReadField2(ctx context.Context, iprot thrift.TProtocol) error {
 	p.ColumnExpr = &ColumnExpr{
-		ColumnName: []string{},
+		ColumnName: []string{
+		},
 	}
 	if err := p.ColumnExpr.Read(ctx, iprot); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T error reading struct: ", p.ColumnExpr), err)
@@ -3557,7 +3313,8 @@ func (p *ParsedExprType) ReadField4(ctx context.Context, iprot thrift.TProtocol)
 
 func (p *ParsedExprType) ReadField5(ctx context.Context, iprot thrift.TProtocol) error {
 	p.KnnExpr = &KnnExpr{
-		OptParams: []*InitParameter{},
+		OptParams: []*InitParameter{
+		},
 	}
 	if err := p.KnnExpr.Read(ctx, iprot); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T error reading struct: ", p.KnnExpr), err)
@@ -3567,7 +3324,8 @@ func (p *ParsedExprType) ReadField5(ctx context.Context, iprot thrift.TProtocol)
 
 func (p *ParsedExprType) ReadField6(ctx context.Context, iprot thrift.TProtocol) error {
 	p.MatchSparseExpr = &MatchSparseExpr{
-		OptParams: []*InitParameter{},
+		OptParams: []*InitParameter{
+		},
 	}
 	if err := p.MatchSparseExpr.Read(ctx, iprot); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T error reading struct: ", p.MatchSparseExpr), err)
@@ -3631,42 +3389,18 @@ func (p *ParsedExprType) Write(ctx context.Context, oprot thrift.TProtocol) erro
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField4(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField5(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField6(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField7(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField8(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField9(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField10(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField11(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField12(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField4(ctx, oprot); err != nil { return err }
+		if err := p.writeField5(ctx, oprot); err != nil { return err }
+		if err := p.writeField6(ctx, oprot); err != nil { return err }
+		if err := p.writeField7(ctx, oprot); err != nil { return err }
+		if err := p.writeField8(ctx, oprot); err != nil { return err }
+		if err := p.writeField9(ctx, oprot); err != nil { return err }
+		if err := p.writeField10(ctx, oprot); err != nil { return err }
+		if err := p.writeField11(ctx, oprot); err != nil { return err }
+		if err := p.writeField12(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -3863,42 +3597,18 @@ func (p *ParsedExprType) Equals(other *ParsedExprType) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if !p.ConstantExpr.Equals(other.ConstantExpr) {
-		return false
-	}
-	if !p.ColumnExpr.Equals(other.ColumnExpr) {
-		return false
-	}
-	if !p.FunctionExpr.Equals(other.FunctionExpr) {
-		return false
-	}
-	if !p.BetweenExpr.Equals(other.BetweenExpr) {
-		return false
-	}
-	if !p.KnnExpr.Equals(other.KnnExpr) {
-		return false
-	}
-	if !p.MatchSparseExpr.Equals(other.MatchSparseExpr) {
-		return false
-	}
-	if !p.MatchTensorExpr.Equals(other.MatchTensorExpr) {
-		return false
-	}
-	if !p.MatchExpr.Equals(other.MatchExpr) {
-		return false
-	}
-	if !p.FusionExpr.Equals(other.FusionExpr) {
-		return false
-	}
-	if !p.SearchExpr.Equals(other.SearchExpr) {
-		return false
-	}
-	if !p.InExpr.Equals(other.InExpr) {
-		return false
-	}
-	if !p.CastExpr.Equals(other.CastExpr) {
-		return false
-	}
+	if !p.ConstantExpr.Equals(other.ConstantExpr) { return false }
+	if !p.ColumnExpr.Equals(other.ColumnExpr) { return false }
+	if !p.FunctionExpr.Equals(other.FunctionExpr) { return false }
+	if !p.BetweenExpr.Equals(other.BetweenExpr) { return false }
+	if !p.KnnExpr.Equals(other.KnnExpr) { return false }
+	if !p.MatchSparseExpr.Equals(other.MatchSparseExpr) { return false }
+	if !p.MatchTensorExpr.Equals(other.MatchTensorExpr) { return false }
+	if !p.MatchExpr.Equals(other.MatchExpr) { return false }
+	if !p.FusionExpr.Equals(other.FusionExpr) { return false }
+	if !p.SearchExpr.Equals(other.SearchExpr) { return false }
+	if !p.InExpr.Equals(other.InExpr) { return false }
+	if !p.CastExpr.Equals(other.CastExpr) { return false }
 	return true
 }
 
@@ -3914,7 +3624,7 @@ func (p *ParsedExprType) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.ParsedExprType",
+		Type: "*infinity.ParsedExprType",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -3927,11 +3637,12 @@ func (p *ParsedExprType) Validate() error {
 }
 
 // Attributes:
-//   - Type
-//   - AliasName
+//  - Type
+//  - AliasName
+// 
 type ParsedExpr struct {
-	Type      *ParsedExprType `thrift:"type,1" db:"type" json:"type"`
-	AliasName string          `thrift:"alias_name,2" db:"alias_name" json:"alias_name"`
+	Type *ParsedExprType `thrift:"type,1" db:"type" json:"type"`
+	AliasName string `thrift:"alias_name,2" db:"alias_name" json:"alias_name"`
 }
 
 func NewParsedExpr() *ParsedExpr {
@@ -3947,6 +3658,8 @@ func (p *ParsedExpr) GetType() *ParsedExprType {
 	return p.Type
 }
 
+
+
 func (p *ParsedExpr) GetAliasName() string {
 	return p.AliasName
 }
@@ -3959,6 +3672,7 @@ func (p *ParsedExpr) Read(ctx context.Context, iprot thrift.TProtocol) error {
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -4026,12 +3740,8 @@ func (p *ParsedExpr) Write(ctx context.Context, oprot thrift.TProtocol) error {
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -4074,12 +3784,8 @@ func (p *ParsedExpr) Equals(other *ParsedExpr) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if !p.Type.Equals(other.Type) {
-		return false
-	}
-	if p.AliasName != other.AliasName {
-		return false
-	}
+	if !p.Type.Equals(other.Type) { return false }
+	if p.AliasName != other.AliasName { return false }
 	return true
 }
 
@@ -4095,7 +3801,7 @@ func (p *ParsedExpr) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.ParsedExpr",
+		Type: "*infinity.ParsedExpr",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -4108,22 +3814,28 @@ func (p *ParsedExpr) Validate() error {
 }
 
 // Attributes:
-//   - ColumnName
-//   - Star
+//  - ColumnName
+//  - Star
+// 
 type ColumnExpr struct {
 	ColumnName []string `thrift:"column_name,1" db:"column_name" json:"column_name"`
-	Star       bool     `thrift:"star,2" db:"star" json:"star"`
+	Star bool `thrift:"star,2" db:"star" json:"star"`
 }
 
 func NewColumnExpr() *ColumnExpr {
 	return &ColumnExpr{
-		ColumnName: []string{},
+		ColumnName: []string{
+		},
 	}
 }
+
+
 
 func (p *ColumnExpr) GetColumnName() []string {
 	return p.ColumnName
 }
+
+
 
 func (p *ColumnExpr) GetStar() bool {
 	return p.Star
@@ -4133,6 +3845,7 @@ func (p *ColumnExpr) Read(ctx context.Context, iprot thrift.TProtocol) error {
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -4214,12 +3927,8 @@ func (p *ColumnExpr) Write(ctx context.Context, oprot thrift.TProtocol) error {
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -4270,18 +3979,12 @@ func (p *ColumnExpr) Equals(other *ColumnExpr) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if len(p.ColumnName) != len(other.ColumnName) {
-		return false
-	}
+	if len(p.ColumnName) != len(other.ColumnName) { return false }
 	for i, _tgt := range p.ColumnName {
 		_src3 := other.ColumnName[i]
-		if _tgt != _src3 {
-			return false
-		}
+		if _tgt != _src3 { return false }
 	}
-	if p.Star != other.Star {
-		return false
-	}
+	if p.Star != other.Star { return false }
 	return true
 }
 
@@ -4297,7 +4000,7 @@ func (p *ColumnExpr) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.ColumnExpr",
+		Type: "*infinity.ColumnExpr",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -4310,26 +4013,27 @@ func (p *ColumnExpr) Validate() error {
 }
 
 // Attributes:
-//   - BoolArrayValue
-//   - U8ArrayValue
-//   - I8ArrayValue
-//   - I16ArrayValue
-//   - I32ArrayValue
-//   - I64ArrayValue
-//   - F32ArrayValue
-//   - F64ArrayValue
-//   - F16ArrayValue
-//   - Bf16ArrayValue
+//  - BoolArrayValue
+//  - U8ArrayValue
+//  - I8ArrayValue
+//  - I16ArrayValue
+//  - I32ArrayValue
+//  - I64ArrayValue
+//  - F32ArrayValue
+//  - F64ArrayValue
+//  - F16ArrayValue
+//  - Bf16ArrayValue
+// 
 type EmbeddingData struct {
-	BoolArrayValue []bool    `thrift:"bool_array_value,1" db:"bool_array_value" json:"bool_array_value,omitempty"`
-	U8ArrayValue   []int16   `thrift:"u8_array_value,2" db:"u8_array_value" json:"u8_array_value,omitempty"`
-	I8ArrayValue   []int16   `thrift:"i8_array_value,3" db:"i8_array_value" json:"i8_array_value,omitempty"`
-	I16ArrayValue  []int16   `thrift:"i16_array_value,4" db:"i16_array_value" json:"i16_array_value,omitempty"`
-	I32ArrayValue  []int32   `thrift:"i32_array_value,5" db:"i32_array_value" json:"i32_array_value,omitempty"`
-	I64ArrayValue  []int64   `thrift:"i64_array_value,6" db:"i64_array_value" json:"i64_array_value,omitempty"`
-	F32ArrayValue  []float64 `thrift:"f32_array_value,7" db:"f32_array_value" json:"f32_array_value,omitempty"`
-	F64ArrayValue  []float64 `thrift:"f64_array_value,8" db:"f64_array_value" json:"f64_array_value,omitempty"`
-	F16ArrayValue  []float64 `thrift:"f16_array_value,9" db:"f16_array_value" json:"f16_array_value,omitempty"`
+	BoolArrayValue []bool `thrift:"bool_array_value,1" db:"bool_array_value" json:"bool_array_value,omitempty"`
+	U8ArrayValue []int16 `thrift:"u8_array_value,2" db:"u8_array_value" json:"u8_array_value,omitempty"`
+	I8ArrayValue []int16 `thrift:"i8_array_value,3" db:"i8_array_value" json:"i8_array_value,omitempty"`
+	I16ArrayValue []int16 `thrift:"i16_array_value,4" db:"i16_array_value" json:"i16_array_value,omitempty"`
+	I32ArrayValue []int32 `thrift:"i32_array_value,5" db:"i32_array_value" json:"i32_array_value,omitempty"`
+	I64ArrayValue []int64 `thrift:"i64_array_value,6" db:"i64_array_value" json:"i64_array_value,omitempty"`
+	F32ArrayValue []float64 `thrift:"f32_array_value,7" db:"f32_array_value" json:"f32_array_value,omitempty"`
+	F64ArrayValue []float64 `thrift:"f64_array_value,8" db:"f64_array_value" json:"f64_array_value,omitempty"`
+	F16ArrayValue []float64 `thrift:"f16_array_value,9" db:"f16_array_value" json:"f16_array_value,omitempty"`
 	Bf16ArrayValue []float64 `thrift:"bf16_array_value,10" db:"bf16_array_value" json:"bf16_array_value,omitempty"`
 }
 
@@ -4339,11 +4043,13 @@ func NewEmbeddingData() *EmbeddingData {
 
 var EmbeddingData_BoolArrayValue_DEFAULT []bool
 
+
 func (p *EmbeddingData) GetBoolArrayValue() []bool {
 	return p.BoolArrayValue
 }
 
 var EmbeddingData_U8ArrayValue_DEFAULT []int16
+
 
 func (p *EmbeddingData) GetU8ArrayValue() []int16 {
 	return p.U8ArrayValue
@@ -4351,11 +4057,13 @@ func (p *EmbeddingData) GetU8ArrayValue() []int16 {
 
 var EmbeddingData_I8ArrayValue_DEFAULT []int16
 
+
 func (p *EmbeddingData) GetI8ArrayValue() []int16 {
 	return p.I8ArrayValue
 }
 
 var EmbeddingData_I16ArrayValue_DEFAULT []int16
+
 
 func (p *EmbeddingData) GetI16ArrayValue() []int16 {
 	return p.I16ArrayValue
@@ -4363,11 +4071,13 @@ func (p *EmbeddingData) GetI16ArrayValue() []int16 {
 
 var EmbeddingData_I32ArrayValue_DEFAULT []int32
 
+
 func (p *EmbeddingData) GetI32ArrayValue() []int32 {
 	return p.I32ArrayValue
 }
 
 var EmbeddingData_I64ArrayValue_DEFAULT []int64
+
 
 func (p *EmbeddingData) GetI64ArrayValue() []int64 {
 	return p.I64ArrayValue
@@ -4375,11 +4085,13 @@ func (p *EmbeddingData) GetI64ArrayValue() []int64 {
 
 var EmbeddingData_F32ArrayValue_DEFAULT []float64
 
+
 func (p *EmbeddingData) GetF32ArrayValue() []float64 {
 	return p.F32ArrayValue
 }
 
 var EmbeddingData_F64ArrayValue_DEFAULT []float64
+
 
 func (p *EmbeddingData) GetF64ArrayValue() []float64 {
 	return p.F64ArrayValue
@@ -4387,11 +4099,13 @@ func (p *EmbeddingData) GetF64ArrayValue() []float64 {
 
 var EmbeddingData_F16ArrayValue_DEFAULT []float64
 
+
 func (p *EmbeddingData) GetF16ArrayValue() []float64 {
 	return p.F16ArrayValue
 }
 
 var EmbeddingData_Bf16ArrayValue_DEFAULT []float64
+
 
 func (p *EmbeddingData) GetBf16ArrayValue() []float64 {
 	return p.Bf16ArrayValue
@@ -4399,34 +4113,34 @@ func (p *EmbeddingData) GetBf16ArrayValue() []float64 {
 
 func (p *EmbeddingData) CountSetFieldsEmbeddingData() int {
 	count := 0
-	if p.IsSetBoolArrayValue() {
+	if (p.IsSetBoolArrayValue()) {
 		count++
 	}
-	if p.IsSetU8ArrayValue() {
+	if (p.IsSetU8ArrayValue()) {
 		count++
 	}
-	if p.IsSetI8ArrayValue() {
+	if (p.IsSetI8ArrayValue()) {
 		count++
 	}
-	if p.IsSetI16ArrayValue() {
+	if (p.IsSetI16ArrayValue()) {
 		count++
 	}
-	if p.IsSetI32ArrayValue() {
+	if (p.IsSetI32ArrayValue()) {
 		count++
 	}
-	if p.IsSetI64ArrayValue() {
+	if (p.IsSetI64ArrayValue()) {
 		count++
 	}
-	if p.IsSetF32ArrayValue() {
+	if (p.IsSetF32ArrayValue()) {
 		count++
 	}
-	if p.IsSetF64ArrayValue() {
+	if (p.IsSetF64ArrayValue()) {
 		count++
 	}
-	if p.IsSetF16ArrayValue() {
+	if (p.IsSetF16ArrayValue()) {
 		count++
 	}
-	if p.IsSetBf16ArrayValue() {
+	if (p.IsSetBf16ArrayValue()) {
 		count++
 	}
 	return count
@@ -4477,6 +4191,7 @@ func (p *EmbeddingData) Read(ctx context.Context, iprot thrift.TProtocol) error 
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -4830,36 +4545,16 @@ func (p *EmbeddingData) Write(ctx context.Context, oprot thrift.TProtocol) error
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField4(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField5(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField6(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField7(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField8(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField9(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField10(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField4(ctx, oprot); err != nil { return err }
+		if err := p.writeField5(ctx, oprot); err != nil { return err }
+		if err := p.writeField6(ctx, oprot); err != nil { return err }
+		if err := p.writeField7(ctx, oprot); err != nil { return err }
+		if err := p.writeField8(ctx, oprot); err != nil { return err }
+		if err := p.writeField9(ctx, oprot); err != nil { return err }
+		if err := p.writeField10(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -5106,95 +4801,55 @@ func (p *EmbeddingData) Equals(other *EmbeddingData) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if len(p.BoolArrayValue) != len(other.BoolArrayValue) {
-		return false
-	}
+	if len(p.BoolArrayValue) != len(other.BoolArrayValue) { return false }
 	for i, _tgt := range p.BoolArrayValue {
 		_src14 := other.BoolArrayValue[i]
-		if _tgt != _src14 {
-			return false
-		}
+		if _tgt != _src14 { return false }
 	}
-	if len(p.U8ArrayValue) != len(other.U8ArrayValue) {
-		return false
-	}
+	if len(p.U8ArrayValue) != len(other.U8ArrayValue) { return false }
 	for i, _tgt := range p.U8ArrayValue {
 		_src15 := other.U8ArrayValue[i]
-		if _tgt != _src15 {
-			return false
-		}
+		if _tgt != _src15 { return false }
 	}
-	if len(p.I8ArrayValue) != len(other.I8ArrayValue) {
-		return false
-	}
+	if len(p.I8ArrayValue) != len(other.I8ArrayValue) { return false }
 	for i, _tgt := range p.I8ArrayValue {
 		_src16 := other.I8ArrayValue[i]
-		if _tgt != _src16 {
-			return false
-		}
+		if _tgt != _src16 { return false }
 	}
-	if len(p.I16ArrayValue) != len(other.I16ArrayValue) {
-		return false
-	}
+	if len(p.I16ArrayValue) != len(other.I16ArrayValue) { return false }
 	for i, _tgt := range p.I16ArrayValue {
 		_src17 := other.I16ArrayValue[i]
-		if _tgt != _src17 {
-			return false
-		}
+		if _tgt != _src17 { return false }
 	}
-	if len(p.I32ArrayValue) != len(other.I32ArrayValue) {
-		return false
-	}
+	if len(p.I32ArrayValue) != len(other.I32ArrayValue) { return false }
 	for i, _tgt := range p.I32ArrayValue {
 		_src18 := other.I32ArrayValue[i]
-		if _tgt != _src18 {
-			return false
-		}
+		if _tgt != _src18 { return false }
 	}
-	if len(p.I64ArrayValue) != len(other.I64ArrayValue) {
-		return false
-	}
+	if len(p.I64ArrayValue) != len(other.I64ArrayValue) { return false }
 	for i, _tgt := range p.I64ArrayValue {
 		_src19 := other.I64ArrayValue[i]
-		if _tgt != _src19 {
-			return false
-		}
+		if _tgt != _src19 { return false }
 	}
-	if len(p.F32ArrayValue) != len(other.F32ArrayValue) {
-		return false
-	}
+	if len(p.F32ArrayValue) != len(other.F32ArrayValue) { return false }
 	for i, _tgt := range p.F32ArrayValue {
 		_src20 := other.F32ArrayValue[i]
-		if _tgt != _src20 {
-			return false
-		}
+		if _tgt != _src20 { return false }
 	}
-	if len(p.F64ArrayValue) != len(other.F64ArrayValue) {
-		return false
-	}
+	if len(p.F64ArrayValue) != len(other.F64ArrayValue) { return false }
 	for i, _tgt := range p.F64ArrayValue {
 		_src21 := other.F64ArrayValue[i]
-		if _tgt != _src21 {
-			return false
-		}
+		if _tgt != _src21 { return false }
 	}
-	if len(p.F16ArrayValue) != len(other.F16ArrayValue) {
-		return false
-	}
+	if len(p.F16ArrayValue) != len(other.F16ArrayValue) { return false }
 	for i, _tgt := range p.F16ArrayValue {
 		_src22 := other.F16ArrayValue[i]
-		if _tgt != _src22 {
-			return false
-		}
+		if _tgt != _src22 { return false }
 	}
-	if len(p.Bf16ArrayValue) != len(other.Bf16ArrayValue) {
-		return false
-	}
+	if len(p.Bf16ArrayValue) != len(other.Bf16ArrayValue) { return false }
 	for i, _tgt := range p.Bf16ArrayValue {
 		_src23 := other.Bf16ArrayValue[i]
-		if _tgt != _src23 {
-			return false
-		}
+		if _tgt != _src23 { return false }
 	}
 	return true
 }
@@ -5211,7 +4866,7 @@ func (p *EmbeddingData) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.EmbeddingData",
+		Type: "*infinity.EmbeddingData",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -5224,10 +4879,11 @@ func (p *EmbeddingData) Validate() error {
 }
 
 // Attributes:
-//   - ParamName
-//   - ParamValue
+//  - ParamName
+//  - ParamValue
+// 
 type InitParameter struct {
-	ParamName  string `thrift:"param_name,1" db:"param_name" json:"param_name"`
+	ParamName string `thrift:"param_name,1" db:"param_name" json:"param_name"`
 	ParamValue string `thrift:"param_value,2" db:"param_value" json:"param_value"`
 }
 
@@ -5235,9 +4891,13 @@ func NewInitParameter() *InitParameter {
 	return &InitParameter{}
 }
 
+
+
 func (p *InitParameter) GetParamName() string {
 	return p.ParamName
 }
+
+
 
 func (p *InitParameter) GetParamValue() string {
 	return p.ParamValue
@@ -5247,6 +4907,7 @@ func (p *InitParameter) Read(ctx context.Context, iprot thrift.TProtocol) error 
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -5315,12 +4976,8 @@ func (p *InitParameter) Write(ctx context.Context, oprot thrift.TProtocol) error
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -5363,12 +5020,8 @@ func (p *InitParameter) Equals(other *InitParameter) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.ParamName != other.ParamName {
-		return false
-	}
-	if p.ParamValue != other.ParamValue {
-		return false
-	}
+	if p.ParamName != other.ParamName { return false }
+	if p.ParamValue != other.ParamValue { return false }
 	return true
 }
 
@@ -5384,7 +5037,7 @@ func (p *InitParameter) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InitParameter",
+		Type: "*infinity.InitParameter",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -5397,38 +5050,41 @@ func (p *InitParameter) Validate() error {
 }
 
 // Attributes:
-//   - LiteralType
-//   - BoolValue
-//   - I64Value
-//   - F64Value
-//   - StrValue
-//   - I64ArrayValue
-//   - F64ArrayValue
-//   - I64TensorValue
-//   - F64TensorValue
-//   - I64TensorArrayValue
-//   - F64TensorArrayValue
-//   - I64ArrayIdx
-//   - CurlyBracketsArray
+//  - LiteralType
+//  - BoolValue
+//  - I64Value
+//  - F64Value
+//  - StrValue
+//  - I64ArrayValue
+//  - F64ArrayValue
+//  - I64TensorValue
+//  - F64TensorValue
+//  - I64TensorArrayValue
+//  - F64TensorArrayValue
+//  - I64ArrayIdx
+//  - CurlyBracketsArray
+// 
 type ConstantExpr struct {
-	LiteralType         LiteralType     `thrift:"literal_type,1" db:"literal_type" json:"literal_type"`
-	BoolValue           *bool           `thrift:"bool_value,2" db:"bool_value" json:"bool_value,omitempty"`
-	I64Value            *int64          `thrift:"i64_value,3" db:"i64_value" json:"i64_value,omitempty"`
-	F64Value            *float64        `thrift:"f64_value,4" db:"f64_value" json:"f64_value,omitempty"`
-	StrValue            *string         `thrift:"str_value,5" db:"str_value" json:"str_value,omitempty"`
-	I64ArrayValue       []int64         `thrift:"i64_array_value,6" db:"i64_array_value" json:"i64_array_value,omitempty"`
-	F64ArrayValue       []float64       `thrift:"f64_array_value,7" db:"f64_array_value" json:"f64_array_value,omitempty"`
-	I64TensorValue      [][]int64       `thrift:"i64_tensor_value,8" db:"i64_tensor_value" json:"i64_tensor_value,omitempty"`
-	F64TensorValue      [][]float64     `thrift:"f64_tensor_value,9" db:"f64_tensor_value" json:"f64_tensor_value,omitempty"`
-	I64TensorArrayValue [][][]int64     `thrift:"i64_tensor_array_value,10" db:"i64_tensor_array_value" json:"i64_tensor_array_value,omitempty"`
-	F64TensorArrayValue [][][]float64   `thrift:"f64_tensor_array_value,11" db:"f64_tensor_array_value" json:"f64_tensor_array_value,omitempty"`
-	I64ArrayIdx         []int64         `thrift:"i64_array_idx,12" db:"i64_array_idx" json:"i64_array_idx,omitempty"`
-	CurlyBracketsArray  []*ConstantExpr `thrift:"curly_brackets_array,13" db:"curly_brackets_array" json:"curly_brackets_array,omitempty"`
+	LiteralType LiteralType `thrift:"literal_type,1" db:"literal_type" json:"literal_type"`
+	BoolValue *bool `thrift:"bool_value,2" db:"bool_value" json:"bool_value,omitempty"`
+	I64Value *int64 `thrift:"i64_value,3" db:"i64_value" json:"i64_value,omitempty"`
+	F64Value *float64 `thrift:"f64_value,4" db:"f64_value" json:"f64_value,omitempty"`
+	StrValue *string `thrift:"str_value,5" db:"str_value" json:"str_value,omitempty"`
+	I64ArrayValue []int64 `thrift:"i64_array_value,6" db:"i64_array_value" json:"i64_array_value,omitempty"`
+	F64ArrayValue []float64 `thrift:"f64_array_value,7" db:"f64_array_value" json:"f64_array_value,omitempty"`
+	I64TensorValue [][]int64 `thrift:"i64_tensor_value,8" db:"i64_tensor_value" json:"i64_tensor_value,omitempty"`
+	F64TensorValue [][]float64 `thrift:"f64_tensor_value,9" db:"f64_tensor_value" json:"f64_tensor_value,omitempty"`
+	I64TensorArrayValue [][][]int64 `thrift:"i64_tensor_array_value,10" db:"i64_tensor_array_value" json:"i64_tensor_array_value,omitempty"`
+	F64TensorArrayValue [][][]float64 `thrift:"f64_tensor_array_value,11" db:"f64_tensor_array_value" json:"f64_tensor_array_value,omitempty"`
+	I64ArrayIdx []int64 `thrift:"i64_array_idx,12" db:"i64_array_idx" json:"i64_array_idx,omitempty"`
+	CurlyBracketsArray []*ConstantExpr `thrift:"curly_brackets_array,13" db:"curly_brackets_array" json:"curly_brackets_array,omitempty"`
 }
 
 func NewConstantExpr() *ConstantExpr {
 	return &ConstantExpr{}
 }
+
+
 
 func (p *ConstantExpr) GetLiteralType() LiteralType {
 	return p.LiteralType
@@ -5472,11 +5128,13 @@ func (p *ConstantExpr) GetStrValue() string {
 
 var ConstantExpr_I64ArrayValue_DEFAULT []int64
 
+
 func (p *ConstantExpr) GetI64ArrayValue() []int64 {
 	return p.I64ArrayValue
 }
 
 var ConstantExpr_F64ArrayValue_DEFAULT []float64
+
 
 func (p *ConstantExpr) GetF64ArrayValue() []float64 {
 	return p.F64ArrayValue
@@ -5484,11 +5142,13 @@ func (p *ConstantExpr) GetF64ArrayValue() []float64 {
 
 var ConstantExpr_I64TensorValue_DEFAULT [][]int64
 
+
 func (p *ConstantExpr) GetI64TensorValue() [][]int64 {
 	return p.I64TensorValue
 }
 
 var ConstantExpr_F64TensorValue_DEFAULT [][]float64
+
 
 func (p *ConstantExpr) GetF64TensorValue() [][]float64 {
 	return p.F64TensorValue
@@ -5496,11 +5156,13 @@ func (p *ConstantExpr) GetF64TensorValue() [][]float64 {
 
 var ConstantExpr_I64TensorArrayValue_DEFAULT [][][]int64
 
+
 func (p *ConstantExpr) GetI64TensorArrayValue() [][][]int64 {
 	return p.I64TensorArrayValue
 }
 
 var ConstantExpr_F64TensorArrayValue_DEFAULT [][][]float64
+
 
 func (p *ConstantExpr) GetF64TensorArrayValue() [][][]float64 {
 	return p.F64TensorArrayValue
@@ -5508,11 +5170,13 @@ func (p *ConstantExpr) GetF64TensorArrayValue() [][][]float64 {
 
 var ConstantExpr_I64ArrayIdx_DEFAULT []int64
 
+
 func (p *ConstantExpr) GetI64ArrayIdx() []int64 {
 	return p.I64ArrayIdx
 }
 
 var ConstantExpr_CurlyBracketsArray_DEFAULT []*ConstantExpr
+
 
 func (p *ConstantExpr) GetCurlyBracketsArray() []*ConstantExpr {
 	return p.CurlyBracketsArray
@@ -5570,6 +5234,7 @@ func (p *ConstantExpr) Read(ctx context.Context, iprot thrift.TProtocol) error {
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -6022,45 +5687,19 @@ func (p *ConstantExpr) Write(ctx context.Context, oprot thrift.TProtocol) error 
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField4(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField5(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField6(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField7(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField8(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField9(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField10(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField11(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField12(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField13(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField4(ctx, oprot); err != nil { return err }
+		if err := p.writeField5(ctx, oprot); err != nil { return err }
+		if err := p.writeField6(ctx, oprot); err != nil { return err }
+		if err := p.writeField7(ctx, oprot); err != nil { return err }
+		if err := p.writeField8(ctx, oprot); err != nil { return err }
+		if err := p.writeField9(ctx, oprot); err != nil { return err }
+		if err := p.writeField10(ctx, oprot); err != nil { return err }
+		if err := p.writeField11(ctx, oprot); err != nil { return err }
+		if err := p.writeField12(ctx, oprot); err != nil { return err }
+		if err := p.writeField13(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -6382,148 +6021,94 @@ func (p *ConstantExpr) Equals(other *ConstantExpr) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.LiteralType != other.LiteralType {
-		return false
-	}
+	if p.LiteralType != other.LiteralType { return false }
 	if p.BoolValue != other.BoolValue {
 		if p.BoolValue == nil || other.BoolValue == nil {
 			return false
 		}
-		if (*p.BoolValue) != (*other.BoolValue) {
-			return false
-		}
+		if (*p.BoolValue) != (*other.BoolValue) { return false }
 	}
 	if p.I64Value != other.I64Value {
 		if p.I64Value == nil || other.I64Value == nil {
 			return false
 		}
-		if (*p.I64Value) != (*other.I64Value) {
-			return false
-		}
+		if (*p.I64Value) != (*other.I64Value) { return false }
 	}
 	if p.F64Value != other.F64Value {
 		if p.F64Value == nil || other.F64Value == nil {
 			return false
 		}
-		if (*p.F64Value) != (*other.F64Value) {
-			return false
-		}
+		if (*p.F64Value) != (*other.F64Value) { return false }
 	}
 	if p.StrValue != other.StrValue {
 		if p.StrValue == nil || other.StrValue == nil {
 			return false
 		}
-		if (*p.StrValue) != (*other.StrValue) {
-			return false
-		}
+		if (*p.StrValue) != (*other.StrValue) { return false }
 	}
-	if len(p.I64ArrayValue) != len(other.I64ArrayValue) {
-		return false
-	}
+	if len(p.I64ArrayValue) != len(other.I64ArrayValue) { return false }
 	for i, _tgt := range p.I64ArrayValue {
 		_src38 := other.I64ArrayValue[i]
-		if _tgt != _src38 {
-			return false
-		}
+		if _tgt != _src38 { return false }
 	}
-	if len(p.F64ArrayValue) != len(other.F64ArrayValue) {
-		return false
-	}
+	if len(p.F64ArrayValue) != len(other.F64ArrayValue) { return false }
 	for i, _tgt := range p.F64ArrayValue {
 		_src39 := other.F64ArrayValue[i]
-		if _tgt != _src39 {
-			return false
-		}
+		if _tgt != _src39 { return false }
 	}
-	if len(p.I64TensorValue) != len(other.I64TensorValue) {
-		return false
-	}
+	if len(p.I64TensorValue) != len(other.I64TensorValue) { return false }
 	for i, _tgt := range p.I64TensorValue {
 		_src40 := other.I64TensorValue[i]
-		if len(_tgt) != len(_src40) {
-			return false
-		}
+		if len(_tgt) != len(_src40) { return false }
 		for i, _tgt := range _tgt {
 			_src41 := _src40[i]
-			if _tgt != _src41 {
-				return false
-			}
+			if _tgt != _src41 { return false }
 		}
 	}
-	if len(p.F64TensorValue) != len(other.F64TensorValue) {
-		return false
-	}
+	if len(p.F64TensorValue) != len(other.F64TensorValue) { return false }
 	for i, _tgt := range p.F64TensorValue {
 		_src42 := other.F64TensorValue[i]
-		if len(_tgt) != len(_src42) {
-			return false
-		}
+		if len(_tgt) != len(_src42) { return false }
 		for i, _tgt := range _tgt {
 			_src43 := _src42[i]
-			if _tgt != _src43 {
-				return false
-			}
+			if _tgt != _src43 { return false }
 		}
 	}
-	if len(p.I64TensorArrayValue) != len(other.I64TensorArrayValue) {
-		return false
-	}
+	if len(p.I64TensorArrayValue) != len(other.I64TensorArrayValue) { return false }
 	for i, _tgt := range p.I64TensorArrayValue {
 		_src44 := other.I64TensorArrayValue[i]
-		if len(_tgt) != len(_src44) {
-			return false
-		}
+		if len(_tgt) != len(_src44) { return false }
 		for i, _tgt := range _tgt {
 			_src45 := _src44[i]
-			if len(_tgt) != len(_src45) {
-				return false
-			}
+			if len(_tgt) != len(_src45) { return false }
 			for i, _tgt := range _tgt {
 				_src46 := _src45[i]
-				if _tgt != _src46 {
-					return false
-				}
+				if _tgt != _src46 { return false }
 			}
 		}
 	}
-	if len(p.F64TensorArrayValue) != len(other.F64TensorArrayValue) {
-		return false
-	}
+	if len(p.F64TensorArrayValue) != len(other.F64TensorArrayValue) { return false }
 	for i, _tgt := range p.F64TensorArrayValue {
 		_src47 := other.F64TensorArrayValue[i]
-		if len(_tgt) != len(_src47) {
-			return false
-		}
+		if len(_tgt) != len(_src47) { return false }
 		for i, _tgt := range _tgt {
 			_src48 := _src47[i]
-			if len(_tgt) != len(_src48) {
-				return false
-			}
+			if len(_tgt) != len(_src48) { return false }
 			for i, _tgt := range _tgt {
 				_src49 := _src48[i]
-				if _tgt != _src49 {
-					return false
-				}
+				if _tgt != _src49 { return false }
 			}
 		}
 	}
-	if len(p.I64ArrayIdx) != len(other.I64ArrayIdx) {
-		return false
-	}
+	if len(p.I64ArrayIdx) != len(other.I64ArrayIdx) { return false }
 	for i, _tgt := range p.I64ArrayIdx {
 		_src50 := other.I64ArrayIdx[i]
-		if _tgt != _src50 {
-			return false
-		}
+		if _tgt != _src50 { return false }
 	}
-	if len(p.CurlyBracketsArray) != len(other.CurlyBracketsArray) {
-		return false
-	}
+	if len(p.CurlyBracketsArray) != len(other.CurlyBracketsArray) { return false }
 	for i, _tgt := range p.CurlyBracketsArray {
 		_src51 := other.CurlyBracketsArray[i]
-		if !_tgt.Equals(_src51) {
-			return false
-		}
+		if !_tgt.Equals(_src51) { return false }
 	}
 	return true
 }
@@ -6540,7 +6125,7 @@ func (p *ConstantExpr) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.ConstantExpr",
+		Type: "*infinity.ConstantExpr",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -6553,20 +6138,25 @@ func (p *ConstantExpr) Validate() error {
 }
 
 // Attributes:
-//   - FunctionName
-//   - Arguments
+//  - FunctionName
+//  - Arguments
+// 
 type FunctionExpr struct {
-	FunctionName string        `thrift:"function_name,1" db:"function_name" json:"function_name"`
-	Arguments    []*ParsedExpr `thrift:"arguments,2" db:"arguments" json:"arguments"`
+	FunctionName string `thrift:"function_name,1" db:"function_name" json:"function_name"`
+	Arguments []*ParsedExpr `thrift:"arguments,2" db:"arguments" json:"arguments"`
 }
 
 func NewFunctionExpr() *FunctionExpr {
 	return &FunctionExpr{}
 }
 
+
+
 func (p *FunctionExpr) GetFunctionName() string {
 	return p.FunctionName
 }
+
+
 
 func (p *FunctionExpr) GetArguments() []*ParsedExpr {
 	return p.Arguments
@@ -6576,6 +6166,7 @@ func (p *FunctionExpr) Read(ctx context.Context, iprot thrift.TProtocol) error {
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -6655,12 +6246,8 @@ func (p *FunctionExpr) Write(ctx context.Context, oprot thrift.TProtocol) error 
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -6711,17 +6298,11 @@ func (p *FunctionExpr) Equals(other *FunctionExpr) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.FunctionName != other.FunctionName {
-		return false
-	}
-	if len(p.Arguments) != len(other.Arguments) {
-		return false
-	}
+	if p.FunctionName != other.FunctionName { return false }
+	if len(p.Arguments) != len(other.Arguments) { return false }
 	for i, _tgt := range p.Arguments {
 		_src53 := other.Arguments[i]
-		if !_tgt.Equals(_src53) {
-			return false
-		}
+		if !_tgt.Equals(_src53) { return false }
 	}
 	return true
 }
@@ -6738,7 +6319,7 @@ func (p *FunctionExpr) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.FunctionExpr",
+		Type: "*infinity.FunctionExpr",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -6751,28 +6332,30 @@ func (p *FunctionExpr) Validate() error {
 }
 
 // Attributes:
-//   - ColumnExpr
-//   - EmbeddingData
-//   - EmbeddingDataType
-//   - DistanceType
-//   - Topn
-//   - OptParams
-//   - FilterExpr
-//   - QueryEmbeddingExpr
+//  - ColumnExpr
+//  - EmbeddingData
+//  - EmbeddingDataType
+//  - DistanceType
+//  - Topn
+//  - OptParams
+//  - FilterExpr
+//  - QueryEmbeddingExpr
+// 
 type KnnExpr struct {
-	ColumnExpr         *ColumnExpr      `thrift:"column_expr,1" db:"column_expr" json:"column_expr"`
-	EmbeddingData      *EmbeddingData   `thrift:"embedding_data,2" db:"embedding_data" json:"embedding_data"`
-	EmbeddingDataType  ElementType      `thrift:"embedding_data_type,3" db:"embedding_data_type" json:"embedding_data_type"`
-	DistanceType       KnnDistanceType  `thrift:"distance_type,4" db:"distance_type" json:"distance_type"`
-	Topn               int64            `thrift:"topn,5" db:"topn" json:"topn"`
-	OptParams          []*InitParameter `thrift:"opt_params,6" db:"opt_params" json:"opt_params"`
-	FilterExpr         *ParsedExpr      `thrift:"filter_expr,7" db:"filter_expr" json:"filter_expr,omitempty"`
-	QueryEmbeddingExpr *FunctionExpr    `thrift:"query_embedding_expr,8" db:"query_embedding_expr" json:"query_embedding_expr,omitempty"`
+	ColumnExpr *ColumnExpr `thrift:"column_expr,1" db:"column_expr" json:"column_expr"`
+	EmbeddingData *EmbeddingData `thrift:"embedding_data,2" db:"embedding_data" json:"embedding_data"`
+	EmbeddingDataType ElementType `thrift:"embedding_data_type,3" db:"embedding_data_type" json:"embedding_data_type"`
+	DistanceType KnnDistanceType `thrift:"distance_type,4" db:"distance_type" json:"distance_type"`
+	Topn int64 `thrift:"topn,5" db:"topn" json:"topn"`
+	OptParams []*InitParameter `thrift:"opt_params,6" db:"opt_params" json:"opt_params"`
+	FilterExpr *ParsedExpr `thrift:"filter_expr,7" db:"filter_expr" json:"filter_expr,omitempty"`
+	QueryEmbeddingExpr *FunctionExpr `thrift:"query_embedding_expr,8" db:"query_embedding_expr" json:"query_embedding_expr,omitempty"`
 }
 
 func NewKnnExpr() *KnnExpr {
 	return &KnnExpr{
-		OptParams: []*InitParameter{},
+		OptParams: []*InitParameter{
+		},
 	}
 }
 
@@ -6794,17 +6377,25 @@ func (p *KnnExpr) GetEmbeddingData() *EmbeddingData {
 	return p.EmbeddingData
 }
 
+
+
 func (p *KnnExpr) GetEmbeddingDataType() ElementType {
 	return p.EmbeddingDataType
 }
+
+
 
 func (p *KnnExpr) GetDistanceType() KnnDistanceType {
 	return p.DistanceType
 }
 
+
+
 func (p *KnnExpr) GetTopn() int64 {
 	return p.Topn
 }
+
+
 
 func (p *KnnExpr) GetOptParams() []*InitParameter {
 	return p.OptParams
@@ -6848,6 +6439,7 @@ func (p *KnnExpr) Read(ctx context.Context, iprot thrift.TProtocol) error {
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -6955,7 +6547,8 @@ func (p *KnnExpr) Read(ctx context.Context, iprot thrift.TProtocol) error {
 
 func (p *KnnExpr) ReadField1(ctx context.Context, iprot thrift.TProtocol) error {
 	p.ColumnExpr = &ColumnExpr{
-		ColumnName: []string{},
+		ColumnName: []string{
+		},
 	}
 	if err := p.ColumnExpr.Read(ctx, iprot); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T error reading struct: ", p.ColumnExpr), err)
@@ -7041,30 +6634,14 @@ func (p *KnnExpr) Write(ctx context.Context, oprot thrift.TProtocol) error {
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField4(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField5(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField6(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField7(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField8(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField4(ctx, oprot); err != nil { return err }
+		if err := p.writeField5(ctx, oprot); err != nil { return err }
+		if err := p.writeField6(ctx, oprot); err != nil { return err }
+		if err := p.writeField7(ctx, oprot); err != nil { return err }
+		if err := p.writeField8(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -7197,36 +6774,18 @@ func (p *KnnExpr) Equals(other *KnnExpr) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if !p.ColumnExpr.Equals(other.ColumnExpr) {
-		return false
-	}
-	if !p.EmbeddingData.Equals(other.EmbeddingData) {
-		return false
-	}
-	if p.EmbeddingDataType != other.EmbeddingDataType {
-		return false
-	}
-	if p.DistanceType != other.DistanceType {
-		return false
-	}
-	if p.Topn != other.Topn {
-		return false
-	}
-	if len(p.OptParams) != len(other.OptParams) {
-		return false
-	}
+	if !p.ColumnExpr.Equals(other.ColumnExpr) { return false }
+	if !p.EmbeddingData.Equals(other.EmbeddingData) { return false }
+	if p.EmbeddingDataType != other.EmbeddingDataType { return false }
+	if p.DistanceType != other.DistanceType { return false }
+	if p.Topn != other.Topn { return false }
+	if len(p.OptParams) != len(other.OptParams) { return false }
 	for i, _tgt := range p.OptParams {
 		_src55 := other.OptParams[i]
-		if !_tgt.Equals(_src55) {
-			return false
-		}
+		if !_tgt.Equals(_src55) { return false }
 	}
-	if !p.FilterExpr.Equals(other.FilterExpr) {
-		return false
-	}
-	if !p.QueryEmbeddingExpr.Equals(other.QueryEmbeddingExpr) {
-		return false
-	}
+	if !p.FilterExpr.Equals(other.FilterExpr) { return false }
+	if !p.QueryEmbeddingExpr.Equals(other.QueryEmbeddingExpr) { return false }
 	return true
 }
 
@@ -7242,7 +6801,7 @@ func (p *KnnExpr) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.KnnExpr",
+		Type: "*infinity.KnnExpr",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -7255,24 +6814,26 @@ func (p *KnnExpr) Validate() error {
 }
 
 // Attributes:
-//   - ColumnExpr
-//   - QuerySparseExpr
-//   - MetricType
-//   - Topn
-//   - OptParams
-//   - FilterExpr
+//  - ColumnExpr
+//  - QuerySparseExpr
+//  - MetricType
+//  - Topn
+//  - OptParams
+//  - FilterExpr
+// 
 type MatchSparseExpr struct {
-	ColumnExpr      *ColumnExpr      `thrift:"column_expr,1" db:"column_expr" json:"column_expr"`
-	QuerySparseExpr *ConstantExpr    `thrift:"query_sparse_expr,2" db:"query_sparse_expr" json:"query_sparse_expr"`
-	MetricType      string           `thrift:"metric_type,3" db:"metric_type" json:"metric_type"`
-	Topn            int64            `thrift:"topn,4" db:"topn" json:"topn"`
-	OptParams       []*InitParameter `thrift:"opt_params,5" db:"opt_params" json:"opt_params"`
-	FilterExpr      *ParsedExpr      `thrift:"filter_expr,6" db:"filter_expr" json:"filter_expr,omitempty"`
+	ColumnExpr *ColumnExpr `thrift:"column_expr,1" db:"column_expr" json:"column_expr"`
+	QuerySparseExpr *ConstantExpr `thrift:"query_sparse_expr,2" db:"query_sparse_expr" json:"query_sparse_expr"`
+	MetricType string `thrift:"metric_type,3" db:"metric_type" json:"metric_type"`
+	Topn int64 `thrift:"topn,4" db:"topn" json:"topn"`
+	OptParams []*InitParameter `thrift:"opt_params,5" db:"opt_params" json:"opt_params"`
+	FilterExpr *ParsedExpr `thrift:"filter_expr,6" db:"filter_expr" json:"filter_expr,omitempty"`
 }
 
 func NewMatchSparseExpr() *MatchSparseExpr {
 	return &MatchSparseExpr{
-		OptParams: []*InitParameter{},
+		OptParams: []*InitParameter{
+		},
 	}
 }
 
@@ -7294,13 +6855,19 @@ func (p *MatchSparseExpr) GetQuerySparseExpr() *ConstantExpr {
 	return p.QuerySparseExpr
 }
 
+
+
 func (p *MatchSparseExpr) GetMetricType() string {
 	return p.MetricType
 }
 
+
+
 func (p *MatchSparseExpr) GetTopn() int64 {
 	return p.Topn
 }
+
+
 
 func (p *MatchSparseExpr) GetOptParams() []*InitParameter {
 	return p.OptParams
@@ -7331,6 +6898,7 @@ func (p *MatchSparseExpr) Read(ctx context.Context, iprot thrift.TProtocol) erro
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -7418,7 +6986,8 @@ func (p *MatchSparseExpr) Read(ctx context.Context, iprot thrift.TProtocol) erro
 
 func (p *MatchSparseExpr) ReadField1(ctx context.Context, iprot thrift.TProtocol) error {
 	p.ColumnExpr = &ColumnExpr{
-		ColumnName: []string{},
+		ColumnName: []string{
+		},
 	}
 	if err := p.ColumnExpr.Read(ctx, iprot); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T error reading struct: ", p.ColumnExpr), err)
@@ -7485,24 +7054,12 @@ func (p *MatchSparseExpr) Write(ctx context.Context, oprot thrift.TProtocol) err
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField4(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField5(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField6(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField4(ctx, oprot); err != nil { return err }
+		if err := p.writeField5(ctx, oprot); err != nil { return err }
+		if err := p.writeField6(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -7607,30 +7164,16 @@ func (p *MatchSparseExpr) Equals(other *MatchSparseExpr) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if !p.ColumnExpr.Equals(other.ColumnExpr) {
-		return false
-	}
-	if !p.QuerySparseExpr.Equals(other.QuerySparseExpr) {
-		return false
-	}
-	if p.MetricType != other.MetricType {
-		return false
-	}
-	if p.Topn != other.Topn {
-		return false
-	}
-	if len(p.OptParams) != len(other.OptParams) {
-		return false
-	}
+	if !p.ColumnExpr.Equals(other.ColumnExpr) { return false }
+	if !p.QuerySparseExpr.Equals(other.QuerySparseExpr) { return false }
+	if p.MetricType != other.MetricType { return false }
+	if p.Topn != other.Topn { return false }
+	if len(p.OptParams) != len(other.OptParams) { return false }
 	for i, _tgt := range p.OptParams {
 		_src57 := other.OptParams[i]
-		if !_tgt.Equals(_src57) {
-			return false
-		}
+		if !_tgt.Equals(_src57) { return false }
 	}
-	if !p.FilterExpr.Equals(other.FilterExpr) {
-		return false
-	}
+	if !p.FilterExpr.Equals(other.FilterExpr) { return false }
 	return true
 }
 
@@ -7646,7 +7189,7 @@ func (p *MatchSparseExpr) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.MatchSparseExpr",
+		Type: "*infinity.MatchSparseExpr",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -7659,24 +7202,27 @@ func (p *MatchSparseExpr) Validate() error {
 }
 
 // Attributes:
-//   - SearchMethod
-//   - ColumnExpr
-//   - EmbeddingDataType
-//   - EmbeddingData
-//   - ExtraOptions
-//   - FilterExpr
+//  - SearchMethod
+//  - ColumnExpr
+//  - EmbeddingDataType
+//  - EmbeddingData
+//  - ExtraOptions
+//  - FilterExpr
+// 
 type MatchTensorExpr struct {
-	SearchMethod      string         `thrift:"search_method,1" db:"search_method" json:"search_method"`
-	ColumnExpr        *ColumnExpr    `thrift:"column_expr,2" db:"column_expr" json:"column_expr"`
-	EmbeddingDataType ElementType    `thrift:"embedding_data_type,3" db:"embedding_data_type" json:"embedding_data_type"`
-	EmbeddingData     *EmbeddingData `thrift:"embedding_data,4" db:"embedding_data" json:"embedding_data"`
-	ExtraOptions      string         `thrift:"extra_options,5" db:"extra_options" json:"extra_options"`
-	FilterExpr        *ParsedExpr    `thrift:"filter_expr,6" db:"filter_expr" json:"filter_expr,omitempty"`
+	SearchMethod string `thrift:"search_method,1" db:"search_method" json:"search_method"`
+	ColumnExpr *ColumnExpr `thrift:"column_expr,2" db:"column_expr" json:"column_expr"`
+	EmbeddingDataType ElementType `thrift:"embedding_data_type,3" db:"embedding_data_type" json:"embedding_data_type"`
+	EmbeddingData *EmbeddingData `thrift:"embedding_data,4" db:"embedding_data" json:"embedding_data"`
+	ExtraOptions string `thrift:"extra_options,5" db:"extra_options" json:"extra_options"`
+	FilterExpr *ParsedExpr `thrift:"filter_expr,6" db:"filter_expr" json:"filter_expr,omitempty"`
 }
 
 func NewMatchTensorExpr() *MatchTensorExpr {
 	return &MatchTensorExpr{}
 }
+
+
 
 func (p *MatchTensorExpr) GetSearchMethod() string {
 	return p.SearchMethod
@@ -7691,6 +7237,8 @@ func (p *MatchTensorExpr) GetColumnExpr() *ColumnExpr {
 	return p.ColumnExpr
 }
 
+
+
 func (p *MatchTensorExpr) GetEmbeddingDataType() ElementType {
 	return p.EmbeddingDataType
 }
@@ -7703,6 +7251,8 @@ func (p *MatchTensorExpr) GetEmbeddingData() *EmbeddingData {
 	}
 	return p.EmbeddingData
 }
+
+
 
 func (p *MatchTensorExpr) GetExtraOptions() string {
 	return p.ExtraOptions
@@ -7733,6 +7283,7 @@ func (p *MatchTensorExpr) Read(ctx context.Context, iprot thrift.TProtocol) erro
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -7829,7 +7380,8 @@ func (p *MatchTensorExpr) ReadField1(ctx context.Context, iprot thrift.TProtocol
 
 func (p *MatchTensorExpr) ReadField2(ctx context.Context, iprot thrift.TProtocol) error {
 	p.ColumnExpr = &ColumnExpr{
-		ColumnName: []string{},
+		ColumnName: []string{
+		},
 	}
 	if err := p.ColumnExpr.Read(ctx, iprot); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T error reading struct: ", p.ColumnExpr), err)
@@ -7877,24 +7429,12 @@ func (p *MatchTensorExpr) Write(ctx context.Context, oprot thrift.TProtocol) err
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField4(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField5(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField6(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField4(ctx, oprot); err != nil { return err }
+		if err := p.writeField5(ctx, oprot); err != nil { return err }
+		if err := p.writeField6(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -7991,24 +7531,12 @@ func (p *MatchTensorExpr) Equals(other *MatchTensorExpr) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.SearchMethod != other.SearchMethod {
-		return false
-	}
-	if !p.ColumnExpr.Equals(other.ColumnExpr) {
-		return false
-	}
-	if p.EmbeddingDataType != other.EmbeddingDataType {
-		return false
-	}
-	if !p.EmbeddingData.Equals(other.EmbeddingData) {
-		return false
-	}
-	if p.ExtraOptions != other.ExtraOptions {
-		return false
-	}
-	if !p.FilterExpr.Equals(other.FilterExpr) {
-		return false
-	}
+	if p.SearchMethod != other.SearchMethod { return false }
+	if !p.ColumnExpr.Equals(other.ColumnExpr) { return false }
+	if p.EmbeddingDataType != other.EmbeddingDataType { return false }
+	if !p.EmbeddingData.Equals(other.EmbeddingData) { return false }
+	if p.ExtraOptions != other.ExtraOptions { return false }
+	if !p.FilterExpr.Equals(other.FilterExpr) { return false }
 	return true
 }
 
@@ -8024,7 +7552,7 @@ func (p *MatchTensorExpr) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.MatchTensorExpr",
+		Type: "*infinity.MatchTensorExpr",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -8037,28 +7565,35 @@ func (p *MatchTensorExpr) Validate() error {
 }
 
 // Attributes:
-//   - Fields
-//   - MatchingText
-//   - OptionsText
-//   - FilterExpr
+//  - Fields
+//  - MatchingText
+//  - OptionsText
+//  - FilterExpr
+// 
 type MatchExpr struct {
-	Fields       string      `thrift:"fields,1" db:"fields" json:"fields"`
-	MatchingText string      `thrift:"matching_text,2" db:"matching_text" json:"matching_text"`
-	OptionsText  string      `thrift:"options_text,3" db:"options_text" json:"options_text"`
-	FilterExpr   *ParsedExpr `thrift:"filter_expr,4" db:"filter_expr" json:"filter_expr,omitempty"`
+	Fields string `thrift:"fields,1" db:"fields" json:"fields"`
+	MatchingText string `thrift:"matching_text,2" db:"matching_text" json:"matching_text"`
+	OptionsText string `thrift:"options_text,3" db:"options_text" json:"options_text"`
+	FilterExpr *ParsedExpr `thrift:"filter_expr,4" db:"filter_expr" json:"filter_expr,omitempty"`
 }
 
 func NewMatchExpr() *MatchExpr {
 	return &MatchExpr{}
 }
 
+
+
 func (p *MatchExpr) GetFields() string {
 	return p.Fields
 }
 
+
+
 func (p *MatchExpr) GetMatchingText() string {
 	return p.MatchingText
 }
+
+
 
 func (p *MatchExpr) GetOptionsText() string {
 	return p.OptionsText
@@ -8081,6 +7616,7 @@ func (p *MatchExpr) Read(ctx context.Context, iprot thrift.TProtocol) error {
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -8186,18 +7722,10 @@ func (p *MatchExpr) Write(ctx context.Context, oprot thrift.TProtocol) error {
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField4(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField4(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -8268,18 +7796,10 @@ func (p *MatchExpr) Equals(other *MatchExpr) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.Fields != other.Fields {
-		return false
-	}
-	if p.MatchingText != other.MatchingText {
-		return false
-	}
-	if p.OptionsText != other.OptionsText {
-		return false
-	}
-	if !p.FilterExpr.Equals(other.FilterExpr) {
-		return false
-	}
+	if p.Fields != other.Fields { return false }
+	if p.MatchingText != other.MatchingText { return false }
+	if p.OptionsText != other.OptionsText { return false }
+	if !p.FilterExpr.Equals(other.FilterExpr) { return false }
 	return true
 }
 
@@ -8295,7 +7815,7 @@ func (p *MatchExpr) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.MatchExpr",
+		Type: "*infinity.MatchExpr",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -8308,15 +7828,16 @@ func (p *MatchExpr) Validate() error {
 }
 
 // Attributes:
-//   - MatchVectorExpr
-//   - MatchSparseExpr
-//   - MatchTensorExpr
-//   - MatchTextExpr
+//  - MatchVectorExpr
+//  - MatchSparseExpr
+//  - MatchTensorExpr
+//  - MatchTextExpr
+// 
 type GenericMatchExpr struct {
-	MatchVectorExpr *KnnExpr         `thrift:"match_vector_expr,1" db:"match_vector_expr" json:"match_vector_expr,omitempty"`
+	MatchVectorExpr *KnnExpr `thrift:"match_vector_expr,1" db:"match_vector_expr" json:"match_vector_expr,omitempty"`
 	MatchSparseExpr *MatchSparseExpr `thrift:"match_sparse_expr,2" db:"match_sparse_expr" json:"match_sparse_expr,omitempty"`
 	MatchTensorExpr *MatchTensorExpr `thrift:"match_tensor_expr,3" db:"match_tensor_expr" json:"match_tensor_expr,omitempty"`
-	MatchTextExpr   *MatchExpr       `thrift:"match_text_expr,4" db:"match_text_expr" json:"match_text_expr,omitempty"`
+	MatchTextExpr *MatchExpr `thrift:"match_text_expr,4" db:"match_text_expr" json:"match_text_expr,omitempty"`
 }
 
 func NewGenericMatchExpr() *GenericMatchExpr {
@@ -8361,16 +7882,16 @@ func (p *GenericMatchExpr) GetMatchTextExpr() *MatchExpr {
 
 func (p *GenericMatchExpr) CountSetFieldsGenericMatchExpr() int {
 	count := 0
-	if p.IsSetMatchVectorExpr() {
+	if (p.IsSetMatchVectorExpr()) {
 		count++
 	}
-	if p.IsSetMatchSparseExpr() {
+	if (p.IsSetMatchSparseExpr()) {
 		count++
 	}
-	if p.IsSetMatchTensorExpr() {
+	if (p.IsSetMatchTensorExpr()) {
 		count++
 	}
-	if p.IsSetMatchTextExpr() {
+	if (p.IsSetMatchTextExpr()) {
 		count++
 	}
 	return count
@@ -8397,6 +7918,7 @@ func (p *GenericMatchExpr) Read(ctx context.Context, iprot thrift.TProtocol) err
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -8464,7 +7986,8 @@ func (p *GenericMatchExpr) Read(ctx context.Context, iprot thrift.TProtocol) err
 
 func (p *GenericMatchExpr) ReadField1(ctx context.Context, iprot thrift.TProtocol) error {
 	p.MatchVectorExpr = &KnnExpr{
-		OptParams: []*InitParameter{},
+		OptParams: []*InitParameter{
+		},
 	}
 	if err := p.MatchVectorExpr.Read(ctx, iprot); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T error reading struct: ", p.MatchVectorExpr), err)
@@ -8474,7 +7997,8 @@ func (p *GenericMatchExpr) ReadField1(ctx context.Context, iprot thrift.TProtoco
 
 func (p *GenericMatchExpr) ReadField2(ctx context.Context, iprot thrift.TProtocol) error {
 	p.MatchSparseExpr = &MatchSparseExpr{
-		OptParams: []*InitParameter{},
+		OptParams: []*InitParameter{
+		},
 	}
 	if err := p.MatchSparseExpr.Read(ctx, iprot); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T error reading struct: ", p.MatchSparseExpr), err)
@@ -8506,18 +8030,10 @@ func (p *GenericMatchExpr) Write(ctx context.Context, oprot thrift.TProtocol) er
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField4(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField4(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -8594,18 +8110,10 @@ func (p *GenericMatchExpr) Equals(other *GenericMatchExpr) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if !p.MatchVectorExpr.Equals(other.MatchVectorExpr) {
-		return false
-	}
-	if !p.MatchSparseExpr.Equals(other.MatchSparseExpr) {
-		return false
-	}
-	if !p.MatchTensorExpr.Equals(other.MatchTensorExpr) {
-		return false
-	}
-	if !p.MatchTextExpr.Equals(other.MatchTextExpr) {
-		return false
-	}
+	if !p.MatchVectorExpr.Equals(other.MatchVectorExpr) { return false }
+	if !p.MatchSparseExpr.Equals(other.MatchSparseExpr) { return false }
+	if !p.MatchTensorExpr.Equals(other.MatchTensorExpr) { return false }
+	if !p.MatchTextExpr.Equals(other.MatchTextExpr) { return false }
 	return true
 }
 
@@ -8621,7 +8129,7 @@ func (p *GenericMatchExpr) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.GenericMatchExpr",
+		Type: "*infinity.GenericMatchExpr",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -8634,12 +8142,13 @@ func (p *GenericMatchExpr) Validate() error {
 }
 
 // Attributes:
-//   - Method
-//   - OptionsText
-//   - OptionalMatchTensorExpr
+//  - Method
+//  - OptionsText
+//  - OptionalMatchTensorExpr
+// 
 type FusionExpr struct {
-	Method                  string           `thrift:"method,1" db:"method" json:"method"`
-	OptionsText             string           `thrift:"options_text,2" db:"options_text" json:"options_text"`
+	Method string `thrift:"method,1" db:"method" json:"method"`
+	OptionsText string `thrift:"options_text,2" db:"options_text" json:"options_text"`
 	OptionalMatchTensorExpr *MatchTensorExpr `thrift:"optional_match_tensor_expr,3" db:"optional_match_tensor_expr" json:"optional_match_tensor_expr,omitempty"`
 }
 
@@ -8647,9 +8156,13 @@ func NewFusionExpr() *FusionExpr {
 	return &FusionExpr{}
 }
 
+
+
 func (p *FusionExpr) GetMethod() string {
 	return p.Method
 }
+
+
 
 func (p *FusionExpr) GetOptionsText() string {
 	return p.OptionsText
@@ -8672,6 +8185,7 @@ func (p *FusionExpr) Read(ctx context.Context, iprot thrift.TProtocol) error {
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -8758,15 +8272,9 @@ func (p *FusionExpr) Write(ctx context.Context, oprot thrift.TProtocol) error {
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -8824,15 +8332,9 @@ func (p *FusionExpr) Equals(other *FusionExpr) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.Method != other.Method {
-		return false
-	}
-	if p.OptionsText != other.OptionsText {
-		return false
-	}
-	if !p.OptionalMatchTensorExpr.Equals(other.OptionalMatchTensorExpr) {
-		return false
-	}
+	if p.Method != other.Method { return false }
+	if p.OptionsText != other.OptionsText { return false }
+	if !p.OptionalMatchTensorExpr.Equals(other.OptionalMatchTensorExpr) { return false }
 	return true
 }
 
@@ -8848,7 +8350,7 @@ func (p *FusionExpr) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.FusionExpr",
+		Type: "*infinity.FusionExpr",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -8861,11 +8363,12 @@ func (p *FusionExpr) Validate() error {
 }
 
 // Attributes:
-//   - MatchExprs
-//   - FusionExprs
+//  - MatchExprs
+//  - FusionExprs
+// 
 type SearchExpr struct {
-	MatchExprs  []*GenericMatchExpr `thrift:"match_exprs,1" db:"match_exprs" json:"match_exprs,omitempty"`
-	FusionExprs []*FusionExpr       `thrift:"fusion_exprs,2" db:"fusion_exprs" json:"fusion_exprs,omitempty"`
+	MatchExprs []*GenericMatchExpr `thrift:"match_exprs,1" db:"match_exprs" json:"match_exprs,omitempty"`
+	FusionExprs []*FusionExpr `thrift:"fusion_exprs,2" db:"fusion_exprs" json:"fusion_exprs,omitempty"`
 }
 
 func NewSearchExpr() *SearchExpr {
@@ -8874,11 +8377,13 @@ func NewSearchExpr() *SearchExpr {
 
 var SearchExpr_MatchExprs_DEFAULT []*GenericMatchExpr
 
+
 func (p *SearchExpr) GetMatchExprs() []*GenericMatchExpr {
 	return p.MatchExprs
 }
 
 var SearchExpr_FusionExprs_DEFAULT []*FusionExpr
+
 
 func (p *SearchExpr) GetFusionExprs() []*FusionExpr {
 	return p.FusionExprs
@@ -8896,6 +8401,7 @@ func (p *SearchExpr) Read(ctx context.Context, iprot thrift.TProtocol) error {
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -8986,12 +8492,8 @@ func (p *SearchExpr) Write(ctx context.Context, oprot thrift.TProtocol) error {
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -9054,23 +8556,15 @@ func (p *SearchExpr) Equals(other *SearchExpr) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if len(p.MatchExprs) != len(other.MatchExprs) {
-		return false
-	}
+	if len(p.MatchExprs) != len(other.MatchExprs) { return false }
 	for i, _tgt := range p.MatchExprs {
 		_src60 := other.MatchExprs[i]
-		if !_tgt.Equals(_src60) {
-			return false
-		}
+		if !_tgt.Equals(_src60) { return false }
 	}
-	if len(p.FusionExprs) != len(other.FusionExprs) {
-		return false
-	}
+	if len(p.FusionExprs) != len(other.FusionExprs) { return false }
 	for i, _tgt := range p.FusionExprs {
 		_src61 := other.FusionExprs[i]
-		if !_tgt.Equals(_src61) {
-			return false
-		}
+		if !_tgt.Equals(_src61) { return false }
 	}
 	return true
 }
@@ -9087,7 +8581,7 @@ func (p *SearchExpr) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.SearchExpr",
+		Type: "*infinity.SearchExpr",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -9100,11 +8594,12 @@ func (p *SearchExpr) Validate() error {
 }
 
 // Attributes:
-//   - Value
-//   - UpperBound
-//   - LowerBound
+//  - Value
+//  - UpperBound
+//  - LowerBound
+// 
 type BetweenExpr struct {
-	Value      *ParsedExpr `thrift:"value,1" db:"value" json:"value"`
+	Value *ParsedExpr `thrift:"value,1" db:"value" json:"value"`
 	UpperBound *ParsedExpr `thrift:"upper_bound,2" db:"upper_bound" json:"upper_bound"`
 	LowerBound *ParsedExpr `thrift:"lower_bound,3" db:"lower_bound" json:"lower_bound"`
 }
@@ -9156,6 +8651,7 @@ func (p *BetweenExpr) Read(ctx context.Context, iprot thrift.TProtocol) error {
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -9240,15 +8736,9 @@ func (p *BetweenExpr) Write(ctx context.Context, oprot thrift.TProtocol) error {
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -9304,15 +8794,9 @@ func (p *BetweenExpr) Equals(other *BetweenExpr) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if !p.Value.Equals(other.Value) {
-		return false
-	}
-	if !p.UpperBound.Equals(other.UpperBound) {
-		return false
-	}
-	if !p.LowerBound.Equals(other.LowerBound) {
-		return false
-	}
+	if !p.Value.Equals(other.Value) { return false }
+	if !p.UpperBound.Equals(other.UpperBound) { return false }
+	if !p.LowerBound.Equals(other.LowerBound) { return false }
 	return true
 }
 
@@ -9328,7 +8812,7 @@ func (p *BetweenExpr) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.BetweenExpr",
+		Type: "*infinity.BetweenExpr",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -9341,16 +8825,19 @@ func (p *BetweenExpr) Validate() error {
 }
 
 // Attributes:
-//   - ColumnName
-//   - Value
+//  - ColumnName
+//  - Value
+// 
 type UpdateExpr struct {
-	ColumnName string      `thrift:"column_name,1" db:"column_name" json:"column_name"`
-	Value      *ParsedExpr `thrift:"value,2" db:"value" json:"value"`
+	ColumnName string `thrift:"column_name,1" db:"column_name" json:"column_name"`
+	Value *ParsedExpr `thrift:"value,2" db:"value" json:"value"`
 }
 
 func NewUpdateExpr() *UpdateExpr {
 	return &UpdateExpr{}
 }
+
+
 
 func (p *UpdateExpr) GetColumnName() string {
 	return p.ColumnName
@@ -9373,6 +8860,7 @@ func (p *UpdateExpr) Read(ctx context.Context, iprot thrift.TProtocol) error {
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -9440,12 +8928,8 @@ func (p *UpdateExpr) Write(ctx context.Context, oprot thrift.TProtocol) error {
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -9488,12 +8972,8 @@ func (p *UpdateExpr) Equals(other *UpdateExpr) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.ColumnName != other.ColumnName {
-		return false
-	}
-	if !p.Value.Equals(other.Value) {
-		return false
-	}
+	if p.ColumnName != other.ColumnName { return false }
+	if !p.Value.Equals(other.Value) { return false }
 	return true
 }
 
@@ -9509,7 +8989,7 @@ func (p *UpdateExpr) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.UpdateExpr",
+		Type: "*infinity.UpdateExpr",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -9522,11 +9002,12 @@ func (p *UpdateExpr) Validate() error {
 }
 
 // Attributes:
-//   - Expr
-//   - Asc
+//  - Expr
+//  - Asc
+// 
 type OrderByExpr struct {
 	Expr *ParsedExpr `thrift:"expr,1" db:"expr" json:"expr"`
-	Asc  bool        `thrift:"asc,2" db:"asc" json:"asc"`
+	Asc bool `thrift:"asc,2" db:"asc" json:"asc"`
 }
 
 func NewOrderByExpr() *OrderByExpr {
@@ -9542,6 +9023,8 @@ func (p *OrderByExpr) GetExpr() *ParsedExpr {
 	return p.Expr
 }
 
+
+
 func (p *OrderByExpr) GetAsc() bool {
 	return p.Asc
 }
@@ -9554,6 +9037,7 @@ func (p *OrderByExpr) Read(ctx context.Context, iprot thrift.TProtocol) error {
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -9621,12 +9105,8 @@ func (p *OrderByExpr) Write(ctx context.Context, oprot thrift.TProtocol) error {
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -9669,12 +9149,8 @@ func (p *OrderByExpr) Equals(other *OrderByExpr) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if !p.Expr.Equals(other.Expr) {
-		return false
-	}
-	if p.Asc != other.Asc {
-		return false
-	}
+	if !p.Expr.Equals(other.Expr) { return false }
+	if p.Asc != other.Asc { return false }
 	return true
 }
 
@@ -9690,7 +9166,7 @@ func (p *OrderByExpr) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.OrderByExpr",
+		Type: "*infinity.OrderByExpr",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -9703,13 +9179,14 @@ func (p *OrderByExpr) Validate() error {
 }
 
 // Attributes:
-//   - LeftOperand
-//   - Arguments
-//   - InType
+//  - LeftOperand
+//  - Arguments
+//  - InType
+// 
 type InExpr struct {
-	LeftOperand *ParsedExpr   `thrift:"left_operand,1" db:"left_operand" json:"left_operand"`
-	Arguments   []*ParsedExpr `thrift:"arguments,2" db:"arguments" json:"arguments"`
-	InType      bool          `thrift:"in_type,3" db:"in_type" json:"in_type"`
+	LeftOperand *ParsedExpr `thrift:"left_operand,1" db:"left_operand" json:"left_operand"`
+	Arguments []*ParsedExpr `thrift:"arguments,2" db:"arguments" json:"arguments"`
+	InType bool `thrift:"in_type,3" db:"in_type" json:"in_type"`
 }
 
 func NewInExpr() *InExpr {
@@ -9725,9 +9202,13 @@ func (p *InExpr) GetLeftOperand() *ParsedExpr {
 	return p.LeftOperand
 }
 
+
+
 func (p *InExpr) GetArguments() []*ParsedExpr {
 	return p.Arguments
 }
+
+
 
 func (p *InExpr) GetInType() bool {
 	return p.InType
@@ -9741,6 +9222,7 @@ func (p *InExpr) Read(ctx context.Context, iprot thrift.TProtocol) error {
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -9838,15 +9320,9 @@ func (p *InExpr) Write(ctx context.Context, oprot thrift.TProtocol) error {
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -9910,21 +9386,13 @@ func (p *InExpr) Equals(other *InExpr) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if !p.LeftOperand.Equals(other.LeftOperand) {
-		return false
-	}
-	if len(p.Arguments) != len(other.Arguments) {
-		return false
-	}
+	if !p.LeftOperand.Equals(other.LeftOperand) { return false }
+	if len(p.Arguments) != len(other.Arguments) { return false }
 	for i, _tgt := range p.Arguments {
 		_src63 := other.Arguments[i]
-		if !_tgt.Equals(_src63) {
-			return false
-		}
+		if !_tgt.Equals(_src63) { return false }
 	}
-	if p.InType != other.InType {
-		return false
-	}
+	if p.InType != other.InType { return false }
 	return true
 }
 
@@ -9940,7 +9408,7 @@ func (p *InExpr) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InExpr",
+		Type: "*infinity.InExpr",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -9953,11 +9421,12 @@ func (p *InExpr) Validate() error {
 }
 
 // Attributes:
-//   - Expr
-//   - DataType
+//  - Expr
+//  - DataType
+// 
 type CastExpr struct {
-	Expr     *ParsedExpr `thrift:"expr,1" db:"expr" json:"expr"`
-	DataType *DataType   `thrift:"data_type,2" db:"data_type" json:"data_type"`
+	Expr *ParsedExpr `thrift:"expr,1" db:"expr" json:"expr"`
+	DataType *DataType `thrift:"data_type,2" db:"data_type" json:"data_type"`
 }
 
 func NewCastExpr() *CastExpr {
@@ -9994,6 +9463,7 @@ func (p *CastExpr) Read(ctx context.Context, iprot thrift.TProtocol) error {
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -10060,12 +9530,8 @@ func (p *CastExpr) Write(ctx context.Context, oprot thrift.TProtocol) error {
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -10108,12 +9574,8 @@ func (p *CastExpr) Equals(other *CastExpr) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if !p.Expr.Equals(other.Expr) {
-		return false
-	}
-	if !p.DataType.Equals(other.DataType) {
-		return false
-	}
+	if !p.Expr.Equals(other.Expr) { return false }
+	if !p.DataType.Equals(other.DataType) { return false }
 	return true
 }
 
@@ -10129,7 +9591,7 @@ func (p *CastExpr) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.CastExpr",
+		Type: "*infinity.CastExpr",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -10142,30 +9604,36 @@ func (p *CastExpr) Validate() error {
 }
 
 // Attributes:
-//   - ID
-//   - Name
-//   - DataType
-//   - Constraints
-//   - ConstantExpr
-//   - Comment
+//  - ID
+//  - Name
+//  - DataType
+//  - Constraints
+//  - ConstantExpr
+//  - Comment
+// 
 type ColumnDef struct {
-	ID           int32         `thrift:"id,1" db:"id" json:"id"`
-	Name         string        `thrift:"name,2" db:"name" json:"name"`
-	DataType     *DataType     `thrift:"data_type,3" db:"data_type" json:"data_type"`
-	Constraints  []Constraint  `thrift:"constraints,4" db:"constraints" json:"constraints"`
+	ID int32 `thrift:"id,1" db:"id" json:"id"`
+	Name string `thrift:"name,2" db:"name" json:"name"`
+	DataType *DataType `thrift:"data_type,3" db:"data_type" json:"data_type"`
+	Constraints []Constraint `thrift:"constraints,4" db:"constraints" json:"constraints"`
 	ConstantExpr *ConstantExpr `thrift:"constant_expr,5" db:"constant_expr" json:"constant_expr"`
-	Comment      string        `thrift:"comment,6" db:"comment" json:"comment"`
+	Comment string `thrift:"comment,6" db:"comment" json:"comment"`
 }
 
 func NewColumnDef() *ColumnDef {
 	return &ColumnDef{
-		Constraints: []Constraint{},
+		Constraints: []Constraint{
+		},
 	}
 }
+
+
 
 func (p *ColumnDef) GetID() int32 {
 	return p.ID
 }
+
+
 
 func (p *ColumnDef) GetName() string {
 	return p.Name
@@ -10180,6 +9648,8 @@ func (p *ColumnDef) GetDataType() *DataType {
 	return p.DataType
 }
 
+
+
 func (p *ColumnDef) GetConstraints() []Constraint {
 	return p.Constraints
 }
@@ -10192,6 +9662,8 @@ func (p *ColumnDef) GetConstantExpr() *ConstantExpr {
 	}
 	return p.ConstantExpr
 }
+
+
 
 func (p *ColumnDef) GetComment() string {
 	return p.Comment
@@ -10209,6 +9681,7 @@ func (p *ColumnDef) Read(ctx context.Context, iprot thrift.TProtocol) error {
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -10365,24 +9838,12 @@ func (p *ColumnDef) Write(ctx context.Context, oprot thrift.TProtocol) error {
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField4(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField5(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField6(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField4(ctx, oprot); err != nil { return err }
+		if err := p.writeField5(ctx, oprot); err != nil { return err }
+		if err := p.writeField6(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -10485,30 +9946,16 @@ func (p *ColumnDef) Equals(other *ColumnDef) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.ID != other.ID {
-		return false
-	}
-	if p.Name != other.Name {
-		return false
-	}
-	if !p.DataType.Equals(other.DataType) {
-		return false
-	}
-	if len(p.Constraints) != len(other.Constraints) {
-		return false
-	}
+	if p.ID != other.ID { return false }
+	if p.Name != other.Name { return false }
+	if !p.DataType.Equals(other.DataType) { return false }
+	if len(p.Constraints) != len(other.Constraints) { return false }
 	for i, _tgt := range p.Constraints {
 		_src65 := other.Constraints[i]
-		if _tgt != _src65 {
-			return false
-		}
+		if _tgt != _src65 { return false }
 	}
-	if !p.ConstantExpr.Equals(other.ConstantExpr) {
-		return false
-	}
-	if p.Comment != other.Comment {
-		return false
-	}
+	if !p.ConstantExpr.Equals(other.ConstantExpr) { return false }
+	if p.Comment != other.Comment { return false }
 	return true
 }
 
@@ -10524,7 +9971,7 @@ func (p *ColumnDef) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.ColumnDef",
+		Type: "*infinity.ColumnDef",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -10537,23 +9984,30 @@ func (p *ColumnDef) Validate() error {
 }
 
 // Attributes:
-//   - ColumnNames
-//   - ParseExprs
+//  - ColumnNames
+//  - ParseExprs
+// 
 type Field struct {
-	ColumnNames []string      `thrift:"column_names,1" db:"column_names" json:"column_names"`
-	ParseExprs  []*ParsedExpr `thrift:"parse_exprs,2" db:"parse_exprs" json:"parse_exprs"`
+	ColumnNames []string `thrift:"column_names,1" db:"column_names" json:"column_names"`
+	ParseExprs []*ParsedExpr `thrift:"parse_exprs,2" db:"parse_exprs" json:"parse_exprs"`
 }
 
 func NewField() *Field {
 	return &Field{
-		ColumnNames: []string{},
-		ParseExprs:  []*ParsedExpr{},
+		ColumnNames: []string{
+		},
+		ParseExprs: []*ParsedExpr{
+		},
 	}
 }
+
+
 
 func (p *Field) GetColumnNames() []string {
 	return p.ColumnNames
 }
+
+
 
 func (p *Field) GetParseExprs() []*ParsedExpr {
 	return p.ParseExprs
@@ -10563,6 +10017,7 @@ func (p *Field) Read(ctx context.Context, iprot thrift.TProtocol) error {
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -10655,12 +10110,8 @@ func (p *Field) Write(ctx context.Context, oprot thrift.TProtocol) error {
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -10719,23 +10170,15 @@ func (p *Field) Equals(other *Field) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if len(p.ColumnNames) != len(other.ColumnNames) {
-		return false
-	}
+	if len(p.ColumnNames) != len(other.ColumnNames) { return false }
 	for i, _tgt := range p.ColumnNames {
 		_src68 := other.ColumnNames[i]
-		if _tgt != _src68 {
-			return false
-		}
+		if _tgt != _src68 { return false }
 	}
-	if len(p.ParseExprs) != len(other.ParseExprs) {
-		return false
-	}
+	if len(p.ParseExprs) != len(other.ParseExprs) { return false }
 	for i, _tgt := range p.ParseExprs {
 		_src69 := other.ParseExprs[i]
-		if !_tgt.Equals(_src69) {
-			return false
-		}
+		if !_tgt.Equals(_src69) { return false }
 	}
 	return true
 }
@@ -10752,7 +10195,7 @@ func (p *Field) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.Field",
+		Type: "*infinity.Field",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -10765,35 +10208,46 @@ func (p *Field) Validate() error {
 }
 
 // Attributes:
-//   - ColumnType
-//   - ColumnVectors
-//   - ColumnName
-//   - Bitmasks
+//  - ColumnType
+//  - ColumnVectors
+//  - ColumnName
+//  - Bitmasks
+// 
 type ColumnField struct {
-	ColumnType    ColumnType `thrift:"column_type,1" db:"column_type" json:"column_type"`
-	ColumnVectors [][]byte   `thrift:"column_vectors,2" db:"column_vectors" json:"column_vectors"`
-	ColumnName    string     `thrift:"column_name,3" db:"column_name" json:"column_name"`
-	Bitmasks      []bool     `thrift:"bitmasks,4" db:"bitmasks" json:"bitmasks"`
+	ColumnType ColumnType `thrift:"column_type,1" db:"column_type" json:"column_type"`
+	ColumnVectors [][]byte `thrift:"column_vectors,2" db:"column_vectors" json:"column_vectors"`
+	ColumnName string `thrift:"column_name,3" db:"column_name" json:"column_name"`
+	Bitmasks []bool `thrift:"bitmasks,4" db:"bitmasks" json:"bitmasks"`
 }
 
 func NewColumnField() *ColumnField {
 	return &ColumnField{
-		ColumnVectors: [][]byte{},
-		Bitmasks:      []bool{},
+		ColumnVectors: [][]byte{
+		},
+		Bitmasks: []bool{
+		},
 	}
 }
+
+
 
 func (p *ColumnField) GetColumnType() ColumnType {
 	return p.ColumnType
 }
 
+
+
 func (p *ColumnField) GetColumnVectors() [][]byte {
 	return p.ColumnVectors
 }
 
+
+
 func (p *ColumnField) GetColumnName() string {
 	return p.ColumnName
 }
+
+
 
 func (p *ColumnField) GetBitmasks() []bool {
 	return p.Bitmasks
@@ -10803,6 +10257,7 @@ func (p *ColumnField) Read(ctx context.Context, iprot thrift.TProtocol) error {
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -10936,18 +10391,10 @@ func (p *ColumnField) Write(ctx context.Context, oprot thrift.TProtocol) error {
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField4(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField4(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -11032,29 +10479,17 @@ func (p *ColumnField) Equals(other *ColumnField) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.ColumnType != other.ColumnType {
-		return false
-	}
-	if len(p.ColumnVectors) != len(other.ColumnVectors) {
-		return false
-	}
+	if p.ColumnType != other.ColumnType { return false }
+	if len(p.ColumnVectors) != len(other.ColumnVectors) { return false }
 	for i, _tgt := range p.ColumnVectors {
 		_src72 := other.ColumnVectors[i]
-		if bytes.Compare(_tgt, _src72) != 0 {
-			return false
-		}
+		if bytes.Compare(_tgt, _src72) != 0 { return false }
 	}
-	if p.ColumnName != other.ColumnName {
-		return false
-	}
-	if len(p.Bitmasks) != len(other.Bitmasks) {
-		return false
-	}
+	if p.ColumnName != other.ColumnName { return false }
+	if len(p.Bitmasks) != len(other.Bitmasks) { return false }
 	for i, _tgt := range p.Bitmasks {
 		_src73 := other.Bitmasks[i]
-		if _tgt != _src73 {
-			return false
-		}
+		if _tgt != _src73 { return false }
 	}
 	return true
 }
@@ -11071,7 +10506,7 @@ func (p *ColumnField) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.ColumnField",
+		Type: "*infinity.ColumnField",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -11084,12 +10519,13 @@ func (p *ColumnField) Validate() error {
 }
 
 // Attributes:
-//   - Delimiter
-//   - HasHeader
-//   - CopyFileType
+//  - Delimiter
+//  - HasHeader
+//  - CopyFileType
+// 
 type ImportOption struct {
-	Delimiter    string       `thrift:"delimiter,1" db:"delimiter" json:"delimiter"`
-	HasHeader    bool         `thrift:"has_header,2" db:"has_header" json:"has_header"`
+	Delimiter string `thrift:"delimiter,1" db:"delimiter" json:"delimiter"`
+	HasHeader bool `thrift:"has_header,2" db:"has_header" json:"has_header"`
 	CopyFileType CopyFileType `thrift:"copy_file_type,3" db:"copy_file_type" json:"copy_file_type"`
 }
 
@@ -11097,13 +10533,19 @@ func NewImportOption() *ImportOption {
 	return &ImportOption{}
 }
 
+
+
 func (p *ImportOption) GetDelimiter() string {
 	return p.Delimiter
 }
 
+
+
 func (p *ImportOption) GetHasHeader() bool {
 	return p.HasHeader
 }
+
+
 
 func (p *ImportOption) GetCopyFileType() CopyFileType {
 	return p.CopyFileType
@@ -11113,6 +10555,7 @@ func (p *ImportOption) Read(ctx context.Context, iprot thrift.TProtocol) error {
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -11201,15 +10644,9 @@ func (p *ImportOption) Write(ctx context.Context, oprot thrift.TProtocol) error 
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -11265,15 +10702,9 @@ func (p *ImportOption) Equals(other *ImportOption) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.Delimiter != other.Delimiter {
-		return false
-	}
-	if p.HasHeader != other.HasHeader {
-		return false
-	}
-	if p.CopyFileType != other.CopyFileType {
-		return false
-	}
+	if p.Delimiter != other.Delimiter { return false }
+	if p.HasHeader != other.HasHeader { return false }
+	if p.CopyFileType != other.CopyFileType { return false }
 	return true
 }
 
@@ -11289,7 +10720,7 @@ func (p *ImportOption) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.ImportOption",
+		Type: "*infinity.ImportOption",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -11302,44 +10733,57 @@ func (p *ImportOption) Validate() error {
 }
 
 // Attributes:
-//   - Delimiter
-//   - HasHeader
-//   - CopyFileType
-//   - Offset
-//   - Limit
-//   - RowLimit
+//  - Delimiter
+//  - HasHeader
+//  - CopyFileType
+//  - Offset
+//  - Limit
+//  - RowLimit
+// 
 type ExportOption struct {
-	Delimiter    string       `thrift:"delimiter,1" db:"delimiter" json:"delimiter"`
-	HasHeader    bool         `thrift:"has_header,2" db:"has_header" json:"has_header"`
+	Delimiter string `thrift:"delimiter,1" db:"delimiter" json:"delimiter"`
+	HasHeader bool `thrift:"has_header,2" db:"has_header" json:"has_header"`
 	CopyFileType CopyFileType `thrift:"copy_file_type,3" db:"copy_file_type" json:"copy_file_type"`
-	Offset       int64        `thrift:"offset,4" db:"offset" json:"offset"`
-	Limit        int64        `thrift:"limit,5" db:"limit" json:"limit"`
-	RowLimit     int64        `thrift:"row_limit,6" db:"row_limit" json:"row_limit"`
+	Offset int64 `thrift:"offset,4" db:"offset" json:"offset"`
+	Limit int64 `thrift:"limit,5" db:"limit" json:"limit"`
+	RowLimit int64 `thrift:"row_limit,6" db:"row_limit" json:"row_limit"`
 }
 
 func NewExportOption() *ExportOption {
 	return &ExportOption{}
 }
 
+
+
 func (p *ExportOption) GetDelimiter() string {
 	return p.Delimiter
 }
+
+
 
 func (p *ExportOption) GetHasHeader() bool {
 	return p.HasHeader
 }
 
+
+
 func (p *ExportOption) GetCopyFileType() CopyFileType {
 	return p.CopyFileType
 }
+
+
 
 func (p *ExportOption) GetOffset() int64 {
 	return p.Offset
 }
 
+
+
 func (p *ExportOption) GetLimit() int64 {
 	return p.Limit
 }
+
+
 
 func (p *ExportOption) GetRowLimit() int64 {
 	return p.RowLimit
@@ -11349,6 +10793,7 @@ func (p *ExportOption) Read(ctx context.Context, iprot thrift.TProtocol) error {
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -11494,24 +10939,12 @@ func (p *ExportOption) Write(ctx context.Context, oprot thrift.TProtocol) error 
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField4(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField5(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField6(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField4(ctx, oprot); err != nil { return err }
+		if err := p.writeField5(ctx, oprot); err != nil { return err }
+		if err := p.writeField6(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -11606,24 +11039,12 @@ func (p *ExportOption) Equals(other *ExportOption) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.Delimiter != other.Delimiter {
-		return false
-	}
-	if p.HasHeader != other.HasHeader {
-		return false
-	}
-	if p.CopyFileType != other.CopyFileType {
-		return false
-	}
-	if p.Offset != other.Offset {
-		return false
-	}
-	if p.Limit != other.Limit {
-		return false
-	}
-	if p.RowLimit != other.RowLimit {
-		return false
-	}
+	if p.Delimiter != other.Delimiter { return false }
+	if p.HasHeader != other.HasHeader { return false }
+	if p.CopyFileType != other.CopyFileType { return false }
+	if p.Offset != other.Offset { return false }
+	if p.Limit != other.Limit { return false }
+	if p.RowLimit != other.RowLimit { return false }
 	return true
 }
 
@@ -11639,7 +11060,7 @@ func (p *ExportOption) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.ExportOption",
+		Type: "*infinity.ExportOption",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -11652,22 +11073,28 @@ func (p *ExportOption) Validate() error {
 }
 
 // Attributes:
-//   - IndexName
-//   - OptParams
+//  - IndexName
+//  - OptParams
+// 
 type AlterIndexOptions struct {
-	IndexName string           `thrift:"index_name,1" db:"index_name" json:"index_name"`
+	IndexName string `thrift:"index_name,1" db:"index_name" json:"index_name"`
 	OptParams []*InitParameter `thrift:"opt_params,2" db:"opt_params" json:"opt_params"`
 }
 
 func NewAlterIndexOptions() *AlterIndexOptions {
 	return &AlterIndexOptions{
-		OptParams: []*InitParameter{},
+		OptParams: []*InitParameter{
+		},
 	}
 }
+
+
 
 func (p *AlterIndexOptions) GetIndexName() string {
 	return p.IndexName
 }
+
+
 
 func (p *AlterIndexOptions) GetOptParams() []*InitParameter {
 	return p.OptParams
@@ -11677,6 +11104,7 @@ func (p *AlterIndexOptions) Read(ctx context.Context, iprot thrift.TProtocol) er
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -11756,12 +11184,8 @@ func (p *AlterIndexOptions) Write(ctx context.Context, oprot thrift.TProtocol) e
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -11812,17 +11236,11 @@ func (p *AlterIndexOptions) Equals(other *AlterIndexOptions) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.IndexName != other.IndexName {
-		return false
-	}
-	if len(p.OptParams) != len(other.OptParams) {
-		return false
-	}
+	if p.IndexName != other.IndexName { return false }
+	if len(p.OptParams) != len(other.OptParams) { return false }
 	for i, _tgt := range p.OptParams {
 		_src75 := other.OptParams[i]
-		if !_tgt.Equals(_src75) {
-			return false
-		}
+		if !_tgt.Equals(_src75) { return false }
 	}
 	return true
 }
@@ -11839,7 +11257,7 @@ func (p *AlterIndexOptions) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.AlterIndexOptions",
+		Type: "*infinity.AlterIndexOptions",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -11852,7 +11270,8 @@ func (p *AlterIndexOptions) Validate() error {
 }
 
 // Attributes:
-//   - ClientVersion
+//  - ClientVersion
+// 
 type ConnectRequest struct {
 	ClientVersion int64 `thrift:"client_version,1" db:"client_version" json:"client_version"`
 }
@@ -11860,6 +11279,8 @@ type ConnectRequest struct {
 func NewConnectRequest() *ConnectRequest {
 	return &ConnectRequest{}
 }
+
+
 
 func (p *ConnectRequest) GetClientVersion() int64 {
 	return p.ClientVersion
@@ -11869,6 +11290,7 @@ func (p *ConnectRequest) Read(ctx context.Context, iprot thrift.TProtocol) error
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -11918,9 +11340,7 @@ func (p *ConnectRequest) Write(ctx context.Context, oprot thrift.TProtocol) erro
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -11950,9 +11370,7 @@ func (p *ConnectRequest) Equals(other *ConnectRequest) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.ClientVersion != other.ClientVersion {
-		return false
-	}
+	if p.ClientVersion != other.ClientVersion { return false }
 	return true
 }
 
@@ -11968,7 +11386,7 @@ func (p *ConnectRequest) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.ConnectRequest",
+		Type: "*infinity.ConnectRequest",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -11981,7 +11399,8 @@ func (p *ConnectRequest) Validate() error {
 }
 
 // Attributes:
-//   - SessionID
+//  - SessionID
+// 
 type CommonRequest struct {
 	SessionID int64 `thrift:"session_id,1" db:"session_id" json:"session_id"`
 }
@@ -11989,6 +11408,8 @@ type CommonRequest struct {
 func NewCommonRequest() *CommonRequest {
 	return &CommonRequest{}
 }
+
+
 
 func (p *CommonRequest) GetSessionID() int64 {
 	return p.SessionID
@@ -11998,6 +11419,7 @@ func (p *CommonRequest) Read(ctx context.Context, iprot thrift.TProtocol) error 
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -12047,9 +11469,7 @@ func (p *CommonRequest) Write(ctx context.Context, oprot thrift.TProtocol) error
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -12079,9 +11499,7 @@ func (p *CommonRequest) Equals(other *CommonRequest) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.SessionID != other.SessionID {
-		return false
-	}
+	if p.SessionID != other.SessionID { return false }
 	return true
 }
 
@@ -12097,7 +11515,7 @@ func (p *CommonRequest) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.CommonRequest",
+		Type: "*infinity.CommonRequest",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -12110,26 +11528,33 @@ func (p *CommonRequest) Validate() error {
 }
 
 // Attributes:
-//   - ErrorCode
-//   - ErrorMsg
-//   - SessionID
+//  - ErrorCode
+//  - ErrorMsg
+//  - SessionID
+// 
 type CommonResponse struct {
-	ErrorCode int64  `thrift:"error_code,1" db:"error_code" json:"error_code"`
-	ErrorMsg  string `thrift:"error_msg,2" db:"error_msg" json:"error_msg"`
-	SessionID int64  `thrift:"session_id,3" db:"session_id" json:"session_id"`
+	ErrorCode int64 `thrift:"error_code,1" db:"error_code" json:"error_code"`
+	ErrorMsg string `thrift:"error_msg,2" db:"error_msg" json:"error_msg"`
+	SessionID int64 `thrift:"session_id,3" db:"session_id" json:"session_id"`
 }
 
 func NewCommonResponse() *CommonResponse {
 	return &CommonResponse{}
 }
 
+
+
 func (p *CommonResponse) GetErrorCode() int64 {
 	return p.ErrorCode
 }
 
+
+
 func (p *CommonResponse) GetErrorMsg() string {
 	return p.ErrorMsg
 }
+
+
 
 func (p *CommonResponse) GetSessionID() int64 {
 	return p.SessionID
@@ -12139,6 +11564,7 @@ func (p *CommonResponse) Read(ctx context.Context, iprot thrift.TProtocol) error
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -12226,15 +11652,9 @@ func (p *CommonResponse) Write(ctx context.Context, oprot thrift.TProtocol) erro
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -12290,15 +11710,9 @@ func (p *CommonResponse) Equals(other *CommonResponse) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.ErrorCode != other.ErrorCode {
-		return false
-	}
-	if p.ErrorMsg != other.ErrorMsg {
-		return false
-	}
-	if p.SessionID != other.SessionID {
-		return false
-	}
+	if p.ErrorCode != other.ErrorCode { return false }
+	if p.ErrorMsg != other.ErrorMsg { return false }
+	if p.SessionID != other.SessionID { return false }
 	return true
 }
 
@@ -12314,7 +11728,7 @@ func (p *CommonResponse) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.CommonResponse",
+		Type: "*infinity.CommonResponse",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -12327,7 +11741,8 @@ func (p *CommonResponse) Validate() error {
 }
 
 // Attributes:
-//   - SessionID
+//  - SessionID
+// 
 type ListDatabaseRequest struct {
 	SessionID int64 `thrift:"session_id,1" db:"session_id" json:"session_id"`
 }
@@ -12335,6 +11750,8 @@ type ListDatabaseRequest struct {
 func NewListDatabaseRequest() *ListDatabaseRequest {
 	return &ListDatabaseRequest{}
 }
+
+
 
 func (p *ListDatabaseRequest) GetSessionID() int64 {
 	return p.SessionID
@@ -12344,6 +11761,7 @@ func (p *ListDatabaseRequest) Read(ctx context.Context, iprot thrift.TProtocol) 
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -12393,9 +11811,7 @@ func (p *ListDatabaseRequest) Write(ctx context.Context, oprot thrift.TProtocol)
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -12425,9 +11841,7 @@ func (p *ListDatabaseRequest) Equals(other *ListDatabaseRequest) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.SessionID != other.SessionID {
-		return false
-	}
+	if p.SessionID != other.SessionID { return false }
 	return true
 }
 
@@ -12443,7 +11857,7 @@ func (p *ListDatabaseRequest) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.ListDatabaseRequest",
+		Type: "*infinity.ListDatabaseRequest",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -12456,42 +11870,56 @@ func (p *ListDatabaseRequest) Validate() error {
 }
 
 // Attributes:
-//   - ErrorCode
-//   - ErrorMsg
-//   - DbNames
-//   - DbDirs
-//   - DbComments
+//  - ErrorCode
+//  - ErrorMsg
+//  - DbNames
+//  - DbDirs
+//  - DbComments
+// 
 type ListDatabaseResponse struct {
-	ErrorCode  int64    `thrift:"error_code,1" db:"error_code" json:"error_code"`
-	ErrorMsg   string   `thrift:"error_msg,2" db:"error_msg" json:"error_msg"`
-	DbNames    []string `thrift:"db_names,3" db:"db_names" json:"db_names"`
-	DbDirs     []string `thrift:"db_dirs,4" db:"db_dirs" json:"db_dirs"`
+	ErrorCode int64 `thrift:"error_code,1" db:"error_code" json:"error_code"`
+	ErrorMsg string `thrift:"error_msg,2" db:"error_msg" json:"error_msg"`
+	DbNames []string `thrift:"db_names,3" db:"db_names" json:"db_names"`
+	DbDirs []string `thrift:"db_dirs,4" db:"db_dirs" json:"db_dirs"`
 	DbComments []string `thrift:"db_comments,5" db:"db_comments" json:"db_comments"`
 }
 
 func NewListDatabaseResponse() *ListDatabaseResponse {
 	return &ListDatabaseResponse{
-		DbNames:    []string{},
-		DbDirs:     []string{},
-		DbComments: []string{},
+		DbNames: []string{
+		},
+		DbDirs: []string{
+		},
+		DbComments: []string{
+		},
 	}
 }
+
+
 
 func (p *ListDatabaseResponse) GetErrorCode() int64 {
 	return p.ErrorCode
 }
 
+
+
 func (p *ListDatabaseResponse) GetErrorMsg() string {
 	return p.ErrorMsg
 }
+
+
 
 func (p *ListDatabaseResponse) GetDbNames() []string {
 	return p.DbNames
 }
 
+
+
 func (p *ListDatabaseResponse) GetDbDirs() []string {
 	return p.DbDirs
 }
+
+
 
 func (p *ListDatabaseResponse) GetDbComments() []string {
 	return p.DbComments
@@ -12501,6 +11929,7 @@ func (p *ListDatabaseResponse) Read(ctx context.Context, iprot thrift.TProtocol)
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -12665,21 +12094,11 @@ func (p *ListDatabaseResponse) Write(ctx context.Context, oprot thrift.TProtocol
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField4(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField5(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField4(ctx, oprot); err != nil { return err }
+		if err := p.writeField5(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -12785,38 +12204,22 @@ func (p *ListDatabaseResponse) Equals(other *ListDatabaseResponse) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.ErrorCode != other.ErrorCode {
-		return false
-	}
-	if p.ErrorMsg != other.ErrorMsg {
-		return false
-	}
-	if len(p.DbNames) != len(other.DbNames) {
-		return false
-	}
+	if p.ErrorCode != other.ErrorCode { return false }
+	if p.ErrorMsg != other.ErrorMsg { return false }
+	if len(p.DbNames) != len(other.DbNames) { return false }
 	for i, _tgt := range p.DbNames {
 		_src79 := other.DbNames[i]
-		if _tgt != _src79 {
-			return false
-		}
+		if _tgt != _src79 { return false }
 	}
-	if len(p.DbDirs) != len(other.DbDirs) {
-		return false
-	}
+	if len(p.DbDirs) != len(other.DbDirs) { return false }
 	for i, _tgt := range p.DbDirs {
 		_src80 := other.DbDirs[i]
-		if _tgt != _src80 {
-			return false
-		}
+		if _tgt != _src80 { return false }
 	}
-	if len(p.DbComments) != len(other.DbComments) {
-		return false
-	}
+	if len(p.DbComments) != len(other.DbComments) { return false }
 	for i, _tgt := range p.DbComments {
 		_src81 := other.DbComments[i]
-		if _tgt != _src81 {
-			return false
-		}
+		if _tgt != _src81 { return false }
 	}
 	return true
 }
@@ -12833,7 +12236,7 @@ func (p *ListDatabaseResponse) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.ListDatabaseResponse",
+		Type: "*infinity.ListDatabaseResponse",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -12846,20 +12249,25 @@ func (p *ListDatabaseResponse) Validate() error {
 }
 
 // Attributes:
-//   - DbName
-//   - SessionID
+//  - DbName
+//  - SessionID
+// 
 type ListTableRequest struct {
-	DbName    string `thrift:"db_name,1" db:"db_name" json:"db_name"`
-	SessionID int64  `thrift:"session_id,2" db:"session_id" json:"session_id"`
+	DbName string `thrift:"db_name,1" db:"db_name" json:"db_name"`
+	SessionID int64 `thrift:"session_id,2" db:"session_id" json:"session_id"`
 }
 
 func NewListTableRequest() *ListTableRequest {
 	return &ListTableRequest{}
 }
 
+
+
 func (p *ListTableRequest) GetDbName() string {
 	return p.DbName
 }
+
+
 
 func (p *ListTableRequest) GetSessionID() int64 {
 	return p.SessionID
@@ -12869,6 +12277,7 @@ func (p *ListTableRequest) Read(ctx context.Context, iprot thrift.TProtocol) err
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -12937,12 +12346,8 @@ func (p *ListTableRequest) Write(ctx context.Context, oprot thrift.TProtocol) er
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -12985,12 +12390,8 @@ func (p *ListTableRequest) Equals(other *ListTableRequest) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.DbName != other.DbName {
-		return false
-	}
-	if p.SessionID != other.SessionID {
-		return false
-	}
+	if p.DbName != other.DbName { return false }
+	if p.SessionID != other.SessionID { return false }
 	return true
 }
 
@@ -13006,7 +12407,7 @@ func (p *ListTableRequest) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.ListTableRequest",
+		Type: "*infinity.ListTableRequest",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -13019,28 +12420,36 @@ func (p *ListTableRequest) Validate() error {
 }
 
 // Attributes:
-//   - ErrorCode
-//   - ErrorMsg
-//   - TableNames
+//  - ErrorCode
+//  - ErrorMsg
+//  - TableNames
+// 
 type ListTableResponse struct {
-	ErrorCode  int64    `thrift:"error_code,1" db:"error_code" json:"error_code"`
-	ErrorMsg   string   `thrift:"error_msg,2" db:"error_msg" json:"error_msg"`
+	ErrorCode int64 `thrift:"error_code,1" db:"error_code" json:"error_code"`
+	ErrorMsg string `thrift:"error_msg,2" db:"error_msg" json:"error_msg"`
 	TableNames []string `thrift:"table_names,3" db:"table_names" json:"table_names"`
 }
 
 func NewListTableResponse() *ListTableResponse {
 	return &ListTableResponse{
-		TableNames: []string{},
+		TableNames: []string{
+		},
 	}
 }
+
+
 
 func (p *ListTableResponse) GetErrorCode() int64 {
 	return p.ErrorCode
 }
 
+
+
 func (p *ListTableResponse) GetErrorMsg() string {
 	return p.ErrorMsg
 }
+
+
 
 func (p *ListTableResponse) GetTableNames() []string {
 	return p.TableNames
@@ -13050,6 +12459,7 @@ func (p *ListTableResponse) Read(ctx context.Context, iprot thrift.TProtocol) er
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -13150,15 +12560,9 @@ func (p *ListTableResponse) Write(ctx context.Context, oprot thrift.TProtocol) e
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -13222,20 +12626,12 @@ func (p *ListTableResponse) Equals(other *ListTableResponse) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.ErrorCode != other.ErrorCode {
-		return false
-	}
-	if p.ErrorMsg != other.ErrorMsg {
-		return false
-	}
-	if len(p.TableNames) != len(other.TableNames) {
-		return false
-	}
+	if p.ErrorCode != other.ErrorCode { return false }
+	if p.ErrorMsg != other.ErrorMsg { return false }
+	if len(p.TableNames) != len(other.TableNames) { return false }
 	for i, _tgt := range p.TableNames {
 		_src83 := other.TableNames[i]
-		if _tgt != _src83 {
-			return false
-		}
+		if _tgt != _src83 { return false }
 	}
 	return true
 }
@@ -13252,7 +12648,7 @@ func (p *ListTableResponse) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.ListTableResponse",
+		Type: "*infinity.ListTableResponse",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -13265,26 +12661,33 @@ func (p *ListTableResponse) Validate() error {
 }
 
 // Attributes:
-//   - DbName
-//   - TableName
-//   - SessionID
+//  - DbName
+//  - TableName
+//  - SessionID
+// 
 type ListIndexRequest struct {
-	DbName    string `thrift:"db_name,1" db:"db_name" json:"db_name"`
+	DbName string `thrift:"db_name,1" db:"db_name" json:"db_name"`
 	TableName string `thrift:"table_name,2" db:"table_name" json:"table_name"`
-	SessionID int64  `thrift:"session_id,3" db:"session_id" json:"session_id"`
+	SessionID int64 `thrift:"session_id,3" db:"session_id" json:"session_id"`
 }
 
 func NewListIndexRequest() *ListIndexRequest {
 	return &ListIndexRequest{}
 }
 
+
+
 func (p *ListIndexRequest) GetDbName() string {
 	return p.DbName
 }
 
+
+
 func (p *ListIndexRequest) GetTableName() string {
 	return p.TableName
 }
+
+
 
 func (p *ListIndexRequest) GetSessionID() int64 {
 	return p.SessionID
@@ -13294,6 +12697,7 @@ func (p *ListIndexRequest) Read(ctx context.Context, iprot thrift.TProtocol) err
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -13381,15 +12785,9 @@ func (p *ListIndexRequest) Write(ctx context.Context, oprot thrift.TProtocol) er
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -13445,15 +12843,9 @@ func (p *ListIndexRequest) Equals(other *ListIndexRequest) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.DbName != other.DbName {
-		return false
-	}
-	if p.TableName != other.TableName {
-		return false
-	}
-	if p.SessionID != other.SessionID {
-		return false
-	}
+	if p.DbName != other.DbName { return false }
+	if p.TableName != other.TableName { return false }
+	if p.SessionID != other.SessionID { return false }
 	return true
 }
 
@@ -13469,7 +12861,7 @@ func (p *ListIndexRequest) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.ListIndexRequest",
+		Type: "*infinity.ListIndexRequest",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -13482,28 +12874,36 @@ func (p *ListIndexRequest) Validate() error {
 }
 
 // Attributes:
-//   - ErrorCode
-//   - ErrorMsg
-//   - IndexNames
+//  - ErrorCode
+//  - ErrorMsg
+//  - IndexNames
+// 
 type ListIndexResponse struct {
-	ErrorCode  int64    `thrift:"error_code,1" db:"error_code" json:"error_code"`
-	ErrorMsg   string   `thrift:"error_msg,2" db:"error_msg" json:"error_msg"`
+	ErrorCode int64 `thrift:"error_code,1" db:"error_code" json:"error_code"`
+	ErrorMsg string `thrift:"error_msg,2" db:"error_msg" json:"error_msg"`
 	IndexNames []string `thrift:"index_names,3" db:"index_names" json:"index_names"`
 }
 
 func NewListIndexResponse() *ListIndexResponse {
 	return &ListIndexResponse{
-		IndexNames: []string{},
+		IndexNames: []string{
+		},
 	}
 }
+
+
 
 func (p *ListIndexResponse) GetErrorCode() int64 {
 	return p.ErrorCode
 }
 
+
+
 func (p *ListIndexResponse) GetErrorMsg() string {
 	return p.ErrorMsg
 }
+
+
 
 func (p *ListIndexResponse) GetIndexNames() []string {
 	return p.IndexNames
@@ -13513,6 +12913,7 @@ func (p *ListIndexResponse) Read(ctx context.Context, iprot thrift.TProtocol) er
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -13613,15 +13014,9 @@ func (p *ListIndexResponse) Write(ctx context.Context, oprot thrift.TProtocol) e
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -13685,20 +13080,12 @@ func (p *ListIndexResponse) Equals(other *ListIndexResponse) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.ErrorCode != other.ErrorCode {
-		return false
-	}
-	if p.ErrorMsg != other.ErrorMsg {
-		return false
-	}
-	if len(p.IndexNames) != len(other.IndexNames) {
-		return false
-	}
+	if p.ErrorCode != other.ErrorCode { return false }
+	if p.ErrorMsg != other.ErrorMsg { return false }
+	if len(p.IndexNames) != len(other.IndexNames) { return false }
 	for i, _tgt := range p.IndexNames {
 		_src85 := other.IndexNames[i]
-		if _tgt != _src85 {
-			return false
-		}
+		if _tgt != _src85 { return false }
 	}
 	return true
 }
@@ -13715,7 +13102,7 @@ func (p *ListIndexResponse) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.ListIndexResponse",
+		Type: "*infinity.ListIndexResponse",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -13728,20 +13115,25 @@ func (p *ListIndexResponse) Validate() error {
 }
 
 // Attributes:
-//   - DbName
-//   - SessionID
+//  - DbName
+//  - SessionID
+// 
 type ShowDatabaseRequest struct {
-	DbName    string `thrift:"db_name,1" db:"db_name" json:"db_name"`
-	SessionID int64  `thrift:"session_id,2" db:"session_id" json:"session_id"`
+	DbName string `thrift:"db_name,1" db:"db_name" json:"db_name"`
+	SessionID int64 `thrift:"session_id,2" db:"session_id" json:"session_id"`
 }
 
 func NewShowDatabaseRequest() *ShowDatabaseRequest {
 	return &ShowDatabaseRequest{}
 }
 
+
+
 func (p *ShowDatabaseRequest) GetDbName() string {
 	return p.DbName
 }
+
+
 
 func (p *ShowDatabaseRequest) GetSessionID() int64 {
 	return p.SessionID
@@ -13751,6 +13143,7 @@ func (p *ShowDatabaseRequest) Read(ctx context.Context, iprot thrift.TProtocol) 
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -13819,12 +13212,8 @@ func (p *ShowDatabaseRequest) Write(ctx context.Context, oprot thrift.TProtocol)
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -13867,12 +13256,8 @@ func (p *ShowDatabaseRequest) Equals(other *ShowDatabaseRequest) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.DbName != other.DbName {
-		return false
-	}
-	if p.SessionID != other.SessionID {
-		return false
-	}
+	if p.DbName != other.DbName { return false }
+	if p.SessionID != other.SessionID { return false }
 	return true
 }
 
@@ -13888,7 +13273,7 @@ func (p *ShowDatabaseRequest) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.ShowDatabaseRequest",
+		Type: "*infinity.ShowDatabaseRequest",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -13901,44 +13286,57 @@ func (p *ShowDatabaseRequest) Validate() error {
 }
 
 // Attributes:
-//   - ErrorCode
-//   - ErrorMsg
-//   - DatabaseName
-//   - StoreDir
-//   - TableCount
-//   - Comment
+//  - ErrorCode
+//  - ErrorMsg
+//  - DatabaseName
+//  - StoreDir
+//  - TableCount
+//  - Comment
+// 
 type ShowDatabaseResponse struct {
-	ErrorCode    int64  `thrift:"error_code,1" db:"error_code" json:"error_code"`
-	ErrorMsg     string `thrift:"error_msg,2" db:"error_msg" json:"error_msg"`
+	ErrorCode int64 `thrift:"error_code,1" db:"error_code" json:"error_code"`
+	ErrorMsg string `thrift:"error_msg,2" db:"error_msg" json:"error_msg"`
 	DatabaseName string `thrift:"database_name,3" db:"database_name" json:"database_name"`
-	StoreDir     string `thrift:"store_dir,4" db:"store_dir" json:"store_dir"`
-	TableCount   int64  `thrift:"table_count,5" db:"table_count" json:"table_count"`
-	Comment      string `thrift:"comment,6" db:"comment" json:"comment"`
+	StoreDir string `thrift:"store_dir,4" db:"store_dir" json:"store_dir"`
+	TableCount int64 `thrift:"table_count,5" db:"table_count" json:"table_count"`
+	Comment string `thrift:"comment,6" db:"comment" json:"comment"`
 }
 
 func NewShowDatabaseResponse() *ShowDatabaseResponse {
 	return &ShowDatabaseResponse{}
 }
 
+
+
 func (p *ShowDatabaseResponse) GetErrorCode() int64 {
 	return p.ErrorCode
 }
+
+
 
 func (p *ShowDatabaseResponse) GetErrorMsg() string {
 	return p.ErrorMsg
 }
 
+
+
 func (p *ShowDatabaseResponse) GetDatabaseName() string {
 	return p.DatabaseName
 }
+
+
 
 func (p *ShowDatabaseResponse) GetStoreDir() string {
 	return p.StoreDir
 }
 
+
+
 func (p *ShowDatabaseResponse) GetTableCount() int64 {
 	return p.TableCount
 }
+
+
 
 func (p *ShowDatabaseResponse) GetComment() string {
 	return p.Comment
@@ -13948,6 +13346,7 @@ func (p *ShowDatabaseResponse) Read(ctx context.Context, iprot thrift.TProtocol)
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -14092,24 +13491,12 @@ func (p *ShowDatabaseResponse) Write(ctx context.Context, oprot thrift.TProtocol
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField4(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField5(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField6(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField4(ctx, oprot); err != nil { return err }
+		if err := p.writeField5(ctx, oprot); err != nil { return err }
+		if err := p.writeField6(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -14204,24 +13591,12 @@ func (p *ShowDatabaseResponse) Equals(other *ShowDatabaseResponse) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.ErrorCode != other.ErrorCode {
-		return false
-	}
-	if p.ErrorMsg != other.ErrorMsg {
-		return false
-	}
-	if p.DatabaseName != other.DatabaseName {
-		return false
-	}
-	if p.StoreDir != other.StoreDir {
-		return false
-	}
-	if p.TableCount != other.TableCount {
-		return false
-	}
-	if p.Comment != other.Comment {
-		return false
-	}
+	if p.ErrorCode != other.ErrorCode { return false }
+	if p.ErrorMsg != other.ErrorMsg { return false }
+	if p.DatabaseName != other.DatabaseName { return false }
+	if p.StoreDir != other.StoreDir { return false }
+	if p.TableCount != other.TableCount { return false }
+	if p.Comment != other.Comment { return false }
 	return true
 }
 
@@ -14237,7 +13612,7 @@ func (p *ShowDatabaseResponse) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.ShowDatabaseResponse",
+		Type: "*infinity.ShowDatabaseResponse",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -14250,26 +13625,33 @@ func (p *ShowDatabaseResponse) Validate() error {
 }
 
 // Attributes:
-//   - DbName
-//   - TableName
-//   - SessionID
+//  - DbName
+//  - TableName
+//  - SessionID
+// 
 type ShowTableRequest struct {
-	DbName    string `thrift:"db_name,1" db:"db_name" json:"db_name"`
+	DbName string `thrift:"db_name,1" db:"db_name" json:"db_name"`
 	TableName string `thrift:"table_name,2" db:"table_name" json:"table_name"`
-	SessionID int64  `thrift:"session_id,3" db:"session_id" json:"session_id"`
+	SessionID int64 `thrift:"session_id,3" db:"session_id" json:"session_id"`
 }
 
 func NewShowTableRequest() *ShowTableRequest {
 	return &ShowTableRequest{}
 }
 
+
+
 func (p *ShowTableRequest) GetDbName() string {
 	return p.DbName
 }
 
+
+
 func (p *ShowTableRequest) GetTableName() string {
 	return p.TableName
 }
+
+
 
 func (p *ShowTableRequest) GetSessionID() int64 {
 	return p.SessionID
@@ -14279,6 +13661,7 @@ func (p *ShowTableRequest) Read(ctx context.Context, iprot thrift.TProtocol) err
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -14366,15 +13749,9 @@ func (p *ShowTableRequest) Write(ctx context.Context, oprot thrift.TProtocol) er
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -14430,15 +13807,9 @@ func (p *ShowTableRequest) Equals(other *ShowTableRequest) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.DbName != other.DbName {
-		return false
-	}
-	if p.TableName != other.TableName {
-		return false
-	}
-	if p.SessionID != other.SessionID {
-		return false
-	}
+	if p.DbName != other.DbName { return false }
+	if p.TableName != other.TableName { return false }
+	if p.SessionID != other.SessionID { return false }
 	return true
 }
 
@@ -14454,7 +13825,7 @@ func (p *ShowTableRequest) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.ShowTableRequest",
+		Type: "*infinity.ShowTableRequest",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -14467,56 +13838,73 @@ func (p *ShowTableRequest) Validate() error {
 }
 
 // Attributes:
-//   - ErrorCode
-//   - ErrorMsg
-//   - DatabaseName
-//   - TableName
-//   - StoreDir
-//   - ColumnCount
-//   - SegmentCount
-//   - RowCount
+//  - ErrorCode
+//  - ErrorMsg
+//  - DatabaseName
+//  - TableName
+//  - StoreDir
+//  - ColumnCount
+//  - SegmentCount
+//  - RowCount
+// 
 type ShowTableResponse struct {
-	ErrorCode    int64  `thrift:"error_code,1" db:"error_code" json:"error_code"`
-	ErrorMsg     string `thrift:"error_msg,2" db:"error_msg" json:"error_msg"`
+	ErrorCode int64 `thrift:"error_code,1" db:"error_code" json:"error_code"`
+	ErrorMsg string `thrift:"error_msg,2" db:"error_msg" json:"error_msg"`
 	DatabaseName string `thrift:"database_name,3" db:"database_name" json:"database_name"`
-	TableName    string `thrift:"table_name,4" db:"table_name" json:"table_name"`
-	StoreDir     string `thrift:"store_dir,5" db:"store_dir" json:"store_dir"`
-	ColumnCount  int64  `thrift:"column_count,6" db:"column_count" json:"column_count"`
-	SegmentCount int64  `thrift:"segment_count,7" db:"segment_count" json:"segment_count"`
-	RowCount     int64  `thrift:"row_count,8" db:"row_count" json:"row_count"`
+	TableName string `thrift:"table_name,4" db:"table_name" json:"table_name"`
+	StoreDir string `thrift:"store_dir,5" db:"store_dir" json:"store_dir"`
+	ColumnCount int64 `thrift:"column_count,6" db:"column_count" json:"column_count"`
+	SegmentCount int64 `thrift:"segment_count,7" db:"segment_count" json:"segment_count"`
+	RowCount int64 `thrift:"row_count,8" db:"row_count" json:"row_count"`
 }
 
 func NewShowTableResponse() *ShowTableResponse {
 	return &ShowTableResponse{}
 }
 
+
+
 func (p *ShowTableResponse) GetErrorCode() int64 {
 	return p.ErrorCode
 }
+
+
 
 func (p *ShowTableResponse) GetErrorMsg() string {
 	return p.ErrorMsg
 }
 
+
+
 func (p *ShowTableResponse) GetDatabaseName() string {
 	return p.DatabaseName
 }
+
+
 
 func (p *ShowTableResponse) GetTableName() string {
 	return p.TableName
 }
 
+
+
 func (p *ShowTableResponse) GetStoreDir() string {
 	return p.StoreDir
 }
+
+
 
 func (p *ShowTableResponse) GetColumnCount() int64 {
 	return p.ColumnCount
 }
 
+
+
 func (p *ShowTableResponse) GetSegmentCount() int64 {
 	return p.SegmentCount
 }
+
+
 
 func (p *ShowTableResponse) GetRowCount() int64 {
 	return p.RowCount
@@ -14526,6 +13914,7 @@ func (p *ShowTableResponse) Read(ctx context.Context, iprot thrift.TProtocol) er
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -14708,30 +14097,14 @@ func (p *ShowTableResponse) Write(ctx context.Context, oprot thrift.TProtocol) e
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField4(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField5(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField6(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField7(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField8(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField4(ctx, oprot); err != nil { return err }
+		if err := p.writeField5(ctx, oprot); err != nil { return err }
+		if err := p.writeField6(ctx, oprot); err != nil { return err }
+		if err := p.writeField7(ctx, oprot); err != nil { return err }
+		if err := p.writeField8(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -14852,30 +14225,14 @@ func (p *ShowTableResponse) Equals(other *ShowTableResponse) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.ErrorCode != other.ErrorCode {
-		return false
-	}
-	if p.ErrorMsg != other.ErrorMsg {
-		return false
-	}
-	if p.DatabaseName != other.DatabaseName {
-		return false
-	}
-	if p.TableName != other.TableName {
-		return false
-	}
-	if p.StoreDir != other.StoreDir {
-		return false
-	}
-	if p.ColumnCount != other.ColumnCount {
-		return false
-	}
-	if p.SegmentCount != other.SegmentCount {
-		return false
-	}
-	if p.RowCount != other.RowCount {
-		return false
-	}
+	if p.ErrorCode != other.ErrorCode { return false }
+	if p.ErrorMsg != other.ErrorMsg { return false }
+	if p.DatabaseName != other.DatabaseName { return false }
+	if p.TableName != other.TableName { return false }
+	if p.StoreDir != other.StoreDir { return false }
+	if p.ColumnCount != other.ColumnCount { return false }
+	if p.SegmentCount != other.SegmentCount { return false }
+	if p.RowCount != other.RowCount { return false }
 	return true
 }
 
@@ -14891,7 +14248,7 @@ func (p *ShowTableResponse) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.ShowTableResponse",
+		Type: "*infinity.ShowTableResponse",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -14904,26 +14261,33 @@ func (p *ShowTableResponse) Validate() error {
 }
 
 // Attributes:
-//   - DbName
-//   - TableName
-//   - SessionID
+//  - DbName
+//  - TableName
+//  - SessionID
+// 
 type ShowColumnsRequest struct {
-	DbName    string `thrift:"db_name,1" db:"db_name" json:"db_name"`
+	DbName string `thrift:"db_name,1" db:"db_name" json:"db_name"`
 	TableName string `thrift:"table_name,2" db:"table_name" json:"table_name"`
-	SessionID int64  `thrift:"session_id,3" db:"session_id" json:"session_id"`
+	SessionID int64 `thrift:"session_id,3" db:"session_id" json:"session_id"`
 }
 
 func NewShowColumnsRequest() *ShowColumnsRequest {
 	return &ShowColumnsRequest{}
 }
 
+
+
 func (p *ShowColumnsRequest) GetDbName() string {
 	return p.DbName
 }
 
+
+
 func (p *ShowColumnsRequest) GetTableName() string {
 	return p.TableName
 }
+
+
 
 func (p *ShowColumnsRequest) GetSessionID() int64 {
 	return p.SessionID
@@ -14933,6 +14297,7 @@ func (p *ShowColumnsRequest) Read(ctx context.Context, iprot thrift.TProtocol) e
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -15020,15 +14385,9 @@ func (p *ShowColumnsRequest) Write(ctx context.Context, oprot thrift.TProtocol) 
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -15084,15 +14443,9 @@ func (p *ShowColumnsRequest) Equals(other *ShowColumnsRequest) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.DbName != other.DbName {
-		return false
-	}
-	if p.TableName != other.TableName {
-		return false
-	}
-	if p.SessionID != other.SessionID {
-		return false
-	}
+	if p.DbName != other.DbName { return false }
+	if p.TableName != other.TableName { return false }
+	if p.SessionID != other.SessionID { return false }
 	return true
 }
 
@@ -15108,7 +14461,7 @@ func (p *ShowColumnsRequest) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.ShowColumnsRequest",
+		Type: "*infinity.ShowColumnsRequest",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -15121,26 +14474,33 @@ func (p *ShowColumnsRequest) Validate() error {
 }
 
 // Attributes:
-//   - DbName
-//   - TableName
-//   - SessionID
+//  - DbName
+//  - TableName
+//  - SessionID
+// 
 type GetTableRequest struct {
-	DbName    string `thrift:"db_name,1" db:"db_name" json:"db_name"`
+	DbName string `thrift:"db_name,1" db:"db_name" json:"db_name"`
 	TableName string `thrift:"table_name,2" db:"table_name" json:"table_name"`
-	SessionID int64  `thrift:"session_id,3" db:"session_id" json:"session_id"`
+	SessionID int64 `thrift:"session_id,3" db:"session_id" json:"session_id"`
 }
 
 func NewGetTableRequest() *GetTableRequest {
 	return &GetTableRequest{}
 }
 
+
+
 func (p *GetTableRequest) GetDbName() string {
 	return p.DbName
 }
 
+
+
 func (p *GetTableRequest) GetTableName() string {
 	return p.TableName
 }
+
+
 
 func (p *GetTableRequest) GetSessionID() int64 {
 	return p.SessionID
@@ -15150,6 +14510,7 @@ func (p *GetTableRequest) Read(ctx context.Context, iprot thrift.TProtocol) erro
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -15237,15 +14598,9 @@ func (p *GetTableRequest) Write(ctx context.Context, oprot thrift.TProtocol) err
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -15301,15 +14656,9 @@ func (p *GetTableRequest) Equals(other *GetTableRequest) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.DbName != other.DbName {
-		return false
-	}
-	if p.TableName != other.TableName {
-		return false
-	}
-	if p.SessionID != other.SessionID {
-		return false
-	}
+	if p.DbName != other.DbName { return false }
+	if p.TableName != other.TableName { return false }
+	if p.SessionID != other.SessionID { return false }
 	return true
 }
 
@@ -15325,7 +14674,7 @@ func (p *GetTableRequest) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.GetTableRequest",
+		Type: "*infinity.GetTableRequest",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -15338,30 +14687,38 @@ func (p *GetTableRequest) Validate() error {
 }
 
 // Attributes:
-//   - ColumnName
-//   - IndexType
-//   - IndexParamList
-//   - FunctionExpr
+//  - ColumnName
+//  - IndexType
+//  - IndexParamList
+//  - FunctionExpr
+// 
 type IndexInfo struct {
-	ColumnName     string           `thrift:"column_name,1" db:"column_name" json:"column_name"`
-	IndexType      IndexType        `thrift:"index_type,2" db:"index_type" json:"index_type"`
+	ColumnName string `thrift:"column_name,1" db:"column_name" json:"column_name"`
+	IndexType IndexType `thrift:"index_type,2" db:"index_type" json:"index_type"`
 	IndexParamList []*InitParameter `thrift:"index_param_list,3" db:"index_param_list" json:"index_param_list"`
-	FunctionExpr   *FunctionExpr    `thrift:"function_expr,4" db:"function_expr" json:"function_expr"`
+	FunctionExpr *FunctionExpr `thrift:"function_expr,4" db:"function_expr" json:"function_expr"`
 }
 
 func NewIndexInfo() *IndexInfo {
 	return &IndexInfo{
-		IndexParamList: []*InitParameter{},
+		IndexParamList: []*InitParameter{
+		},
 	}
 }
+
+
 
 func (p *IndexInfo) GetColumnName() string {
 	return p.ColumnName
 }
 
+
+
 func (p *IndexInfo) GetIndexType() IndexType {
 	return p.IndexType
 }
+
+
 
 func (p *IndexInfo) GetIndexParamList() []*InitParameter {
 	return p.IndexParamList
@@ -15384,6 +14741,7 @@ func (p *IndexInfo) Read(ctx context.Context, iprot thrift.TProtocol) error {
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -15501,18 +14859,10 @@ func (p *IndexInfo) Write(ctx context.Context, oprot thrift.TProtocol) error {
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField4(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField4(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -15589,24 +14939,14 @@ func (p *IndexInfo) Equals(other *IndexInfo) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.ColumnName != other.ColumnName {
-		return false
-	}
-	if p.IndexType != other.IndexType {
-		return false
-	}
-	if len(p.IndexParamList) != len(other.IndexParamList) {
-		return false
-	}
+	if p.ColumnName != other.ColumnName { return false }
+	if p.IndexType != other.IndexType { return false }
+	if len(p.IndexParamList) != len(other.IndexParamList) { return false }
 	for i, _tgt := range p.IndexParamList {
 		_src87 := other.IndexParamList[i]
-		if !_tgt.Equals(_src87) {
-			return false
-		}
+		if !_tgt.Equals(_src87) { return false }
 	}
-	if !p.FunctionExpr.Equals(other.FunctionExpr) {
-		return false
-	}
+	if !p.FunctionExpr.Equals(other.FunctionExpr) { return false }
 	return true
 }
 
@@ -15622,7 +14962,7 @@ func (p *IndexInfo) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.IndexInfo",
+		Type: "*infinity.IndexInfo",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -15635,20 +14975,21 @@ func (p *IndexInfo) Validate() error {
 }
 
 // Attributes:
-//   - DbName
-//   - TableName
-//   - IndexName
-//   - IndexComment
-//   - IndexInfo
-//   - SessionID
-//   - CreateOption
+//  - DbName
+//  - TableName
+//  - IndexName
+//  - IndexComment
+//  - IndexInfo
+//  - SessionID
+//  - CreateOption
+// 
 type CreateIndexRequest struct {
-	DbName       string        `thrift:"db_name,1" db:"db_name" json:"db_name"`
-	TableName    string        `thrift:"table_name,2" db:"table_name" json:"table_name"`
-	IndexName    string        `thrift:"index_name,3" db:"index_name" json:"index_name"`
-	IndexComment string        `thrift:"index_comment,4" db:"index_comment" json:"index_comment"`
-	IndexInfo    *IndexInfo    `thrift:"index_info,5" db:"index_info" json:"index_info"`
-	SessionID    int64         `thrift:"session_id,6" db:"session_id" json:"session_id"`
+	DbName string `thrift:"db_name,1" db:"db_name" json:"db_name"`
+	TableName string `thrift:"table_name,2" db:"table_name" json:"table_name"`
+	IndexName string `thrift:"index_name,3" db:"index_name" json:"index_name"`
+	IndexComment string `thrift:"index_comment,4" db:"index_comment" json:"index_comment"`
+	IndexInfo *IndexInfo `thrift:"index_info,5" db:"index_info" json:"index_info"`
+	SessionID int64 `thrift:"session_id,6" db:"session_id" json:"session_id"`
 	CreateOption *CreateOption `thrift:"create_option,7" db:"create_option" json:"create_option"`
 }
 
@@ -15656,17 +14997,25 @@ func NewCreateIndexRequest() *CreateIndexRequest {
 	return &CreateIndexRequest{}
 }
 
+
+
 func (p *CreateIndexRequest) GetDbName() string {
 	return p.DbName
 }
+
+
 
 func (p *CreateIndexRequest) GetTableName() string {
 	return p.TableName
 }
 
+
+
 func (p *CreateIndexRequest) GetIndexName() string {
 	return p.IndexName
 }
+
+
 
 func (p *CreateIndexRequest) GetIndexComment() string {
 	return p.IndexComment
@@ -15680,6 +15029,8 @@ func (p *CreateIndexRequest) GetIndexInfo() *IndexInfo {
 	}
 	return p.IndexInfo
 }
+
+
 
 func (p *CreateIndexRequest) GetSessionID() int64 {
 	return p.SessionID
@@ -15706,6 +15057,7 @@ func (p *CreateIndexRequest) Read(ctx context.Context, iprot thrift.TProtocol) e
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -15839,7 +15191,8 @@ func (p *CreateIndexRequest) ReadField4(ctx context.Context, iprot thrift.TProto
 
 func (p *CreateIndexRequest) ReadField5(ctx context.Context, iprot thrift.TProtocol) error {
 	p.IndexInfo = &IndexInfo{
-		IndexParamList: []*InitParameter{},
+		IndexParamList: []*InitParameter{
+		},
 	}
 	if err := p.IndexInfo.Read(ctx, iprot); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T error reading struct: ", p.IndexInfo), err)
@@ -15858,7 +15211,8 @@ func (p *CreateIndexRequest) ReadField6(ctx context.Context, iprot thrift.TProto
 
 func (p *CreateIndexRequest) ReadField7(ctx context.Context, iprot thrift.TProtocol) error {
 	p.CreateOption = &CreateOption{
-		Properties: []*Property{},
+		Properties: []*Property{
+		},
 	}
 	if err := p.CreateOption.Read(ctx, iprot); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T error reading struct: ", p.CreateOption), err)
@@ -15871,27 +15225,13 @@ func (p *CreateIndexRequest) Write(ctx context.Context, oprot thrift.TProtocol) 
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField4(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField5(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField6(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField7(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField4(ctx, oprot); err != nil { return err }
+		if err := p.writeField5(ctx, oprot); err != nil { return err }
+		if err := p.writeField6(ctx, oprot); err != nil { return err }
+		if err := p.writeField7(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -15999,27 +15339,13 @@ func (p *CreateIndexRequest) Equals(other *CreateIndexRequest) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.DbName != other.DbName {
-		return false
-	}
-	if p.TableName != other.TableName {
-		return false
-	}
-	if p.IndexName != other.IndexName {
-		return false
-	}
-	if p.IndexComment != other.IndexComment {
-		return false
-	}
-	if !p.IndexInfo.Equals(other.IndexInfo) {
-		return false
-	}
-	if p.SessionID != other.SessionID {
-		return false
-	}
-	if !p.CreateOption.Equals(other.CreateOption) {
-		return false
-	}
+	if p.DbName != other.DbName { return false }
+	if p.TableName != other.TableName { return false }
+	if p.IndexName != other.IndexName { return false }
+	if p.IndexComment != other.IndexComment { return false }
+	if !p.IndexInfo.Equals(other.IndexInfo) { return false }
+	if p.SessionID != other.SessionID { return false }
+	if !p.CreateOption.Equals(other.CreateOption) { return false }
 	return true
 }
 
@@ -16035,7 +15361,7 @@ func (p *CreateIndexRequest) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.CreateIndexRequest",
+		Type: "*infinity.CreateIndexRequest",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -16048,16 +15374,17 @@ func (p *CreateIndexRequest) Validate() error {
 }
 
 // Attributes:
-//   - DbName
-//   - TableName
-//   - IndexName
-//   - SessionID
-//   - DropOption
+//  - DbName
+//  - TableName
+//  - IndexName
+//  - SessionID
+//  - DropOption
+// 
 type DropIndexRequest struct {
-	DbName     string      `thrift:"db_name,1" db:"db_name" json:"db_name"`
-	TableName  string      `thrift:"table_name,2" db:"table_name" json:"table_name"`
-	IndexName  string      `thrift:"index_name,3" db:"index_name" json:"index_name"`
-	SessionID  int64       `thrift:"session_id,4" db:"session_id" json:"session_id"`
+	DbName string `thrift:"db_name,1" db:"db_name" json:"db_name"`
+	TableName string `thrift:"table_name,2" db:"table_name" json:"table_name"`
+	IndexName string `thrift:"index_name,3" db:"index_name" json:"index_name"`
+	SessionID int64 `thrift:"session_id,4" db:"session_id" json:"session_id"`
 	DropOption *DropOption `thrift:"drop_option,5" db:"drop_option" json:"drop_option"`
 }
 
@@ -16065,17 +15392,25 @@ func NewDropIndexRequest() *DropIndexRequest {
 	return &DropIndexRequest{}
 }
 
+
+
 func (p *DropIndexRequest) GetDbName() string {
 	return p.DbName
 }
+
+
 
 func (p *DropIndexRequest) GetTableName() string {
 	return p.TableName
 }
 
+
+
 func (p *DropIndexRequest) GetIndexName() string {
 	return p.IndexName
 }
+
+
 
 func (p *DropIndexRequest) GetSessionID() int64 {
 	return p.SessionID
@@ -16098,6 +15433,7 @@ func (p *DropIndexRequest) Read(ctx context.Context, iprot thrift.TProtocol) err
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -16222,21 +15558,11 @@ func (p *DropIndexRequest) Write(ctx context.Context, oprot thrift.TProtocol) er
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField4(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField5(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField4(ctx, oprot); err != nil { return err }
+		if err := p.writeField5(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -16318,21 +15644,11 @@ func (p *DropIndexRequest) Equals(other *DropIndexRequest) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.DbName != other.DbName {
-		return false
-	}
-	if p.TableName != other.TableName {
-		return false
-	}
-	if p.IndexName != other.IndexName {
-		return false
-	}
-	if p.SessionID != other.SessionID {
-		return false
-	}
-	if !p.DropOption.Equals(other.DropOption) {
-		return false
-	}
+	if p.DbName != other.DbName { return false }
+	if p.TableName != other.TableName { return false }
+	if p.IndexName != other.IndexName { return false }
+	if p.SessionID != other.SessionID { return false }
+	if !p.DropOption.Equals(other.DropOption) { return false }
 	return true
 }
 
@@ -16348,7 +15664,7 @@ func (p *DropIndexRequest) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.DropIndexRequest",
+		Type: "*infinity.DropIndexRequest",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -16361,32 +15677,41 @@ func (p *DropIndexRequest) Validate() error {
 }
 
 // Attributes:
-//   - DbName
-//   - TableName
-//   - IndexName
-//   - SessionID
+//  - DbName
+//  - TableName
+//  - IndexName
+//  - SessionID
+// 
 type ShowIndexRequest struct {
-	DbName    string `thrift:"db_name,1" db:"db_name" json:"db_name"`
+	DbName string `thrift:"db_name,1" db:"db_name" json:"db_name"`
 	TableName string `thrift:"table_name,2" db:"table_name" json:"table_name"`
 	IndexName string `thrift:"index_name,3" db:"index_name" json:"index_name"`
-	SessionID int64  `thrift:"session_id,4" db:"session_id" json:"session_id"`
+	SessionID int64 `thrift:"session_id,4" db:"session_id" json:"session_id"`
 }
 
 func NewShowIndexRequest() *ShowIndexRequest {
 	return &ShowIndexRequest{}
 }
 
+
+
 func (p *ShowIndexRequest) GetDbName() string {
 	return p.DbName
 }
+
+
 
 func (p *ShowIndexRequest) GetTableName() string {
 	return p.TableName
 }
 
+
+
 func (p *ShowIndexRequest) GetIndexName() string {
 	return p.IndexName
 }
+
+
 
 func (p *ShowIndexRequest) GetSessionID() int64 {
 	return p.SessionID
@@ -16396,6 +15721,7 @@ func (p *ShowIndexRequest) Read(ctx context.Context, iprot thrift.TProtocol) err
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -16502,18 +15828,10 @@ func (p *ShowIndexRequest) Write(ctx context.Context, oprot thrift.TProtocol) er
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField4(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField4(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -16582,18 +15900,10 @@ func (p *ShowIndexRequest) Equals(other *ShowIndexRequest) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.DbName != other.DbName {
-		return false
-	}
-	if p.TableName != other.TableName {
-		return false
-	}
-	if p.IndexName != other.IndexName {
-		return false
-	}
-	if p.SessionID != other.SessionID {
-		return false
-	}
+	if p.DbName != other.DbName { return false }
+	if p.TableName != other.TableName { return false }
+	if p.IndexName != other.IndexName { return false }
+	if p.SessionID != other.SessionID { return false }
 	return true
 }
 
@@ -16609,7 +15919,7 @@ func (p *ShowIndexRequest) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.ShowIndexRequest",
+		Type: "*infinity.ShowIndexRequest",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -16622,32 +15932,33 @@ func (p *ShowIndexRequest) Validate() error {
 }
 
 // Attributes:
-//   - ErrorCode
-//   - ErrorMsg
-//   - DbName
-//   - TableName
-//   - IndexName
-//   - IndexComment
-//   - IndexType
-//   - IndexColumnNames
-//   - IndexColumnIds
-//   - IndexFunctionInfo
-//   - OtherParameters
-//   - StoreDir
-//   - SegmentIndexCount
+//  - ErrorCode
+//  - ErrorMsg
+//  - DbName
+//  - TableName
+//  - IndexName
+//  - IndexComment
+//  - IndexType
+//  - IndexColumnNames
+//  - IndexColumnIds
+//  - IndexFunctionInfo
+//  - OtherParameters
+//  - StoreDir
+//  - SegmentIndexCount
+// 
 type ShowIndexResponse struct {
-	ErrorCode         int64  `thrift:"error_code,1" db:"error_code" json:"error_code"`
-	ErrorMsg          string `thrift:"error_msg,2" db:"error_msg" json:"error_msg"`
-	DbName            string `thrift:"db_name,3" db:"db_name" json:"db_name"`
-	TableName         string `thrift:"table_name,4" db:"table_name" json:"table_name"`
-	IndexName         string `thrift:"index_name,5" db:"index_name" json:"index_name"`
-	IndexComment      string `thrift:"index_comment,6" db:"index_comment" json:"index_comment"`
-	IndexType         string `thrift:"index_type,7" db:"index_type" json:"index_type"`
-	IndexColumnNames  string `thrift:"index_column_names,8" db:"index_column_names" json:"index_column_names"`
-	IndexColumnIds    string `thrift:"index_column_ids,9" db:"index_column_ids" json:"index_column_ids"`
+	ErrorCode int64 `thrift:"error_code,1" db:"error_code" json:"error_code"`
+	ErrorMsg string `thrift:"error_msg,2" db:"error_msg" json:"error_msg"`
+	DbName string `thrift:"db_name,3" db:"db_name" json:"db_name"`
+	TableName string `thrift:"table_name,4" db:"table_name" json:"table_name"`
+	IndexName string `thrift:"index_name,5" db:"index_name" json:"index_name"`
+	IndexComment string `thrift:"index_comment,6" db:"index_comment" json:"index_comment"`
+	IndexType string `thrift:"index_type,7" db:"index_type" json:"index_type"`
+	IndexColumnNames string `thrift:"index_column_names,8" db:"index_column_names" json:"index_column_names"`
+	IndexColumnIds string `thrift:"index_column_ids,9" db:"index_column_ids" json:"index_column_ids"`
 	IndexFunctionInfo string `thrift:"index_function_info,10" db:"index_function_info" json:"index_function_info"`
-	OtherParameters   string `thrift:"other_parameters,11" db:"other_parameters" json:"other_parameters"`
-	StoreDir          string `thrift:"store_dir,12" db:"store_dir" json:"store_dir"`
+	OtherParameters string `thrift:"other_parameters,11" db:"other_parameters" json:"other_parameters"`
+	StoreDir string `thrift:"store_dir,12" db:"store_dir" json:"store_dir"`
 	SegmentIndexCount string `thrift:"segment_index_count,13" db:"segment_index_count" json:"segment_index_count"`
 }
 
@@ -16655,53 +15966,79 @@ func NewShowIndexResponse() *ShowIndexResponse {
 	return &ShowIndexResponse{}
 }
 
+
+
 func (p *ShowIndexResponse) GetErrorCode() int64 {
 	return p.ErrorCode
 }
+
+
 
 func (p *ShowIndexResponse) GetErrorMsg() string {
 	return p.ErrorMsg
 }
 
+
+
 func (p *ShowIndexResponse) GetDbName() string {
 	return p.DbName
 }
+
+
 
 func (p *ShowIndexResponse) GetTableName() string {
 	return p.TableName
 }
 
+
+
 func (p *ShowIndexResponse) GetIndexName() string {
 	return p.IndexName
 }
+
+
 
 func (p *ShowIndexResponse) GetIndexComment() string {
 	return p.IndexComment
 }
 
+
+
 func (p *ShowIndexResponse) GetIndexType() string {
 	return p.IndexType
 }
+
+
 
 func (p *ShowIndexResponse) GetIndexColumnNames() string {
 	return p.IndexColumnNames
 }
 
+
+
 func (p *ShowIndexResponse) GetIndexColumnIds() string {
 	return p.IndexColumnIds
 }
+
+
 
 func (p *ShowIndexResponse) GetIndexFunctionInfo() string {
 	return p.IndexFunctionInfo
 }
 
+
+
 func (p *ShowIndexResponse) GetOtherParameters() string {
 	return p.OtherParameters
 }
 
+
+
 func (p *ShowIndexResponse) GetStoreDir() string {
 	return p.StoreDir
 }
+
+
 
 func (p *ShowIndexResponse) GetSegmentIndexCount() string {
 	return p.SegmentIndexCount
@@ -16711,6 +16048,7 @@ func (p *ShowIndexResponse) Read(ctx context.Context, iprot thrift.TProtocol) er
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -16988,45 +16326,19 @@ func (p *ShowIndexResponse) Write(ctx context.Context, oprot thrift.TProtocol) e
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField4(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField5(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField6(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField7(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField8(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField9(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField10(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField11(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField12(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField13(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField4(ctx, oprot); err != nil { return err }
+		if err := p.writeField5(ctx, oprot); err != nil { return err }
+		if err := p.writeField6(ctx, oprot); err != nil { return err }
+		if err := p.writeField7(ctx, oprot); err != nil { return err }
+		if err := p.writeField8(ctx, oprot); err != nil { return err }
+		if err := p.writeField9(ctx, oprot); err != nil { return err }
+		if err := p.writeField10(ctx, oprot); err != nil { return err }
+		if err := p.writeField11(ctx, oprot); err != nil { return err }
+		if err := p.writeField12(ctx, oprot); err != nil { return err }
+		if err := p.writeField13(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -17212,45 +16524,19 @@ func (p *ShowIndexResponse) Equals(other *ShowIndexResponse) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.ErrorCode != other.ErrorCode {
-		return false
-	}
-	if p.ErrorMsg != other.ErrorMsg {
-		return false
-	}
-	if p.DbName != other.DbName {
-		return false
-	}
-	if p.TableName != other.TableName {
-		return false
-	}
-	if p.IndexName != other.IndexName {
-		return false
-	}
-	if p.IndexComment != other.IndexComment {
-		return false
-	}
-	if p.IndexType != other.IndexType {
-		return false
-	}
-	if p.IndexColumnNames != other.IndexColumnNames {
-		return false
-	}
-	if p.IndexColumnIds != other.IndexColumnIds {
-		return false
-	}
-	if p.IndexFunctionInfo != other.IndexFunctionInfo {
-		return false
-	}
-	if p.OtherParameters != other.OtherParameters {
-		return false
-	}
-	if p.StoreDir != other.StoreDir {
-		return false
-	}
-	if p.SegmentIndexCount != other.SegmentIndexCount {
-		return false
-	}
+	if p.ErrorCode != other.ErrorCode { return false }
+	if p.ErrorMsg != other.ErrorMsg { return false }
+	if p.DbName != other.DbName { return false }
+	if p.TableName != other.TableName { return false }
+	if p.IndexName != other.IndexName { return false }
+	if p.IndexComment != other.IndexComment { return false }
+	if p.IndexType != other.IndexType { return false }
+	if p.IndexColumnNames != other.IndexColumnNames { return false }
+	if p.IndexColumnIds != other.IndexColumnIds { return false }
+	if p.IndexFunctionInfo != other.IndexFunctionInfo { return false }
+	if p.OtherParameters != other.OtherParameters { return false }
+	if p.StoreDir != other.StoreDir { return false }
+	if p.SegmentIndexCount != other.SegmentIndexCount { return false }
 	return true
 }
 
@@ -17266,7 +16552,7 @@ func (p *ShowIndexResponse) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.ShowIndexResponse",
+		Type: "*infinity.ShowIndexResponse",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -17279,26 +16565,33 @@ func (p *ShowIndexResponse) Validate() error {
 }
 
 // Attributes:
-//   - DbName
-//   - TableName
-//   - SessionID
+//  - DbName
+//  - TableName
+//  - SessionID
+// 
 type OptimizeRequest struct {
-	DbName    string `thrift:"db_name,1" db:"db_name" json:"db_name"`
+	DbName string `thrift:"db_name,1" db:"db_name" json:"db_name"`
 	TableName string `thrift:"table_name,2" db:"table_name" json:"table_name"`
-	SessionID int64  `thrift:"session_id,3" db:"session_id" json:"session_id"`
+	SessionID int64 `thrift:"session_id,3" db:"session_id" json:"session_id"`
 }
 
 func NewOptimizeRequest() *OptimizeRequest {
 	return &OptimizeRequest{}
 }
 
+
+
 func (p *OptimizeRequest) GetDbName() string {
 	return p.DbName
 }
 
+
+
 func (p *OptimizeRequest) GetTableName() string {
 	return p.TableName
 }
+
+
 
 func (p *OptimizeRequest) GetSessionID() int64 {
 	return p.SessionID
@@ -17308,6 +16601,7 @@ func (p *OptimizeRequest) Read(ctx context.Context, iprot thrift.TProtocol) erro
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -17395,15 +16689,9 @@ func (p *OptimizeRequest) Write(ctx context.Context, oprot thrift.TProtocol) err
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -17459,15 +16747,9 @@ func (p *OptimizeRequest) Equals(other *OptimizeRequest) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.DbName != other.DbName {
-		return false
-	}
-	if p.TableName != other.TableName {
-		return false
-	}
-	if p.SessionID != other.SessionID {
-		return false
-	}
+	if p.DbName != other.DbName { return false }
+	if p.TableName != other.TableName { return false }
+	if p.SessionID != other.SessionID { return false }
 	return true
 }
 
@@ -17483,7 +16765,7 @@ func (p *OptimizeRequest) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.OptimizeRequest",
+		Type: "*infinity.OptimizeRequest",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -17496,24 +16778,29 @@ func (p *OptimizeRequest) Validate() error {
 }
 
 // Attributes:
-//   - DbName
-//   - TableName
-//   - AlterIndexOptions
-//   - SessionID
+//  - DbName
+//  - TableName
+//  - AlterIndexOptions
+//  - SessionID
+// 
 type AlterIndexRequest struct {
-	DbName            string             `thrift:"db_name,1" db:"db_name" json:"db_name"`
-	TableName         string             `thrift:"table_name,2" db:"table_name" json:"table_name"`
+	DbName string `thrift:"db_name,1" db:"db_name" json:"db_name"`
+	TableName string `thrift:"table_name,2" db:"table_name" json:"table_name"`
 	AlterIndexOptions *AlterIndexOptions `thrift:"alter_index_options,3" db:"alter_index_options" json:"alter_index_options"`
-	SessionID         int64              `thrift:"session_id,4" db:"session_id" json:"session_id"`
+	SessionID int64 `thrift:"session_id,4" db:"session_id" json:"session_id"`
 }
 
 func NewAlterIndexRequest() *AlterIndexRequest {
 	return &AlterIndexRequest{}
 }
 
+
+
 func (p *AlterIndexRequest) GetDbName() string {
 	return p.DbName
 }
+
+
 
 func (p *AlterIndexRequest) GetTableName() string {
 	return p.TableName
@@ -17528,6 +16815,8 @@ func (p *AlterIndexRequest) GetAlterIndexOptions() *AlterIndexOptions {
 	return p.AlterIndexOptions
 }
 
+
+
 func (p *AlterIndexRequest) GetSessionID() int64 {
 	return p.SessionID
 }
@@ -17540,6 +16829,7 @@ func (p *AlterIndexRequest) Read(ctx context.Context, iprot thrift.TProtocol) er
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -17625,7 +16915,8 @@ func (p *AlterIndexRequest) ReadField2(ctx context.Context, iprot thrift.TProtoc
 
 func (p *AlterIndexRequest) ReadField3(ctx context.Context, iprot thrift.TProtocol) error {
 	p.AlterIndexOptions = &AlterIndexOptions{
-		OptParams: []*InitParameter{},
+		OptParams: []*InitParameter{
+		},
 	}
 	if err := p.AlterIndexOptions.Read(ctx, iprot); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T error reading struct: ", p.AlterIndexOptions), err)
@@ -17647,18 +16938,10 @@ func (p *AlterIndexRequest) Write(ctx context.Context, oprot thrift.TProtocol) e
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField4(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField4(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -17727,18 +17010,10 @@ func (p *AlterIndexRequest) Equals(other *AlterIndexRequest) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.DbName != other.DbName {
-		return false
-	}
-	if p.TableName != other.TableName {
-		return false
-	}
-	if !p.AlterIndexOptions.Equals(other.AlterIndexOptions) {
-		return false
-	}
-	if p.SessionID != other.SessionID {
-		return false
-	}
+	if p.DbName != other.DbName { return false }
+	if p.TableName != other.TableName { return false }
+	if !p.AlterIndexOptions.Equals(other.AlterIndexOptions) { return false }
+	if p.SessionID != other.SessionID { return false }
 	return true
 }
 
@@ -17754,7 +17029,7 @@ func (p *AlterIndexRequest) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.AlterIndexRequest",
+		Type: "*infinity.AlterIndexRequest",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -17767,20 +17042,25 @@ func (p *AlterIndexRequest) Validate() error {
 }
 
 // Attributes:
-//   - DbName
-//   - SessionID
+//  - DbName
+//  - SessionID
+// 
 type GetDatabaseRequest struct {
-	DbName    string `thrift:"db_name,1" db:"db_name" json:"db_name"`
-	SessionID int64  `thrift:"session_id,2" db:"session_id" json:"session_id"`
+	DbName string `thrift:"db_name,1" db:"db_name" json:"db_name"`
+	SessionID int64 `thrift:"session_id,2" db:"session_id" json:"session_id"`
 }
 
 func NewGetDatabaseRequest() *GetDatabaseRequest {
 	return &GetDatabaseRequest{}
 }
 
+
+
 func (p *GetDatabaseRequest) GetDbName() string {
 	return p.DbName
 }
+
+
 
 func (p *GetDatabaseRequest) GetSessionID() int64 {
 	return p.SessionID
@@ -17790,6 +17070,7 @@ func (p *GetDatabaseRequest) Read(ctx context.Context, iprot thrift.TProtocol) e
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -17858,12 +17139,8 @@ func (p *GetDatabaseRequest) Write(ctx context.Context, oprot thrift.TProtocol) 
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -17906,12 +17183,8 @@ func (p *GetDatabaseRequest) Equals(other *GetDatabaseRequest) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.DbName != other.DbName {
-		return false
-	}
-	if p.SessionID != other.SessionID {
-		return false
-	}
+	if p.DbName != other.DbName { return false }
+	if p.SessionID != other.SessionID { return false }
 	return true
 }
 
@@ -17927,7 +17200,7 @@ func (p *GetDatabaseRequest) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.GetDatabaseRequest",
+		Type: "*infinity.GetDatabaseRequest",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -17940,24 +17213,29 @@ func (p *GetDatabaseRequest) Validate() error {
 }
 
 // Attributes:
-//   - DbName
-//   - SessionID
-//   - CreateOption
-//   - DbComment
+//  - DbName
+//  - SessionID
+//  - CreateOption
+//  - DbComment
+// 
 type CreateDatabaseRequest struct {
-	DbName       string        `thrift:"db_name,1" db:"db_name" json:"db_name"`
-	SessionID    int64         `thrift:"session_id,2" db:"session_id" json:"session_id"`
+	DbName string `thrift:"db_name,1" db:"db_name" json:"db_name"`
+	SessionID int64 `thrift:"session_id,2" db:"session_id" json:"session_id"`
 	CreateOption *CreateOption `thrift:"create_option,3" db:"create_option" json:"create_option"`
-	DbComment    string        `thrift:"db_comment,4" db:"db_comment" json:"db_comment"`
+	DbComment string `thrift:"db_comment,4" db:"db_comment" json:"db_comment"`
 }
 
 func NewCreateDatabaseRequest() *CreateDatabaseRequest {
 	return &CreateDatabaseRequest{}
 }
 
+
+
 func (p *CreateDatabaseRequest) GetDbName() string {
 	return p.DbName
 }
+
+
 
 func (p *CreateDatabaseRequest) GetSessionID() int64 {
 	return p.SessionID
@@ -17972,6 +17250,8 @@ func (p *CreateDatabaseRequest) GetCreateOption() *CreateOption {
 	return p.CreateOption
 }
 
+
+
 func (p *CreateDatabaseRequest) GetDbComment() string {
 	return p.DbComment
 }
@@ -17984,6 +17264,7 @@ func (p *CreateDatabaseRequest) Read(ctx context.Context, iprot thrift.TProtocol
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -18069,7 +17350,8 @@ func (p *CreateDatabaseRequest) ReadField2(ctx context.Context, iprot thrift.TPr
 
 func (p *CreateDatabaseRequest) ReadField3(ctx context.Context, iprot thrift.TProtocol) error {
 	p.CreateOption = &CreateOption{
-		Properties: []*Property{},
+		Properties: []*Property{
+		},
 	}
 	if err := p.CreateOption.Read(ctx, iprot); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T error reading struct: ", p.CreateOption), err)
@@ -18091,18 +17373,10 @@ func (p *CreateDatabaseRequest) Write(ctx context.Context, oprot thrift.TProtoco
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField4(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField4(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -18171,18 +17445,10 @@ func (p *CreateDatabaseRequest) Equals(other *CreateDatabaseRequest) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.DbName != other.DbName {
-		return false
-	}
-	if p.SessionID != other.SessionID {
-		return false
-	}
-	if !p.CreateOption.Equals(other.CreateOption) {
-		return false
-	}
-	if p.DbComment != other.DbComment {
-		return false
-	}
+	if p.DbName != other.DbName { return false }
+	if p.SessionID != other.SessionID { return false }
+	if !p.CreateOption.Equals(other.CreateOption) { return false }
+	if p.DbComment != other.DbComment { return false }
 	return true
 }
 
@@ -18198,7 +17464,7 @@ func (p *CreateDatabaseRequest) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.CreateDatabaseRequest",
+		Type: "*infinity.CreateDatabaseRequest",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -18211,12 +17477,13 @@ func (p *CreateDatabaseRequest) Validate() error {
 }
 
 // Attributes:
-//   - DbName
-//   - SessionID
-//   - DropOption
+//  - DbName
+//  - SessionID
+//  - DropOption
+// 
 type DropDatabaseRequest struct {
-	DbName     string      `thrift:"db_name,1" db:"db_name" json:"db_name"`
-	SessionID  int64       `thrift:"session_id,2" db:"session_id" json:"session_id"`
+	DbName string `thrift:"db_name,1" db:"db_name" json:"db_name"`
+	SessionID int64 `thrift:"session_id,2" db:"session_id" json:"session_id"`
 	DropOption *DropOption `thrift:"drop_option,3" db:"drop_option" json:"drop_option"`
 }
 
@@ -18224,9 +17491,13 @@ func NewDropDatabaseRequest() *DropDatabaseRequest {
 	return &DropDatabaseRequest{}
 }
 
+
+
 func (p *DropDatabaseRequest) GetDbName() string {
 	return p.DbName
 }
+
+
 
 func (p *DropDatabaseRequest) GetSessionID() int64 {
 	return p.SessionID
@@ -18249,6 +17520,7 @@ func (p *DropDatabaseRequest) Read(ctx context.Context, iprot thrift.TProtocol) 
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -18335,15 +17607,9 @@ func (p *DropDatabaseRequest) Write(ctx context.Context, oprot thrift.TProtocol)
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -18399,15 +17665,9 @@ func (p *DropDatabaseRequest) Equals(other *DropDatabaseRequest) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.DbName != other.DbName {
-		return false
-	}
-	if p.SessionID != other.SessionID {
-		return false
-	}
-	if !p.DropOption.Equals(other.DropOption) {
-		return false
-	}
+	if p.DbName != other.DbName { return false }
+	if p.SessionID != other.SessionID { return false }
+	if !p.DropOption.Equals(other.DropOption) { return false }
 	return true
 }
 
@@ -18423,7 +17683,7 @@ func (p *DropDatabaseRequest) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.DropDatabaseRequest",
+		Type: "*infinity.DropDatabaseRequest",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -18436,37 +17696,47 @@ func (p *DropDatabaseRequest) Validate() error {
 }
 
 // Attributes:
-//   - DbName
-//   - TableName
-//   - ColumnDefs
-//   - SessionID
-//   - CreateOption
+//  - DbName
+//  - TableName
+//  - ColumnDefs
+//  - SessionID
+//  - CreateOption
+// 
 type CreateTableRequest struct {
-	DbName     string       `thrift:"db_name,1" db:"db_name" json:"db_name"`
-	TableName  string       `thrift:"table_name,2" db:"table_name" json:"table_name"`
+	DbName string `thrift:"db_name,1" db:"db_name" json:"db_name"`
+	TableName string `thrift:"table_name,2" db:"table_name" json:"table_name"`
 	ColumnDefs []*ColumnDef `thrift:"column_defs,3" db:"column_defs" json:"column_defs"`
 	// unused fields # 4 to 5
-	SessionID    int64         `thrift:"session_id,6" db:"session_id" json:"session_id"`
+	SessionID int64 `thrift:"session_id,6" db:"session_id" json:"session_id"`
 	CreateOption *CreateOption `thrift:"create_option,7" db:"create_option" json:"create_option"`
 }
 
 func NewCreateTableRequest() *CreateTableRequest {
 	return &CreateTableRequest{
-		ColumnDefs: []*ColumnDef{},
+		ColumnDefs: []*ColumnDef{
+		},
 	}
 }
+
+
 
 func (p *CreateTableRequest) GetDbName() string {
 	return p.DbName
 }
 
+
+
 func (p *CreateTableRequest) GetTableName() string {
 	return p.TableName
 }
 
+
+
 func (p *CreateTableRequest) GetColumnDefs() []*ColumnDef {
 	return p.ColumnDefs
 }
+
+
 
 func (p *CreateTableRequest) GetSessionID() int64 {
 	return p.SessionID
@@ -18489,6 +17759,7 @@ func (p *CreateTableRequest) Read(ctx context.Context, iprot thrift.TProtocol) e
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -18591,7 +17862,8 @@ func (p *CreateTableRequest) ReadField3(ctx context.Context, iprot thrift.TProto
 	p.ColumnDefs = tSlice
 	for i := 0; i < size; i++ {
 		_elem88 := &ColumnDef{
-			Constraints: []Constraint{},
+			Constraints: []Constraint{
+			},
 		}
 		if err := _elem88.Read(ctx, iprot); err != nil {
 			return thrift.PrependError(fmt.Sprintf("%T error reading struct: ", _elem88), err)
@@ -18615,7 +17887,8 @@ func (p *CreateTableRequest) ReadField6(ctx context.Context, iprot thrift.TProto
 
 func (p *CreateTableRequest) ReadField7(ctx context.Context, iprot thrift.TProtocol) error {
 	p.CreateOption = &CreateOption{
-		Properties: []*Property{},
+		Properties: []*Property{
+		},
 	}
 	if err := p.CreateOption.Read(ctx, iprot); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T error reading struct: ", p.CreateOption), err)
@@ -18628,21 +17901,11 @@ func (p *CreateTableRequest) Write(ctx context.Context, oprot thrift.TProtocol) 
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField6(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField7(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField6(ctx, oprot); err != nil { return err }
+		if err := p.writeField7(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -18732,27 +17995,15 @@ func (p *CreateTableRequest) Equals(other *CreateTableRequest) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.DbName != other.DbName {
-		return false
-	}
-	if p.TableName != other.TableName {
-		return false
-	}
-	if len(p.ColumnDefs) != len(other.ColumnDefs) {
-		return false
-	}
+	if p.DbName != other.DbName { return false }
+	if p.TableName != other.TableName { return false }
+	if len(p.ColumnDefs) != len(other.ColumnDefs) { return false }
 	for i, _tgt := range p.ColumnDefs {
 		_src89 := other.ColumnDefs[i]
-		if !_tgt.Equals(_src89) {
-			return false
-		}
+		if !_tgt.Equals(_src89) { return false }
 	}
-	if p.SessionID != other.SessionID {
-		return false
-	}
-	if !p.CreateOption.Equals(other.CreateOption) {
-		return false
-	}
+	if p.SessionID != other.SessionID { return false }
+	if !p.CreateOption.Equals(other.CreateOption) { return false }
 	return true
 }
 
@@ -18768,7 +18019,7 @@ func (p *CreateTableRequest) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.CreateTableRequest",
+		Type: "*infinity.CreateTableRequest",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -18781,14 +18032,15 @@ func (p *CreateTableRequest) Validate() error {
 }
 
 // Attributes:
-//   - DbName
-//   - TableName
-//   - SessionID
-//   - DropOption
+//  - DbName
+//  - TableName
+//  - SessionID
+//  - DropOption
+// 
 type DropTableRequest struct {
-	DbName     string      `thrift:"db_name,1" db:"db_name" json:"db_name"`
-	TableName  string      `thrift:"table_name,2" db:"table_name" json:"table_name"`
-	SessionID  int64       `thrift:"session_id,3" db:"session_id" json:"session_id"`
+	DbName string `thrift:"db_name,1" db:"db_name" json:"db_name"`
+	TableName string `thrift:"table_name,2" db:"table_name" json:"table_name"`
+	SessionID int64 `thrift:"session_id,3" db:"session_id" json:"session_id"`
 	DropOption *DropOption `thrift:"drop_option,4" db:"drop_option" json:"drop_option"`
 }
 
@@ -18796,13 +18048,19 @@ func NewDropTableRequest() *DropTableRequest {
 	return &DropTableRequest{}
 }
 
+
+
 func (p *DropTableRequest) GetDbName() string {
 	return p.DbName
 }
 
+
+
 func (p *DropTableRequest) GetTableName() string {
 	return p.TableName
 }
+
+
 
 func (p *DropTableRequest) GetSessionID() int64 {
 	return p.SessionID
@@ -18825,6 +18083,7 @@ func (p *DropTableRequest) Read(ctx context.Context, iprot thrift.TProtocol) err
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -18930,18 +18189,10 @@ func (p *DropTableRequest) Write(ctx context.Context, oprot thrift.TProtocol) er
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField4(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField4(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -19010,18 +18261,10 @@ func (p *DropTableRequest) Equals(other *DropTableRequest) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.DbName != other.DbName {
-		return false
-	}
-	if p.TableName != other.TableName {
-		return false
-	}
-	if p.SessionID != other.SessionID {
-		return false
-	}
-	if !p.DropOption.Equals(other.DropOption) {
-		return false
-	}
+	if p.DbName != other.DbName { return false }
+	if p.TableName != other.TableName { return false }
+	if p.SessionID != other.SessionID { return false }
+	if !p.DropOption.Equals(other.DropOption) { return false }
 	return true
 }
 
@@ -19037,7 +18280,7 @@ func (p *DropTableRequest) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.DropTableRequest",
+		Type: "*infinity.DropTableRequest",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -19050,32 +18293,41 @@ func (p *DropTableRequest) Validate() error {
 }
 
 // Attributes:
-//   - DbName
-//   - TableName
-//   - NewTableName_
-//   - SessionID
+//  - DbName
+//  - TableName
+//  - NewTableName_
+//  - SessionID
+// 
 type RenameTableRequest struct {
-	DbName        string `thrift:"db_name,1" db:"db_name" json:"db_name"`
-	TableName     string `thrift:"table_name,2" db:"table_name" json:"table_name"`
+	DbName string `thrift:"db_name,1" db:"db_name" json:"db_name"`
+	TableName string `thrift:"table_name,2" db:"table_name" json:"table_name"`
 	NewTableName_ string `thrift:"new_table_name,3" db:"new_table_name" json:"new_table_name"`
-	SessionID     int64  `thrift:"session_id,4" db:"session_id" json:"session_id"`
+	SessionID int64 `thrift:"session_id,4" db:"session_id" json:"session_id"`
 }
 
 func NewRenameTableRequest() *RenameTableRequest {
 	return &RenameTableRequest{}
 }
 
+
+
 func (p *RenameTableRequest) GetDbName() string {
 	return p.DbName
 }
+
+
 
 func (p *RenameTableRequest) GetTableName() string {
 	return p.TableName
 }
 
+
+
 func (p *RenameTableRequest) GetNewTableName_() string {
 	return p.NewTableName_
 }
+
+
 
 func (p *RenameTableRequest) GetSessionID() int64 {
 	return p.SessionID
@@ -19085,6 +18337,7 @@ func (p *RenameTableRequest) Read(ctx context.Context, iprot thrift.TProtocol) e
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -19191,18 +18444,10 @@ func (p *RenameTableRequest) Write(ctx context.Context, oprot thrift.TProtocol) 
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField4(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField4(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -19271,18 +18516,10 @@ func (p *RenameTableRequest) Equals(other *RenameTableRequest) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.DbName != other.DbName {
-		return false
-	}
-	if p.TableName != other.TableName {
-		return false
-	}
-	if p.NewTableName_ != other.NewTableName_ {
-		return false
-	}
-	if p.SessionID != other.SessionID {
-		return false
-	}
+	if p.DbName != other.DbName { return false }
+	if p.TableName != other.TableName { return false }
+	if p.NewTableName_ != other.NewTableName_ { return false }
+	if p.SessionID != other.SessionID { return false }
 	return true
 }
 
@@ -19298,7 +18535,7 @@ func (p *RenameTableRequest) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.RenameTableRequest",
+		Type: "*infinity.RenameTableRequest",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -19311,34 +18548,44 @@ func (p *RenameTableRequest) Validate() error {
 }
 
 // Attributes:
-//   - DbName
-//   - TableName
-//   - Fields
-//   - SessionID
+//  - DbName
+//  - TableName
+//  - Fields
+//  - SessionID
+// 
 type InsertRequest struct {
-	DbName    string   `thrift:"db_name,1" db:"db_name" json:"db_name"`
-	TableName string   `thrift:"table_name,2" db:"table_name" json:"table_name"`
-	Fields    []*Field `thrift:"fields,3" db:"fields" json:"fields"`
-	SessionID int64    `thrift:"session_id,4" db:"session_id" json:"session_id"`
+	DbName string `thrift:"db_name,1" db:"db_name" json:"db_name"`
+	TableName string `thrift:"table_name,2" db:"table_name" json:"table_name"`
+	Fields []*Field `thrift:"fields,3" db:"fields" json:"fields"`
+	SessionID int64 `thrift:"session_id,4" db:"session_id" json:"session_id"`
 }
 
 func NewInsertRequest() *InsertRequest {
 	return &InsertRequest{
-		Fields: []*Field{},
+		Fields: []*Field{
+		},
 	}
 }
+
+
 
 func (p *InsertRequest) GetDbName() string {
 	return p.DbName
 }
 
+
+
 func (p *InsertRequest) GetTableName() string {
 	return p.TableName
 }
 
+
+
 func (p *InsertRequest) GetFields() []*Field {
 	return p.Fields
 }
+
+
 
 func (p *InsertRequest) GetSessionID() int64 {
 	return p.SessionID
@@ -19348,6 +18595,7 @@ func (p *InsertRequest) Read(ctx context.Context, iprot thrift.TProtocol) error 
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -19440,8 +18688,10 @@ func (p *InsertRequest) ReadField3(ctx context.Context, iprot thrift.TProtocol) 
 	p.Fields = tSlice
 	for i := 0; i < size; i++ {
 		_elem90 := &Field{
-			ColumnNames: []string{},
-			ParseExprs:  []*ParsedExpr{},
+			ColumnNames: []string{
+			},
+			ParseExprs: []*ParsedExpr{
+			},
 		}
 		if err := _elem90.Read(ctx, iprot); err != nil {
 			return thrift.PrependError(fmt.Sprintf("%T error reading struct: ", _elem90), err)
@@ -19468,18 +18718,10 @@ func (p *InsertRequest) Write(ctx context.Context, oprot thrift.TProtocol) error
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField4(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField4(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -19556,24 +18798,14 @@ func (p *InsertRequest) Equals(other *InsertRequest) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.DbName != other.DbName {
-		return false
-	}
-	if p.TableName != other.TableName {
-		return false
-	}
-	if len(p.Fields) != len(other.Fields) {
-		return false
-	}
+	if p.DbName != other.DbName { return false }
+	if p.TableName != other.TableName { return false }
+	if len(p.Fields) != len(other.Fields) { return false }
 	for i, _tgt := range p.Fields {
 		_src91 := other.Fields[i]
-		if !_tgt.Equals(_src91) {
-			return false
-		}
+		if !_tgt.Equals(_src91) { return false }
 	}
-	if p.SessionID != other.SessionID {
-		return false
-	}
+	if p.SessionID != other.SessionID { return false }
 	return true
 }
 
@@ -19589,7 +18821,7 @@ func (p *InsertRequest) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InsertRequest",
+		Type: "*infinity.InsertRequest",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -19602,30 +18834,37 @@ func (p *InsertRequest) Validate() error {
 }
 
 // Attributes:
-//   - DbName
-//   - TableName
-//   - FileName
-//   - ImportOption
-//   - SessionID
+//  - DbName
+//  - TableName
+//  - FileName
+//  - ImportOption
+//  - SessionID
+// 
 type ImportRequest struct {
-	DbName       string        `thrift:"db_name,1" db:"db_name" json:"db_name"`
-	TableName    string        `thrift:"table_name,2" db:"table_name" json:"table_name"`
-	FileName     string        `thrift:"file_name,3" db:"file_name" json:"file_name"`
+	DbName string `thrift:"db_name,1" db:"db_name" json:"db_name"`
+	TableName string `thrift:"table_name,2" db:"table_name" json:"table_name"`
+	FileName string `thrift:"file_name,3" db:"file_name" json:"file_name"`
 	ImportOption *ImportOption `thrift:"import_option,4" db:"import_option" json:"import_option"`
-	SessionID    int64         `thrift:"session_id,5" db:"session_id" json:"session_id"`
+	SessionID int64 `thrift:"session_id,5" db:"session_id" json:"session_id"`
 }
 
 func NewImportRequest() *ImportRequest {
 	return &ImportRequest{}
 }
 
+
+
 func (p *ImportRequest) GetDbName() string {
 	return p.DbName
 }
 
+
+
 func (p *ImportRequest) GetTableName() string {
 	return p.TableName
 }
+
+
 
 func (p *ImportRequest) GetFileName() string {
 	return p.FileName
@@ -19640,6 +18879,8 @@ func (p *ImportRequest) GetImportOption() *ImportOption {
 	return p.ImportOption
 }
 
+
+
 func (p *ImportRequest) GetSessionID() int64 {
 	return p.SessionID
 }
@@ -19652,6 +18893,7 @@ func (p *ImportRequest) Read(ctx context.Context, iprot thrift.TProtocol) error 
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -19776,21 +19018,11 @@ func (p *ImportRequest) Write(ctx context.Context, oprot thrift.TProtocol) error
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField4(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField5(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField4(ctx, oprot); err != nil { return err }
+		if err := p.writeField5(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -19872,21 +19104,11 @@ func (p *ImportRequest) Equals(other *ImportRequest) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.DbName != other.DbName {
-		return false
-	}
-	if p.TableName != other.TableName {
-		return false
-	}
-	if p.FileName != other.FileName {
-		return false
-	}
-	if !p.ImportOption.Equals(other.ImportOption) {
-		return false
-	}
-	if p.SessionID != other.SessionID {
-		return false
-	}
+	if p.DbName != other.DbName { return false }
+	if p.TableName != other.TableName { return false }
+	if p.FileName != other.FileName { return false }
+	if !p.ImportOption.Equals(other.ImportOption) { return false }
+	if p.SessionID != other.SessionID { return false }
 	return true
 }
 
@@ -19902,7 +19124,7 @@ func (p *ImportRequest) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.ImportRequest",
+		Type: "*infinity.ImportRequest",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -19915,36 +19137,45 @@ func (p *ImportRequest) Validate() error {
 }
 
 // Attributes:
-//   - DbName
-//   - TableName
-//   - Columns
-//   - FileName
-//   - ExportOption
-//   - SessionID
+//  - DbName
+//  - TableName
+//  - Columns
+//  - FileName
+//  - ExportOption
+//  - SessionID
+// 
 type ExportRequest struct {
-	DbName       string        `thrift:"db_name,1" db:"db_name" json:"db_name"`
-	TableName    string        `thrift:"table_name,2" db:"table_name" json:"table_name"`
-	Columns      []string      `thrift:"columns,3" db:"columns" json:"columns"`
-	FileName     string        `thrift:"file_name,4" db:"file_name" json:"file_name"`
+	DbName string `thrift:"db_name,1" db:"db_name" json:"db_name"`
+	TableName string `thrift:"table_name,2" db:"table_name" json:"table_name"`
+	Columns []string `thrift:"columns,3" db:"columns" json:"columns"`
+	FileName string `thrift:"file_name,4" db:"file_name" json:"file_name"`
 	ExportOption *ExportOption `thrift:"export_option,5" db:"export_option" json:"export_option"`
-	SessionID    int64         `thrift:"session_id,6" db:"session_id" json:"session_id"`
+	SessionID int64 `thrift:"session_id,6" db:"session_id" json:"session_id"`
 }
 
 func NewExportRequest() *ExportRequest {
 	return &ExportRequest{}
 }
 
+
+
 func (p *ExportRequest) GetDbName() string {
 	return p.DbName
 }
+
+
 
 func (p *ExportRequest) GetTableName() string {
 	return p.TableName
 }
 
+
+
 func (p *ExportRequest) GetColumns() []string {
 	return p.Columns
 }
+
+
 
 func (p *ExportRequest) GetFileName() string {
 	return p.FileName
@@ -19959,6 +19190,8 @@ func (p *ExportRequest) GetExportOption() *ExportOption {
 	return p.ExportOption
 }
 
+
+
 func (p *ExportRequest) GetSessionID() int64 {
 	return p.SessionID
 }
@@ -19971,6 +19204,7 @@ func (p *ExportRequest) Read(ctx context.Context, iprot thrift.TProtocol) error 
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -20127,24 +19361,12 @@ func (p *ExportRequest) Write(ctx context.Context, oprot thrift.TProtocol) error
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField4(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField5(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField6(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField4(ctx, oprot); err != nil { return err }
+		if err := p.writeField5(ctx, oprot); err != nil { return err }
+		if err := p.writeField6(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -20247,30 +19469,16 @@ func (p *ExportRequest) Equals(other *ExportRequest) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.DbName != other.DbName {
-		return false
-	}
-	if p.TableName != other.TableName {
-		return false
-	}
-	if len(p.Columns) != len(other.Columns) {
-		return false
-	}
+	if p.DbName != other.DbName { return false }
+	if p.TableName != other.TableName { return false }
+	if len(p.Columns) != len(other.Columns) { return false }
 	for i, _tgt := range p.Columns {
 		_src93 := other.Columns[i]
-		if _tgt != _src93 {
-			return false
-		}
+		if _tgt != _src93 { return false }
 	}
-	if p.FileName != other.FileName {
-		return false
-	}
-	if !p.ExportOption.Equals(other.ExportOption) {
-		return false
-	}
-	if p.SessionID != other.SessionID {
-		return false
-	}
+	if p.FileName != other.FileName { return false }
+	if !p.ExportOption.Equals(other.ExportOption) { return false }
+	if p.SessionID != other.SessionID { return false }
 	return true
 }
 
@@ -20286,7 +19494,7 @@ func (p *ExportRequest) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.ExportRequest",
+		Type: "*infinity.ExportRequest",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -20299,58 +19507,69 @@ func (p *ExportRequest) Validate() error {
 }
 
 // Attributes:
-//   - SessionID
-//   - DbName
-//   - TableName
-//   - SelectList
-//   - HighlightList
-//   - SearchExpr
-//   - WhereExpr
-//   - GroupByList
-//   - HavingExpr
-//   - LimitExpr
-//   - OffsetExpr
-//   - OrderByList
-//   - ExplainType
+//  - SessionID
+//  - DbName
+//  - TableName
+//  - SelectList
+//  - HighlightList
+//  - SearchExpr
+//  - WhereExpr
+//  - GroupByList
+//  - HavingExpr
+//  - LimitExpr
+//  - OffsetExpr
+//  - OrderByList
+//  - ExplainType
+// 
 type ExplainRequest struct {
-	SessionID     int64           `thrift:"session_id,1" db:"session_id" json:"session_id"`
-	DbName        string          `thrift:"db_name,2" db:"db_name" json:"db_name"`
-	TableName     string          `thrift:"table_name,3" db:"table_name" json:"table_name"`
-	SelectList    []*ParsedExpr   `thrift:"select_list,4" db:"select_list" json:"select_list"`
-	HighlightList *[]*ParsedExpr  `thrift:"highlight_list,5" db:"highlight_list" json:"highlight_list"`
-	SearchExpr    *SearchExpr     `thrift:"search_expr,6" db:"search_expr" json:"search_expr,omitempty"`
-	WhereExpr     *ParsedExpr     `thrift:"where_expr,7" db:"where_expr" json:"where_expr,omitempty"`
-	GroupByList   *[]*ParsedExpr  `thrift:"group_by_list,8" db:"group_by_list" json:"group_by_list"`
-	HavingExpr    *ParsedExpr     `thrift:"having_expr,9" db:"having_expr" json:"having_expr,omitempty"`
-	LimitExpr     *ParsedExpr     `thrift:"limit_expr,10" db:"limit_expr" json:"limit_expr,omitempty"`
-	OffsetExpr    *ParsedExpr     `thrift:"offset_expr,11" db:"offset_expr" json:"offset_expr,omitempty"`
-	OrderByList   *[]*OrderByExpr `thrift:"order_by_list,12" db:"order_by_list" json:"order_by_list"`
-	ExplainType   ExplainType     `thrift:"explain_type,13" db:"explain_type" json:"explain_type"`
+	SessionID int64 `thrift:"session_id,1" db:"session_id" json:"session_id"`
+	DbName string `thrift:"db_name,2" db:"db_name" json:"db_name"`
+	TableName string `thrift:"table_name,3" db:"table_name" json:"table_name"`
+	SelectList []*ParsedExpr `thrift:"select_list,4" db:"select_list" json:"select_list"`
+	HighlightList *[]*ParsedExpr `thrift:"highlight_list,5" db:"highlight_list" json:"highlight_list"`
+	SearchExpr *SearchExpr `thrift:"search_expr,6" db:"search_expr" json:"search_expr,omitempty"`
+	WhereExpr *ParsedExpr `thrift:"where_expr,7" db:"where_expr" json:"where_expr,omitempty"`
+	GroupByList *[]*ParsedExpr `thrift:"group_by_list,8" db:"group_by_list" json:"group_by_list"`
+	HavingExpr *ParsedExpr `thrift:"having_expr,9" db:"having_expr" json:"having_expr,omitempty"`
+	LimitExpr *ParsedExpr `thrift:"limit_expr,10" db:"limit_expr" json:"limit_expr,omitempty"`
+	OffsetExpr *ParsedExpr `thrift:"offset_expr,11" db:"offset_expr" json:"offset_expr,omitempty"`
+	OrderByList *[]*OrderByExpr `thrift:"order_by_list,12" db:"order_by_list" json:"order_by_list"`
+	ExplainType ExplainType `thrift:"explain_type,13" db:"explain_type" json:"explain_type"`
 }
 
 func NewExplainRequest() *ExplainRequest {
 	return &ExplainRequest{
-		SelectList: []*ParsedExpr{},
+		SelectList: []*ParsedExpr{
+		},
 	}
 }
+
+
 
 func (p *ExplainRequest) GetSessionID() int64 {
 	return p.SessionID
 }
 
+
+
 func (p *ExplainRequest) GetDbName() string {
 	return p.DbName
 }
+
+
 
 func (p *ExplainRequest) GetTableName() string {
 	return p.TableName
 }
 
+
+
 func (p *ExplainRequest) GetSelectList() []*ParsedExpr {
 	return p.SelectList
 }
 
-var ExplainRequest_HighlightList_DEFAULT []*ParsedExpr = []*ParsedExpr{}
+var ExplainRequest_HighlightList_DEFAULT []*ParsedExpr = []*ParsedExpr{
+}
 
 func (p *ExplainRequest) GetHighlightList() []*ParsedExpr {
 	if !p.IsSetHighlightList() {
@@ -20377,7 +19596,8 @@ func (p *ExplainRequest) GetWhereExpr() *ParsedExpr {
 	return p.WhereExpr
 }
 
-var ExplainRequest_GroupByList_DEFAULT []*ParsedExpr = []*ParsedExpr{}
+var ExplainRequest_GroupByList_DEFAULT []*ParsedExpr = []*ParsedExpr{
+}
 
 func (p *ExplainRequest) GetGroupByList() []*ParsedExpr {
 	if !p.IsSetGroupByList() {
@@ -20413,7 +19633,8 @@ func (p *ExplainRequest) GetOffsetExpr() *ParsedExpr {
 	return p.OffsetExpr
 }
 
-var ExplainRequest_OrderByList_DEFAULT []*OrderByExpr = []*OrderByExpr{}
+var ExplainRequest_OrderByList_DEFAULT []*OrderByExpr = []*OrderByExpr{
+}
 
 func (p *ExplainRequest) GetOrderByList() []*OrderByExpr {
 	if !p.IsSetOrderByList() {
@@ -20421,6 +19642,8 @@ func (p *ExplainRequest) GetOrderByList() []*OrderByExpr {
 	}
 	return *p.OrderByList
 }
+
+
 
 func (p *ExplainRequest) GetExplainType() ExplainType {
 	return p.ExplainType
@@ -20462,6 +19685,7 @@ func (p *ExplainRequest) Read(ctx context.Context, iprot thrift.TProtocol) error
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -20779,45 +20003,19 @@ func (p *ExplainRequest) Write(ctx context.Context, oprot thrift.TProtocol) erro
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField4(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField5(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField6(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField7(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField8(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField9(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField10(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField11(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField12(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField13(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField4(ctx, oprot); err != nil { return err }
+		if err := p.writeField5(ctx, oprot); err != nil { return err }
+		if err := p.writeField6(ctx, oprot); err != nil { return err }
+		if err := p.writeField7(ctx, oprot); err != nil { return err }
+		if err := p.writeField8(ctx, oprot); err != nil { return err }
+		if err := p.writeField9(ctx, oprot); err != nil { return err }
+		if err := p.writeField10(ctx, oprot); err != nil { return err }
+		if err := p.writeField11(ctx, oprot); err != nil { return err }
+		if err := p.writeField12(ctx, oprot); err != nil { return err }
+		if err := p.writeField13(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -21051,84 +20249,50 @@ func (p *ExplainRequest) Equals(other *ExplainRequest) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.SessionID != other.SessionID {
-		return false
-	}
-	if p.DbName != other.DbName {
-		return false
-	}
-	if p.TableName != other.TableName {
-		return false
-	}
-	if len(p.SelectList) != len(other.SelectList) {
-		return false
-	}
+	if p.SessionID != other.SessionID { return false }
+	if p.DbName != other.DbName { return false }
+	if p.TableName != other.TableName { return false }
+	if len(p.SelectList) != len(other.SelectList) { return false }
 	for i, _tgt := range p.SelectList {
 		_src98 := other.SelectList[i]
-		if !_tgt.Equals(_src98) {
-			return false
-		}
+		if !_tgt.Equals(_src98) { return false }
 	}
 	if p.HighlightList != other.HighlightList {
 		if p.HighlightList == nil || other.HighlightList == nil {
 			return false
 		}
-		if len((*p.HighlightList)) != len((*other.HighlightList)) {
-			return false
-		}
-		for i, _tgt := range *p.HighlightList {
+		if len((*p.HighlightList)) != len((*other.HighlightList)) { return false }
+		for i, _tgt := range (*p.HighlightList) {
 			_src99 := (*other.HighlightList)[i]
-			if !_tgt.Equals(_src99) {
-				return false
-			}
+			if !_tgt.Equals(_src99) { return false }
 		}
 	}
-	if !p.SearchExpr.Equals(other.SearchExpr) {
-		return false
-	}
-	if !p.WhereExpr.Equals(other.WhereExpr) {
-		return false
-	}
+	if !p.SearchExpr.Equals(other.SearchExpr) { return false }
+	if !p.WhereExpr.Equals(other.WhereExpr) { return false }
 	if p.GroupByList != other.GroupByList {
 		if p.GroupByList == nil || other.GroupByList == nil {
 			return false
 		}
-		if len((*p.GroupByList)) != len((*other.GroupByList)) {
-			return false
-		}
-		for i, _tgt := range *p.GroupByList {
+		if len((*p.GroupByList)) != len((*other.GroupByList)) { return false }
+		for i, _tgt := range (*p.GroupByList) {
 			_src100 := (*other.GroupByList)[i]
-			if !_tgt.Equals(_src100) {
-				return false
-			}
+			if !_tgt.Equals(_src100) { return false }
 		}
 	}
-	if !p.HavingExpr.Equals(other.HavingExpr) {
-		return false
-	}
-	if !p.LimitExpr.Equals(other.LimitExpr) {
-		return false
-	}
-	if !p.OffsetExpr.Equals(other.OffsetExpr) {
-		return false
-	}
+	if !p.HavingExpr.Equals(other.HavingExpr) { return false }
+	if !p.LimitExpr.Equals(other.LimitExpr) { return false }
+	if !p.OffsetExpr.Equals(other.OffsetExpr) { return false }
 	if p.OrderByList != other.OrderByList {
 		if p.OrderByList == nil || other.OrderByList == nil {
 			return false
 		}
-		if len((*p.OrderByList)) != len((*other.OrderByList)) {
-			return false
-		}
-		for i, _tgt := range *p.OrderByList {
+		if len((*p.OrderByList)) != len((*other.OrderByList)) { return false }
+		for i, _tgt := range (*p.OrderByList) {
 			_src101 := (*other.OrderByList)[i]
-			if !_tgt.Equals(_src101) {
-				return false
-			}
+			if !_tgt.Equals(_src101) { return false }
 		}
 	}
-	if p.ExplainType != other.ExplainType {
-		return false
-	}
+	if p.ExplainType != other.ExplainType { return false }
 	return true
 }
 
@@ -21144,7 +20308,7 @@ func (p *ExplainRequest) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.ExplainRequest",
+		Type: "*infinity.ExplainRequest",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -21157,35 +20321,46 @@ func (p *ExplainRequest) Validate() error {
 }
 
 // Attributes:
-//   - ErrorCode
-//   - ErrorMsg
-//   - ColumnDefs
-//   - ColumnFields
+//  - ErrorCode
+//  - ErrorMsg
+//  - ColumnDefs
+//  - ColumnFields
+// 
 type ExplainResponse struct {
-	ErrorCode    int64          `thrift:"error_code,1" db:"error_code" json:"error_code"`
-	ErrorMsg     string         `thrift:"error_msg,2" db:"error_msg" json:"error_msg"`
-	ColumnDefs   []*ColumnDef   `thrift:"column_defs,3" db:"column_defs" json:"column_defs"`
+	ErrorCode int64 `thrift:"error_code,1" db:"error_code" json:"error_code"`
+	ErrorMsg string `thrift:"error_msg,2" db:"error_msg" json:"error_msg"`
+	ColumnDefs []*ColumnDef `thrift:"column_defs,3" db:"column_defs" json:"column_defs"`
 	ColumnFields []*ColumnField `thrift:"column_fields,4" db:"column_fields" json:"column_fields"`
 }
 
 func NewExplainResponse() *ExplainResponse {
 	return &ExplainResponse{
-		ColumnDefs:   []*ColumnDef{},
-		ColumnFields: []*ColumnField{},
+		ColumnDefs: []*ColumnDef{
+		},
+		ColumnFields: []*ColumnField{
+		},
 	}
 }
+
+
 
 func (p *ExplainResponse) GetErrorCode() int64 {
 	return p.ErrorCode
 }
 
+
+
 func (p *ExplainResponse) GetErrorMsg() string {
 	return p.ErrorMsg
 }
 
+
+
 func (p *ExplainResponse) GetColumnDefs() []*ColumnDef {
 	return p.ColumnDefs
 }
+
+
 
 func (p *ExplainResponse) GetColumnFields() []*ColumnField {
 	return p.ColumnFields
@@ -21195,6 +20370,7 @@ func (p *ExplainResponse) Read(ctx context.Context, iprot thrift.TProtocol) erro
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -21287,7 +20463,8 @@ func (p *ExplainResponse) ReadField3(ctx context.Context, iprot thrift.TProtocol
 	p.ColumnDefs = tSlice
 	for i := 0; i < size; i++ {
 		_elem102 := &ColumnDef{
-			Constraints: []Constraint{},
+			Constraints: []Constraint{
+			},
 		}
 		if err := _elem102.Read(ctx, iprot); err != nil {
 			return thrift.PrependError(fmt.Sprintf("%T error reading struct: ", _elem102), err)
@@ -21309,8 +20486,10 @@ func (p *ExplainResponse) ReadField4(ctx context.Context, iprot thrift.TProtocol
 	p.ColumnFields = tSlice
 	for i := 0; i < size; i++ {
 		_elem103 := &ColumnField{
-			ColumnVectors: [][]byte{},
-			Bitmasks:      []bool{},
+			ColumnVectors: [][]byte{
+			},
+			Bitmasks: []bool{
+			},
 		}
 		if err := _elem103.Read(ctx, iprot); err != nil {
 			return thrift.PrependError(fmt.Sprintf("%T error reading struct: ", _elem103), err)
@@ -21328,18 +20507,10 @@ func (p *ExplainResponse) Write(ctx context.Context, oprot thrift.TProtocol) err
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField4(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField4(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -21424,29 +20595,17 @@ func (p *ExplainResponse) Equals(other *ExplainResponse) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.ErrorCode != other.ErrorCode {
-		return false
-	}
-	if p.ErrorMsg != other.ErrorMsg {
-		return false
-	}
-	if len(p.ColumnDefs) != len(other.ColumnDefs) {
-		return false
-	}
+	if p.ErrorCode != other.ErrorCode { return false }
+	if p.ErrorMsg != other.ErrorMsg { return false }
+	if len(p.ColumnDefs) != len(other.ColumnDefs) { return false }
 	for i, _tgt := range p.ColumnDefs {
 		_src104 := other.ColumnDefs[i]
-		if !_tgt.Equals(_src104) {
-			return false
-		}
+		if !_tgt.Equals(_src104) { return false }
 	}
-	if len(p.ColumnFields) != len(other.ColumnFields) {
-		return false
-	}
+	if len(p.ColumnFields) != len(other.ColumnFields) { return false }
 	for i, _tgt := range p.ColumnFields {
 		_src105 := other.ColumnFields[i]
-		if !_tgt.Equals(_src105) {
-			return false
-		}
+		if !_tgt.Equals(_src105) { return false }
 	}
 	return true
 }
@@ -21463,7 +20622,7 @@ func (p *ExplainResponse) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.ExplainResponse",
+		Type: "*infinity.ExplainResponse",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -21476,58 +20635,69 @@ func (p *ExplainResponse) Validate() error {
 }
 
 // Attributes:
-//   - SessionID
-//   - DbName
-//   - TableName
-//   - SelectList
-//   - HighlightList
-//   - SearchExpr
-//   - WhereExpr
-//   - GroupByList
-//   - HavingExpr
-//   - LimitExpr
-//   - OffsetExpr
-//   - OrderByList
-//   - TotalHitsCount
+//  - SessionID
+//  - DbName
+//  - TableName
+//  - SelectList
+//  - HighlightList
+//  - SearchExpr
+//  - WhereExpr
+//  - GroupByList
+//  - HavingExpr
+//  - LimitExpr
+//  - OffsetExpr
+//  - OrderByList
+//  - TotalHitsCount
+// 
 type SelectRequest struct {
-	SessionID      int64           `thrift:"session_id,1" db:"session_id" json:"session_id"`
-	DbName         string          `thrift:"db_name,2" db:"db_name" json:"db_name"`
-	TableName      string          `thrift:"table_name,3" db:"table_name" json:"table_name"`
-	SelectList     []*ParsedExpr   `thrift:"select_list,4" db:"select_list" json:"select_list"`
-	HighlightList  *[]*ParsedExpr  `thrift:"highlight_list,5" db:"highlight_list" json:"highlight_list"`
-	SearchExpr     *SearchExpr     `thrift:"search_expr,6" db:"search_expr" json:"search_expr,omitempty"`
-	WhereExpr      *ParsedExpr     `thrift:"where_expr,7" db:"where_expr" json:"where_expr,omitempty"`
-	GroupByList    *[]*ParsedExpr  `thrift:"group_by_list,8" db:"group_by_list" json:"group_by_list"`
-	HavingExpr     *ParsedExpr     `thrift:"having_expr,9" db:"having_expr" json:"having_expr,omitempty"`
-	LimitExpr      *ParsedExpr     `thrift:"limit_expr,10" db:"limit_expr" json:"limit_expr,omitempty"`
-	OffsetExpr     *ParsedExpr     `thrift:"offset_expr,11" db:"offset_expr" json:"offset_expr,omitempty"`
-	OrderByList    *[]*OrderByExpr `thrift:"order_by_list,12" db:"order_by_list" json:"order_by_list"`
-	TotalHitsCount *bool           `thrift:"total_hits_count,13" db:"total_hits_count" json:"total_hits_count,omitempty"`
+	SessionID int64 `thrift:"session_id,1" db:"session_id" json:"session_id"`
+	DbName string `thrift:"db_name,2" db:"db_name" json:"db_name"`
+	TableName string `thrift:"table_name,3" db:"table_name" json:"table_name"`
+	SelectList []*ParsedExpr `thrift:"select_list,4" db:"select_list" json:"select_list"`
+	HighlightList *[]*ParsedExpr `thrift:"highlight_list,5" db:"highlight_list" json:"highlight_list"`
+	SearchExpr *SearchExpr `thrift:"search_expr,6" db:"search_expr" json:"search_expr,omitempty"`
+	WhereExpr *ParsedExpr `thrift:"where_expr,7" db:"where_expr" json:"where_expr,omitempty"`
+	GroupByList *[]*ParsedExpr `thrift:"group_by_list,8" db:"group_by_list" json:"group_by_list"`
+	HavingExpr *ParsedExpr `thrift:"having_expr,9" db:"having_expr" json:"having_expr,omitempty"`
+	LimitExpr *ParsedExpr `thrift:"limit_expr,10" db:"limit_expr" json:"limit_expr,omitempty"`
+	OffsetExpr *ParsedExpr `thrift:"offset_expr,11" db:"offset_expr" json:"offset_expr,omitempty"`
+	OrderByList *[]*OrderByExpr `thrift:"order_by_list,12" db:"order_by_list" json:"order_by_list"`
+	TotalHitsCount *bool `thrift:"total_hits_count,13" db:"total_hits_count" json:"total_hits_count,omitempty"`
 }
 
 func NewSelectRequest() *SelectRequest {
 	return &SelectRequest{
-		SelectList: []*ParsedExpr{},
+		SelectList: []*ParsedExpr{
+		},
 	}
 }
+
+
 
 func (p *SelectRequest) GetSessionID() int64 {
 	return p.SessionID
 }
 
+
+
 func (p *SelectRequest) GetDbName() string {
 	return p.DbName
 }
+
+
 
 func (p *SelectRequest) GetTableName() string {
 	return p.TableName
 }
 
+
+
 func (p *SelectRequest) GetSelectList() []*ParsedExpr {
 	return p.SelectList
 }
 
-var SelectRequest_HighlightList_DEFAULT []*ParsedExpr = []*ParsedExpr{}
+var SelectRequest_HighlightList_DEFAULT []*ParsedExpr = []*ParsedExpr{
+}
 
 func (p *SelectRequest) GetHighlightList() []*ParsedExpr {
 	if !p.IsSetHighlightList() {
@@ -21554,7 +20724,8 @@ func (p *SelectRequest) GetWhereExpr() *ParsedExpr {
 	return p.WhereExpr
 }
 
-var SelectRequest_GroupByList_DEFAULT []*ParsedExpr = []*ParsedExpr{}
+var SelectRequest_GroupByList_DEFAULT []*ParsedExpr = []*ParsedExpr{
+}
 
 func (p *SelectRequest) GetGroupByList() []*ParsedExpr {
 	if !p.IsSetGroupByList() {
@@ -21590,7 +20761,8 @@ func (p *SelectRequest) GetOffsetExpr() *ParsedExpr {
 	return p.OffsetExpr
 }
 
-var SelectRequest_OrderByList_DEFAULT []*OrderByExpr = []*OrderByExpr{}
+var SelectRequest_OrderByList_DEFAULT []*OrderByExpr = []*OrderByExpr{
+}
 
 func (p *SelectRequest) GetOrderByList() []*OrderByExpr {
 	if !p.IsSetOrderByList() {
@@ -21648,6 +20820,7 @@ func (p *SelectRequest) Read(ctx context.Context, iprot thrift.TProtocol) error 
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -21964,45 +21137,19 @@ func (p *SelectRequest) Write(ctx context.Context, oprot thrift.TProtocol) error
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField4(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField5(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField6(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField7(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField8(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField9(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField10(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField11(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField12(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField13(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField4(ctx, oprot); err != nil { return err }
+		if err := p.writeField5(ctx, oprot); err != nil { return err }
+		if err := p.writeField6(ctx, oprot); err != nil { return err }
+		if err := p.writeField7(ctx, oprot); err != nil { return err }
+		if err := p.writeField8(ctx, oprot); err != nil { return err }
+		if err := p.writeField9(ctx, oprot); err != nil { return err }
+		if err := p.writeField10(ctx, oprot); err != nil { return err }
+		if err := p.writeField11(ctx, oprot); err != nil { return err }
+		if err := p.writeField12(ctx, oprot); err != nil { return err }
+		if err := p.writeField13(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -22238,88 +21385,54 @@ func (p *SelectRequest) Equals(other *SelectRequest) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.SessionID != other.SessionID {
-		return false
-	}
-	if p.DbName != other.DbName {
-		return false
-	}
-	if p.TableName != other.TableName {
-		return false
-	}
-	if len(p.SelectList) != len(other.SelectList) {
-		return false
-	}
+	if p.SessionID != other.SessionID { return false }
+	if p.DbName != other.DbName { return false }
+	if p.TableName != other.TableName { return false }
+	if len(p.SelectList) != len(other.SelectList) { return false }
 	for i, _tgt := range p.SelectList {
 		_src110 := other.SelectList[i]
-		if !_tgt.Equals(_src110) {
-			return false
-		}
+		if !_tgt.Equals(_src110) { return false }
 	}
 	if p.HighlightList != other.HighlightList {
 		if p.HighlightList == nil || other.HighlightList == nil {
 			return false
 		}
-		if len((*p.HighlightList)) != len((*other.HighlightList)) {
-			return false
-		}
-		for i, _tgt := range *p.HighlightList {
+		if len((*p.HighlightList)) != len((*other.HighlightList)) { return false }
+		for i, _tgt := range (*p.HighlightList) {
 			_src111 := (*other.HighlightList)[i]
-			if !_tgt.Equals(_src111) {
-				return false
-			}
+			if !_tgt.Equals(_src111) { return false }
 		}
 	}
-	if !p.SearchExpr.Equals(other.SearchExpr) {
-		return false
-	}
-	if !p.WhereExpr.Equals(other.WhereExpr) {
-		return false
-	}
+	if !p.SearchExpr.Equals(other.SearchExpr) { return false }
+	if !p.WhereExpr.Equals(other.WhereExpr) { return false }
 	if p.GroupByList != other.GroupByList {
 		if p.GroupByList == nil || other.GroupByList == nil {
 			return false
 		}
-		if len((*p.GroupByList)) != len((*other.GroupByList)) {
-			return false
-		}
-		for i, _tgt := range *p.GroupByList {
+		if len((*p.GroupByList)) != len((*other.GroupByList)) { return false }
+		for i, _tgt := range (*p.GroupByList) {
 			_src112 := (*other.GroupByList)[i]
-			if !_tgt.Equals(_src112) {
-				return false
-			}
+			if !_tgt.Equals(_src112) { return false }
 		}
 	}
-	if !p.HavingExpr.Equals(other.HavingExpr) {
-		return false
-	}
-	if !p.LimitExpr.Equals(other.LimitExpr) {
-		return false
-	}
-	if !p.OffsetExpr.Equals(other.OffsetExpr) {
-		return false
-	}
+	if !p.HavingExpr.Equals(other.HavingExpr) { return false }
+	if !p.LimitExpr.Equals(other.LimitExpr) { return false }
+	if !p.OffsetExpr.Equals(other.OffsetExpr) { return false }
 	if p.OrderByList != other.OrderByList {
 		if p.OrderByList == nil || other.OrderByList == nil {
 			return false
 		}
-		if len((*p.OrderByList)) != len((*other.OrderByList)) {
-			return false
-		}
-		for i, _tgt := range *p.OrderByList {
+		if len((*p.OrderByList)) != len((*other.OrderByList)) { return false }
+		for i, _tgt := range (*p.OrderByList) {
 			_src113 := (*other.OrderByList)[i]
-			if !_tgt.Equals(_src113) {
-				return false
-			}
+			if !_tgt.Equals(_src113) { return false }
 		}
 	}
 	if p.TotalHitsCount != other.TotalHitsCount {
 		if p.TotalHitsCount == nil || other.TotalHitsCount == nil {
 			return false
 		}
-		if (*p.TotalHitsCount) != (*other.TotalHitsCount) {
-			return false
-		}
+		if (*p.TotalHitsCount) != (*other.TotalHitsCount) { return false }
 	}
 	return true
 }
@@ -22336,7 +21449,7 @@ func (p *SelectRequest) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.SelectRequest",
+		Type: "*infinity.SelectRequest",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -22349,41 +21462,54 @@ func (p *SelectRequest) Validate() error {
 }
 
 // Attributes:
-//   - ErrorCode
-//   - ErrorMsg
-//   - ColumnDefs
-//   - ColumnFields
-//   - ExtraResult_
+//  - ErrorCode
+//  - ErrorMsg
+//  - ColumnDefs
+//  - ColumnFields
+//  - ExtraResult_
+// 
 type SelectResponse struct {
-	ErrorCode    int64          `thrift:"error_code,1" db:"error_code" json:"error_code"`
-	ErrorMsg     string         `thrift:"error_msg,2" db:"error_msg" json:"error_msg"`
-	ColumnDefs   []*ColumnDef   `thrift:"column_defs,3" db:"column_defs" json:"column_defs"`
+	ErrorCode int64 `thrift:"error_code,1" db:"error_code" json:"error_code"`
+	ErrorMsg string `thrift:"error_msg,2" db:"error_msg" json:"error_msg"`
+	ColumnDefs []*ColumnDef `thrift:"column_defs,3" db:"column_defs" json:"column_defs"`
 	ColumnFields []*ColumnField `thrift:"column_fields,4" db:"column_fields" json:"column_fields"`
-	ExtraResult_ string         `thrift:"extra_result,5" db:"extra_result" json:"extra_result"`
+	ExtraResult_ string `thrift:"extra_result,5" db:"extra_result" json:"extra_result"`
 }
 
 func NewSelectResponse() *SelectResponse {
 	return &SelectResponse{
-		ColumnDefs:   []*ColumnDef{},
-		ColumnFields: []*ColumnField{},
+		ColumnDefs: []*ColumnDef{
+		},
+		ColumnFields: []*ColumnField{
+		},
 	}
 }
+
+
 
 func (p *SelectResponse) GetErrorCode() int64 {
 	return p.ErrorCode
 }
 
+
+
 func (p *SelectResponse) GetErrorMsg() string {
 	return p.ErrorMsg
 }
+
+
 
 func (p *SelectResponse) GetColumnDefs() []*ColumnDef {
 	return p.ColumnDefs
 }
 
+
+
 func (p *SelectResponse) GetColumnFields() []*ColumnField {
 	return p.ColumnFields
 }
+
+
 
 func (p *SelectResponse) GetExtraResult_() string {
 	return p.ExtraResult_
@@ -22393,6 +21519,7 @@ func (p *SelectResponse) Read(ctx context.Context, iprot thrift.TProtocol) error
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -22495,7 +21622,8 @@ func (p *SelectResponse) ReadField3(ctx context.Context, iprot thrift.TProtocol)
 	p.ColumnDefs = tSlice
 	for i := 0; i < size; i++ {
 		_elem114 := &ColumnDef{
-			Constraints: []Constraint{},
+			Constraints: []Constraint{
+			},
 		}
 		if err := _elem114.Read(ctx, iprot); err != nil {
 			return thrift.PrependError(fmt.Sprintf("%T error reading struct: ", _elem114), err)
@@ -22517,8 +21645,10 @@ func (p *SelectResponse) ReadField4(ctx context.Context, iprot thrift.TProtocol)
 	p.ColumnFields = tSlice
 	for i := 0; i < size; i++ {
 		_elem115 := &ColumnField{
-			ColumnVectors: [][]byte{},
-			Bitmasks:      []bool{},
+			ColumnVectors: [][]byte{
+			},
+			Bitmasks: []bool{
+			},
 		}
 		if err := _elem115.Read(ctx, iprot); err != nil {
 			return thrift.PrependError(fmt.Sprintf("%T error reading struct: ", _elem115), err)
@@ -22545,21 +21675,11 @@ func (p *SelectResponse) Write(ctx context.Context, oprot thrift.TProtocol) erro
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField4(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField5(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField4(ctx, oprot); err != nil { return err }
+		if err := p.writeField5(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -22657,33 +21777,19 @@ func (p *SelectResponse) Equals(other *SelectResponse) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.ErrorCode != other.ErrorCode {
-		return false
-	}
-	if p.ErrorMsg != other.ErrorMsg {
-		return false
-	}
-	if len(p.ColumnDefs) != len(other.ColumnDefs) {
-		return false
-	}
+	if p.ErrorCode != other.ErrorCode { return false }
+	if p.ErrorMsg != other.ErrorMsg { return false }
+	if len(p.ColumnDefs) != len(other.ColumnDefs) { return false }
 	for i, _tgt := range p.ColumnDefs {
 		_src116 := other.ColumnDefs[i]
-		if !_tgt.Equals(_src116) {
-			return false
-		}
+		if !_tgt.Equals(_src116) { return false }
 	}
-	if len(p.ColumnFields) != len(other.ColumnFields) {
-		return false
-	}
+	if len(p.ColumnFields) != len(other.ColumnFields) { return false }
 	for i, _tgt := range p.ColumnFields {
 		_src117 := other.ColumnFields[i]
-		if !_tgt.Equals(_src117) {
-			return false
-		}
+		if !_tgt.Equals(_src117) { return false }
 	}
-	if p.ExtraResult_ != other.ExtraResult_ {
-		return false
-	}
+	if p.ExtraResult_ != other.ExtraResult_ { return false }
 	return true
 }
 
@@ -22699,7 +21805,7 @@ func (p *SelectResponse) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.SelectResponse",
+		Type: "*infinity.SelectResponse",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -22712,24 +21818,29 @@ func (p *SelectResponse) Validate() error {
 }
 
 // Attributes:
-//   - DbName
-//   - TableName
-//   - WhereExpr
-//   - SessionID
+//  - DbName
+//  - TableName
+//  - WhereExpr
+//  - SessionID
+// 
 type DeleteRequest struct {
-	DbName    string      `thrift:"db_name,1" db:"db_name" json:"db_name"`
-	TableName string      `thrift:"table_name,2" db:"table_name" json:"table_name"`
+	DbName string `thrift:"db_name,1" db:"db_name" json:"db_name"`
+	TableName string `thrift:"table_name,2" db:"table_name" json:"table_name"`
 	WhereExpr *ParsedExpr `thrift:"where_expr,3" db:"where_expr" json:"where_expr"`
-	SessionID int64       `thrift:"session_id,4" db:"session_id" json:"session_id"`
+	SessionID int64 `thrift:"session_id,4" db:"session_id" json:"session_id"`
 }
 
 func NewDeleteRequest() *DeleteRequest {
 	return &DeleteRequest{}
 }
 
+
+
 func (p *DeleteRequest) GetDbName() string {
 	return p.DbName
 }
+
+
 
 func (p *DeleteRequest) GetTableName() string {
 	return p.TableName
@@ -22744,6 +21855,8 @@ func (p *DeleteRequest) GetWhereExpr() *ParsedExpr {
 	return p.WhereExpr
 }
 
+
+
 func (p *DeleteRequest) GetSessionID() int64 {
 	return p.SessionID
 }
@@ -22756,6 +21869,7 @@ func (p *DeleteRequest) Read(ctx context.Context, iprot thrift.TProtocol) error 
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -22861,18 +21975,10 @@ func (p *DeleteRequest) Write(ctx context.Context, oprot thrift.TProtocol) error
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField4(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField4(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -22941,18 +22047,10 @@ func (p *DeleteRequest) Equals(other *DeleteRequest) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.DbName != other.DbName {
-		return false
-	}
-	if p.TableName != other.TableName {
-		return false
-	}
-	if !p.WhereExpr.Equals(other.WhereExpr) {
-		return false
-	}
-	if p.SessionID != other.SessionID {
-		return false
-	}
+	if p.DbName != other.DbName { return false }
+	if p.TableName != other.TableName { return false }
+	if !p.WhereExpr.Equals(other.WhereExpr) { return false }
+	if p.SessionID != other.SessionID { return false }
 	return true
 }
 
@@ -22968,7 +22066,7 @@ func (p *DeleteRequest) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.DeleteRequest",
+		Type: "*infinity.DeleteRequest",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -22981,26 +22079,33 @@ func (p *DeleteRequest) Validate() error {
 }
 
 // Attributes:
-//   - ErrorCode
-//   - ErrorMsg
-//   - DeletedRows
+//  - ErrorCode
+//  - ErrorMsg
+//  - DeletedRows
+// 
 type DeleteResponse struct {
-	ErrorCode   int64  `thrift:"error_code,1" db:"error_code" json:"error_code"`
-	ErrorMsg    string `thrift:"error_msg,2" db:"error_msg" json:"error_msg"`
-	DeletedRows int64  `thrift:"deleted_rows,3" db:"deleted_rows" json:"deleted_rows"`
+	ErrorCode int64 `thrift:"error_code,1" db:"error_code" json:"error_code"`
+	ErrorMsg string `thrift:"error_msg,2" db:"error_msg" json:"error_msg"`
+	DeletedRows int64 `thrift:"deleted_rows,3" db:"deleted_rows" json:"deleted_rows"`
 }
 
 func NewDeleteResponse() *DeleteResponse {
 	return &DeleteResponse{}
 }
 
+
+
 func (p *DeleteResponse) GetErrorCode() int64 {
 	return p.ErrorCode
 }
 
+
+
 func (p *DeleteResponse) GetErrorMsg() string {
 	return p.ErrorMsg
 }
+
+
 
 func (p *DeleteResponse) GetDeletedRows() int64 {
 	return p.DeletedRows
@@ -23010,6 +22115,7 @@ func (p *DeleteResponse) Read(ctx context.Context, iprot thrift.TProtocol) error
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -23097,15 +22203,9 @@ func (p *DeleteResponse) Write(ctx context.Context, oprot thrift.TProtocol) erro
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -23161,15 +22261,9 @@ func (p *DeleteResponse) Equals(other *DeleteResponse) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.ErrorCode != other.ErrorCode {
-		return false
-	}
-	if p.ErrorMsg != other.ErrorMsg {
-		return false
-	}
-	if p.DeletedRows != other.DeletedRows {
-		return false
-	}
+	if p.ErrorCode != other.ErrorCode { return false }
+	if p.ErrorMsg != other.ErrorMsg { return false }
+	if p.DeletedRows != other.DeletedRows { return false }
 	return true
 }
 
@@ -23185,7 +22279,7 @@ func (p *DeleteResponse) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.DeleteResponse",
+		Type: "*infinity.DeleteResponse",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -23198,28 +22292,34 @@ func (p *DeleteResponse) Validate() error {
 }
 
 // Attributes:
-//   - DbName
-//   - TableName
-//   - WhereExpr
-//   - UpdateExprArray
-//   - SessionID
+//  - DbName
+//  - TableName
+//  - WhereExpr
+//  - UpdateExprArray
+//  - SessionID
+// 
 type UpdateRequest struct {
-	DbName          string        `thrift:"db_name,1" db:"db_name" json:"db_name"`
-	TableName       string        `thrift:"table_name,2" db:"table_name" json:"table_name"`
-	WhereExpr       *ParsedExpr   `thrift:"where_expr,3" db:"where_expr" json:"where_expr"`
+	DbName string `thrift:"db_name,1" db:"db_name" json:"db_name"`
+	TableName string `thrift:"table_name,2" db:"table_name" json:"table_name"`
+	WhereExpr *ParsedExpr `thrift:"where_expr,3" db:"where_expr" json:"where_expr"`
 	UpdateExprArray []*UpdateExpr `thrift:"update_expr_array,4" db:"update_expr_array" json:"update_expr_array"`
-	SessionID       int64         `thrift:"session_id,5" db:"session_id" json:"session_id"`
+	SessionID int64 `thrift:"session_id,5" db:"session_id" json:"session_id"`
 }
 
 func NewUpdateRequest() *UpdateRequest {
 	return &UpdateRequest{
-		UpdateExprArray: []*UpdateExpr{},
+		UpdateExprArray: []*UpdateExpr{
+		},
 	}
 }
+
+
 
 func (p *UpdateRequest) GetDbName() string {
 	return p.DbName
 }
+
+
 
 func (p *UpdateRequest) GetTableName() string {
 	return p.TableName
@@ -23234,9 +22334,13 @@ func (p *UpdateRequest) GetWhereExpr() *ParsedExpr {
 	return p.WhereExpr
 }
 
+
+
 func (p *UpdateRequest) GetUpdateExprArray() []*UpdateExpr {
 	return p.UpdateExprArray
 }
+
+
 
 func (p *UpdateRequest) GetSessionID() int64 {
 	return p.SessionID
@@ -23250,6 +22354,7 @@ func (p *UpdateRequest) Read(ctx context.Context, iprot thrift.TProtocol) error 
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -23385,21 +22490,11 @@ func (p *UpdateRequest) Write(ctx context.Context, oprot thrift.TProtocol) error
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField4(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField5(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField4(ctx, oprot); err != nil { return err }
+		if err := p.writeField5(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -23489,27 +22584,15 @@ func (p *UpdateRequest) Equals(other *UpdateRequest) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.DbName != other.DbName {
-		return false
-	}
-	if p.TableName != other.TableName {
-		return false
-	}
-	if !p.WhereExpr.Equals(other.WhereExpr) {
-		return false
-	}
-	if len(p.UpdateExprArray) != len(other.UpdateExprArray) {
-		return false
-	}
+	if p.DbName != other.DbName { return false }
+	if p.TableName != other.TableName { return false }
+	if !p.WhereExpr.Equals(other.WhereExpr) { return false }
+	if len(p.UpdateExprArray) != len(other.UpdateExprArray) { return false }
 	for i, _tgt := range p.UpdateExprArray {
 		_src119 := other.UpdateExprArray[i]
-		if !_tgt.Equals(_src119) {
-			return false
-		}
+		if !_tgt.Equals(_src119) { return false }
 	}
-	if p.SessionID != other.SessionID {
-		return false
-	}
+	if p.SessionID != other.SessionID { return false }
 	return true
 }
 
@@ -23525,7 +22608,7 @@ func (p *UpdateRequest) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.UpdateRequest",
+		Type: "*infinity.UpdateRequest",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -23538,34 +22621,44 @@ func (p *UpdateRequest) Validate() error {
 }
 
 // Attributes:
-//   - DbName
-//   - TableName
-//   - ColumnDefs
-//   - SessionID
+//  - DbName
+//  - TableName
+//  - ColumnDefs
+//  - SessionID
+// 
 type AddColumnsRequest struct {
-	DbName     string       `thrift:"db_name,1" db:"db_name" json:"db_name"`
-	TableName  string       `thrift:"table_name,2" db:"table_name" json:"table_name"`
+	DbName string `thrift:"db_name,1" db:"db_name" json:"db_name"`
+	TableName string `thrift:"table_name,2" db:"table_name" json:"table_name"`
 	ColumnDefs []*ColumnDef `thrift:"column_defs,3" db:"column_defs" json:"column_defs"`
-	SessionID  int64        `thrift:"session_id,4" db:"session_id" json:"session_id"`
+	SessionID int64 `thrift:"session_id,4" db:"session_id" json:"session_id"`
 }
 
 func NewAddColumnsRequest() *AddColumnsRequest {
 	return &AddColumnsRequest{
-		ColumnDefs: []*ColumnDef{},
+		ColumnDefs: []*ColumnDef{
+		},
 	}
 }
+
+
 
 func (p *AddColumnsRequest) GetDbName() string {
 	return p.DbName
 }
 
+
+
 func (p *AddColumnsRequest) GetTableName() string {
 	return p.TableName
 }
 
+
+
 func (p *AddColumnsRequest) GetColumnDefs() []*ColumnDef {
 	return p.ColumnDefs
 }
+
+
 
 func (p *AddColumnsRequest) GetSessionID() int64 {
 	return p.SessionID
@@ -23575,6 +22668,7 @@ func (p *AddColumnsRequest) Read(ctx context.Context, iprot thrift.TProtocol) er
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -23667,7 +22761,8 @@ func (p *AddColumnsRequest) ReadField3(ctx context.Context, iprot thrift.TProtoc
 	p.ColumnDefs = tSlice
 	for i := 0; i < size; i++ {
 		_elem120 := &ColumnDef{
-			Constraints: []Constraint{},
+			Constraints: []Constraint{
+			},
 		}
 		if err := _elem120.Read(ctx, iprot); err != nil {
 			return thrift.PrependError(fmt.Sprintf("%T error reading struct: ", _elem120), err)
@@ -23694,18 +22789,10 @@ func (p *AddColumnsRequest) Write(ctx context.Context, oprot thrift.TProtocol) e
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField4(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField4(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -23782,24 +22869,14 @@ func (p *AddColumnsRequest) Equals(other *AddColumnsRequest) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.DbName != other.DbName {
-		return false
-	}
-	if p.TableName != other.TableName {
-		return false
-	}
-	if len(p.ColumnDefs) != len(other.ColumnDefs) {
-		return false
-	}
+	if p.DbName != other.DbName { return false }
+	if p.TableName != other.TableName { return false }
+	if len(p.ColumnDefs) != len(other.ColumnDefs) { return false }
 	for i, _tgt := range p.ColumnDefs {
 		_src121 := other.ColumnDefs[i]
-		if !_tgt.Equals(_src121) {
-			return false
-		}
+		if !_tgt.Equals(_src121) { return false }
 	}
-	if p.SessionID != other.SessionID {
-		return false
-	}
+	if p.SessionID != other.SessionID { return false }
 	return true
 }
 
@@ -23815,7 +22892,7 @@ func (p *AddColumnsRequest) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.AddColumnsRequest",
+		Type: "*infinity.AddColumnsRequest",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -23828,34 +22905,44 @@ func (p *AddColumnsRequest) Validate() error {
 }
 
 // Attributes:
-//   - DbName
-//   - TableName
-//   - ColumnNames
-//   - SessionID
+//  - DbName
+//  - TableName
+//  - ColumnNames
+//  - SessionID
+// 
 type DropColumnsRequest struct {
-	DbName      string   `thrift:"db_name,1" db:"db_name" json:"db_name"`
-	TableName   string   `thrift:"table_name,2" db:"table_name" json:"table_name"`
+	DbName string `thrift:"db_name,1" db:"db_name" json:"db_name"`
+	TableName string `thrift:"table_name,2" db:"table_name" json:"table_name"`
 	ColumnNames []string `thrift:"column_names,3" db:"column_names" json:"column_names"`
-	SessionID   int64    `thrift:"session_id,4" db:"session_id" json:"session_id"`
+	SessionID int64 `thrift:"session_id,4" db:"session_id" json:"session_id"`
 }
 
 func NewDropColumnsRequest() *DropColumnsRequest {
 	return &DropColumnsRequest{
-		ColumnNames: []string{},
+		ColumnNames: []string{
+		},
 	}
 }
+
+
 
 func (p *DropColumnsRequest) GetDbName() string {
 	return p.DbName
 }
 
+
+
 func (p *DropColumnsRequest) GetTableName() string {
 	return p.TableName
 }
 
+
+
 func (p *DropColumnsRequest) GetColumnNames() []string {
 	return p.ColumnNames
 }
+
+
 
 func (p *DropColumnsRequest) GetSessionID() int64 {
 	return p.SessionID
@@ -23865,6 +22952,7 @@ func (p *DropColumnsRequest) Read(ctx context.Context, iprot thrift.TProtocol) e
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -23984,18 +23072,10 @@ func (p *DropColumnsRequest) Write(ctx context.Context, oprot thrift.TProtocol) 
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField4(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField4(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -24072,24 +23152,14 @@ func (p *DropColumnsRequest) Equals(other *DropColumnsRequest) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.DbName != other.DbName {
-		return false
-	}
-	if p.TableName != other.TableName {
-		return false
-	}
-	if len(p.ColumnNames) != len(other.ColumnNames) {
-		return false
-	}
+	if p.DbName != other.DbName { return false }
+	if p.TableName != other.TableName { return false }
+	if len(p.ColumnNames) != len(other.ColumnNames) { return false }
 	for i, _tgt := range p.ColumnNames {
 		_src123 := other.ColumnNames[i]
-		if _tgt != _src123 {
-			return false
-		}
+		if _tgt != _src123 { return false }
 	}
-	if p.SessionID != other.SessionID {
-		return false
-	}
+	if p.SessionID != other.SessionID { return false }
 	return true
 }
 
@@ -24105,7 +23175,7 @@ func (p *DropColumnsRequest) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.DropColumnsRequest",
+		Type: "*infinity.DropColumnsRequest",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -24118,32 +23188,41 @@ func (p *DropColumnsRequest) Validate() error {
 }
 
 // Attributes:
-//   - DbName
-//   - TableName
-//   - IndexName
-//   - SessionID
+//  - DbName
+//  - TableName
+//  - IndexName
+//  - SessionID
+// 
 type DumpIndexRequest struct {
-	DbName    string `thrift:"db_name,1" db:"db_name" json:"db_name"`
+	DbName string `thrift:"db_name,1" db:"db_name" json:"db_name"`
 	TableName string `thrift:"table_name,2" db:"table_name" json:"table_name"`
 	IndexName string `thrift:"index_name,3" db:"index_name" json:"index_name"`
-	SessionID int64  `thrift:"session_id,4" db:"session_id" json:"session_id"`
+	SessionID int64 `thrift:"session_id,4" db:"session_id" json:"session_id"`
 }
 
 func NewDumpIndexRequest() *DumpIndexRequest {
 	return &DumpIndexRequest{}
 }
 
+
+
 func (p *DumpIndexRequest) GetDbName() string {
 	return p.DbName
 }
+
+
 
 func (p *DumpIndexRequest) GetTableName() string {
 	return p.TableName
 }
 
+
+
 func (p *DumpIndexRequest) GetIndexName() string {
 	return p.IndexName
 }
+
+
 
 func (p *DumpIndexRequest) GetSessionID() int64 {
 	return p.SessionID
@@ -24153,6 +23232,7 @@ func (p *DumpIndexRequest) Read(ctx context.Context, iprot thrift.TProtocol) err
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -24259,18 +23339,10 @@ func (p *DumpIndexRequest) Write(ctx context.Context, oprot thrift.TProtocol) er
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField4(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField4(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -24339,18 +23411,10 @@ func (p *DumpIndexRequest) Equals(other *DumpIndexRequest) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.DbName != other.DbName {
-		return false
-	}
-	if p.TableName != other.TableName {
-		return false
-	}
-	if p.IndexName != other.IndexName {
-		return false
-	}
-	if p.SessionID != other.SessionID {
-		return false
-	}
+	if p.DbName != other.DbName { return false }
+	if p.TableName != other.TableName { return false }
+	if p.IndexName != other.IndexName { return false }
+	if p.SessionID != other.SessionID { return false }
 	return true
 }
 
@@ -24366,7 +23430,7 @@ func (p *DumpIndexRequest) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.DumpIndexRequest",
+		Type: "*infinity.DumpIndexRequest",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -24379,12 +23443,13 @@ func (p *DumpIndexRequest) Validate() error {
 }
 
 // Attributes:
-//   - SessionID
-//   - DbName
-//   - TableName
+//  - SessionID
+//  - DbName
+//  - TableName
+// 
 type ShowSegmentsRequest struct {
-	SessionID int64  `thrift:"session_id,1" db:"session_id" json:"session_id"`
-	DbName    string `thrift:"db_name,2" db:"db_name" json:"db_name"`
+	SessionID int64 `thrift:"session_id,1" db:"session_id" json:"session_id"`
+	DbName string `thrift:"db_name,2" db:"db_name" json:"db_name"`
 	TableName string `thrift:"table_name,3" db:"table_name" json:"table_name"`
 }
 
@@ -24392,13 +23457,19 @@ func NewShowSegmentsRequest() *ShowSegmentsRequest {
 	return &ShowSegmentsRequest{}
 }
 
+
+
 func (p *ShowSegmentsRequest) GetSessionID() int64 {
 	return p.SessionID
 }
 
+
+
 func (p *ShowSegmentsRequest) GetDbName() string {
 	return p.DbName
 }
+
+
 
 func (p *ShowSegmentsRequest) GetTableName() string {
 	return p.TableName
@@ -24408,6 +23479,7 @@ func (p *ShowSegmentsRequest) Read(ctx context.Context, iprot thrift.TProtocol) 
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -24495,15 +23567,9 @@ func (p *ShowSegmentsRequest) Write(ctx context.Context, oprot thrift.TProtocol)
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -24559,15 +23625,9 @@ func (p *ShowSegmentsRequest) Equals(other *ShowSegmentsRequest) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.SessionID != other.SessionID {
-		return false
-	}
-	if p.DbName != other.DbName {
-		return false
-	}
-	if p.TableName != other.TableName {
-		return false
-	}
+	if p.SessionID != other.SessionID { return false }
+	if p.DbName != other.DbName { return false }
+	if p.TableName != other.TableName { return false }
 	return true
 }
 
@@ -24583,7 +23643,7 @@ func (p *ShowSegmentsRequest) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.ShowSegmentsRequest",
+		Type: "*infinity.ShowSegmentsRequest",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -24596,32 +23656,41 @@ func (p *ShowSegmentsRequest) Validate() error {
 }
 
 // Attributes:
-//   - SessionID
-//   - DbName
-//   - TableName
-//   - SegmentID
+//  - SessionID
+//  - DbName
+//  - TableName
+//  - SegmentID
+// 
 type ShowSegmentRequest struct {
-	SessionID int64  `thrift:"session_id,1" db:"session_id" json:"session_id"`
-	DbName    string `thrift:"db_name,2" db:"db_name" json:"db_name"`
+	SessionID int64 `thrift:"session_id,1" db:"session_id" json:"session_id"`
+	DbName string `thrift:"db_name,2" db:"db_name" json:"db_name"`
 	TableName string `thrift:"table_name,3" db:"table_name" json:"table_name"`
-	SegmentID int64  `thrift:"segment_id,4" db:"segment_id" json:"segment_id"`
+	SegmentID int64 `thrift:"segment_id,4" db:"segment_id" json:"segment_id"`
 }
 
 func NewShowSegmentRequest() *ShowSegmentRequest {
 	return &ShowSegmentRequest{}
 }
 
+
+
 func (p *ShowSegmentRequest) GetSessionID() int64 {
 	return p.SessionID
 }
+
+
 
 func (p *ShowSegmentRequest) GetDbName() string {
 	return p.DbName
 }
 
+
+
 func (p *ShowSegmentRequest) GetTableName() string {
 	return p.TableName
 }
+
+
 
 func (p *ShowSegmentRequest) GetSegmentID() int64 {
 	return p.SegmentID
@@ -24631,6 +23700,7 @@ func (p *ShowSegmentRequest) Read(ctx context.Context, iprot thrift.TProtocol) e
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -24737,18 +23807,10 @@ func (p *ShowSegmentRequest) Write(ctx context.Context, oprot thrift.TProtocol) 
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField4(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField4(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -24817,18 +23879,10 @@ func (p *ShowSegmentRequest) Equals(other *ShowSegmentRequest) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.SessionID != other.SessionID {
-		return false
-	}
-	if p.DbName != other.DbName {
-		return false
-	}
-	if p.TableName != other.TableName {
-		return false
-	}
-	if p.SegmentID != other.SegmentID {
-		return false
-	}
+	if p.SessionID != other.SessionID { return false }
+	if p.DbName != other.DbName { return false }
+	if p.TableName != other.TableName { return false }
+	if p.SegmentID != other.SegmentID { return false }
 	return true
 }
 
@@ -24844,7 +23898,7 @@ func (p *ShowSegmentRequest) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.ShowSegmentRequest",
+		Type: "*infinity.ShowSegmentRequest",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -24857,74 +23911,97 @@ func (p *ShowSegmentRequest) Validate() error {
 }
 
 // Attributes:
-//   - ErrorCode
-//   - ErrorMsg
-//   - SegmentID
-//   - Status
-//   - Path
-//   - Size
-//   - BlockCount
-//   - RowCapacity
-//   - RowCount
-//   - Room
-//   - ColumnCount
+//  - ErrorCode
+//  - ErrorMsg
+//  - SegmentID
+//  - Status
+//  - Path
+//  - Size
+//  - BlockCount
+//  - RowCapacity
+//  - RowCount
+//  - Room
+//  - ColumnCount
+// 
 type ShowSegmentResponse struct {
-	ErrorCode   int64  `thrift:"error_code,1" db:"error_code" json:"error_code"`
-	ErrorMsg    string `thrift:"error_msg,2" db:"error_msg" json:"error_msg"`
-	SegmentID   int64  `thrift:"segment_id,3" db:"segment_id" json:"segment_id"`
-	Status      string `thrift:"status,4" db:"status" json:"status"`
-	Path        string `thrift:"path,5" db:"path" json:"path"`
-	Size        string `thrift:"size,6" db:"size" json:"size"`
-	BlockCount  int64  `thrift:"block_count,7" db:"block_count" json:"block_count"`
-	RowCapacity int64  `thrift:"row_capacity,8" db:"row_capacity" json:"row_capacity"`
-	RowCount    int64  `thrift:"row_count,9" db:"row_count" json:"row_count"`
-	Room        int64  `thrift:"room,10" db:"room" json:"room"`
-	ColumnCount int64  `thrift:"column_count,11" db:"column_count" json:"column_count"`
+	ErrorCode int64 `thrift:"error_code,1" db:"error_code" json:"error_code"`
+	ErrorMsg string `thrift:"error_msg,2" db:"error_msg" json:"error_msg"`
+	SegmentID int64 `thrift:"segment_id,3" db:"segment_id" json:"segment_id"`
+	Status string `thrift:"status,4" db:"status" json:"status"`
+	Path string `thrift:"path,5" db:"path" json:"path"`
+	Size string `thrift:"size,6" db:"size" json:"size"`
+	BlockCount int64 `thrift:"block_count,7" db:"block_count" json:"block_count"`
+	RowCapacity int64 `thrift:"row_capacity,8" db:"row_capacity" json:"row_capacity"`
+	RowCount int64 `thrift:"row_count,9" db:"row_count" json:"row_count"`
+	Room int64 `thrift:"room,10" db:"room" json:"room"`
+	ColumnCount int64 `thrift:"column_count,11" db:"column_count" json:"column_count"`
 }
 
 func NewShowSegmentResponse() *ShowSegmentResponse {
 	return &ShowSegmentResponse{}
 }
 
+
+
 func (p *ShowSegmentResponse) GetErrorCode() int64 {
 	return p.ErrorCode
 }
+
+
 
 func (p *ShowSegmentResponse) GetErrorMsg() string {
 	return p.ErrorMsg
 }
 
+
+
 func (p *ShowSegmentResponse) GetSegmentID() int64 {
 	return p.SegmentID
 }
+
+
 
 func (p *ShowSegmentResponse) GetStatus() string {
 	return p.Status
 }
 
+
+
 func (p *ShowSegmentResponse) GetPath() string {
 	return p.Path
 }
+
+
 
 func (p *ShowSegmentResponse) GetSize() string {
 	return p.Size
 }
 
+
+
 func (p *ShowSegmentResponse) GetBlockCount() int64 {
 	return p.BlockCount
 }
+
+
 
 func (p *ShowSegmentResponse) GetRowCapacity() int64 {
 	return p.RowCapacity
 }
 
+
+
 func (p *ShowSegmentResponse) GetRowCount() int64 {
 	return p.RowCount
 }
 
+
+
 func (p *ShowSegmentResponse) GetRoom() int64 {
 	return p.Room
 }
+
+
 
 func (p *ShowSegmentResponse) GetColumnCount() int64 {
 	return p.ColumnCount
@@ -24934,6 +24011,7 @@ func (p *ShowSegmentResponse) Read(ctx context.Context, iprot thrift.TProtocol) 
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -25173,39 +24251,17 @@ func (p *ShowSegmentResponse) Write(ctx context.Context, oprot thrift.TProtocol)
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField4(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField5(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField6(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField7(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField8(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField9(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField10(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField11(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField4(ctx, oprot); err != nil { return err }
+		if err := p.writeField5(ctx, oprot); err != nil { return err }
+		if err := p.writeField6(ctx, oprot); err != nil { return err }
+		if err := p.writeField7(ctx, oprot); err != nil { return err }
+		if err := p.writeField8(ctx, oprot); err != nil { return err }
+		if err := p.writeField9(ctx, oprot); err != nil { return err }
+		if err := p.writeField10(ctx, oprot); err != nil { return err }
+		if err := p.writeField11(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -25365,39 +24421,17 @@ func (p *ShowSegmentResponse) Equals(other *ShowSegmentResponse) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.ErrorCode != other.ErrorCode {
-		return false
-	}
-	if p.ErrorMsg != other.ErrorMsg {
-		return false
-	}
-	if p.SegmentID != other.SegmentID {
-		return false
-	}
-	if p.Status != other.Status {
-		return false
-	}
-	if p.Path != other.Path {
-		return false
-	}
-	if p.Size != other.Size {
-		return false
-	}
-	if p.BlockCount != other.BlockCount {
-		return false
-	}
-	if p.RowCapacity != other.RowCapacity {
-		return false
-	}
-	if p.RowCount != other.RowCount {
-		return false
-	}
-	if p.Room != other.Room {
-		return false
-	}
-	if p.ColumnCount != other.ColumnCount {
-		return false
-	}
+	if p.ErrorCode != other.ErrorCode { return false }
+	if p.ErrorMsg != other.ErrorMsg { return false }
+	if p.SegmentID != other.SegmentID { return false }
+	if p.Status != other.Status { return false }
+	if p.Path != other.Path { return false }
+	if p.Size != other.Size { return false }
+	if p.BlockCount != other.BlockCount { return false }
+	if p.RowCapacity != other.RowCapacity { return false }
+	if p.RowCount != other.RowCount { return false }
+	if p.Room != other.Room { return false }
+	if p.ColumnCount != other.ColumnCount { return false }
 	return true
 }
 
@@ -25413,7 +24447,7 @@ func (p *ShowSegmentResponse) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.ShowSegmentResponse",
+		Type: "*infinity.ShowSegmentResponse",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -25426,32 +24460,41 @@ func (p *ShowSegmentResponse) Validate() error {
 }
 
 // Attributes:
-//   - SessionID
-//   - DbName
-//   - TableName
-//   - SegmentID
+//  - SessionID
+//  - DbName
+//  - TableName
+//  - SegmentID
+// 
 type ShowBlocksRequest struct {
-	SessionID int64  `thrift:"session_id,1" db:"session_id" json:"session_id"`
-	DbName    string `thrift:"db_name,2" db:"db_name" json:"db_name"`
+	SessionID int64 `thrift:"session_id,1" db:"session_id" json:"session_id"`
+	DbName string `thrift:"db_name,2" db:"db_name" json:"db_name"`
 	TableName string `thrift:"table_name,3" db:"table_name" json:"table_name"`
-	SegmentID int64  `thrift:"segment_id,4" db:"segment_id" json:"segment_id"`
+	SegmentID int64 `thrift:"segment_id,4" db:"segment_id" json:"segment_id"`
 }
 
 func NewShowBlocksRequest() *ShowBlocksRequest {
 	return &ShowBlocksRequest{}
 }
 
+
+
 func (p *ShowBlocksRequest) GetSessionID() int64 {
 	return p.SessionID
 }
+
+
 
 func (p *ShowBlocksRequest) GetDbName() string {
 	return p.DbName
 }
 
+
+
 func (p *ShowBlocksRequest) GetTableName() string {
 	return p.TableName
 }
+
+
 
 func (p *ShowBlocksRequest) GetSegmentID() int64 {
 	return p.SegmentID
@@ -25461,6 +24504,7 @@ func (p *ShowBlocksRequest) Read(ctx context.Context, iprot thrift.TProtocol) er
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -25567,18 +24611,10 @@ func (p *ShowBlocksRequest) Write(ctx context.Context, oprot thrift.TProtocol) e
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField4(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField4(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -25647,18 +24683,10 @@ func (p *ShowBlocksRequest) Equals(other *ShowBlocksRequest) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.SessionID != other.SessionID {
-		return false
-	}
-	if p.DbName != other.DbName {
-		return false
-	}
-	if p.TableName != other.TableName {
-		return false
-	}
-	if p.SegmentID != other.SegmentID {
-		return false
-	}
+	if p.SessionID != other.SessionID { return false }
+	if p.DbName != other.DbName { return false }
+	if p.TableName != other.TableName { return false }
+	if p.SegmentID != other.SegmentID { return false }
 	return true
 }
 
@@ -25674,7 +24702,7 @@ func (p *ShowBlocksRequest) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.ShowBlocksRequest",
+		Type: "*infinity.ShowBlocksRequest",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -25687,38 +24715,49 @@ func (p *ShowBlocksRequest) Validate() error {
 }
 
 // Attributes:
-//   - SessionID
-//   - DbName
-//   - TableName
-//   - SegmentID
-//   - BlockID
+//  - SessionID
+//  - DbName
+//  - TableName
+//  - SegmentID
+//  - BlockID
+// 
 type ShowBlockRequest struct {
-	SessionID int64  `thrift:"session_id,1" db:"session_id" json:"session_id"`
-	DbName    string `thrift:"db_name,2" db:"db_name" json:"db_name"`
+	SessionID int64 `thrift:"session_id,1" db:"session_id" json:"session_id"`
+	DbName string `thrift:"db_name,2" db:"db_name" json:"db_name"`
 	TableName string `thrift:"table_name,3" db:"table_name" json:"table_name"`
-	SegmentID int64  `thrift:"segment_id,4" db:"segment_id" json:"segment_id"`
-	BlockID   int64  `thrift:"block_id,5" db:"block_id" json:"block_id"`
+	SegmentID int64 `thrift:"segment_id,4" db:"segment_id" json:"segment_id"`
+	BlockID int64 `thrift:"block_id,5" db:"block_id" json:"block_id"`
 }
 
 func NewShowBlockRequest() *ShowBlockRequest {
 	return &ShowBlockRequest{}
 }
 
+
+
 func (p *ShowBlockRequest) GetSessionID() int64 {
 	return p.SessionID
 }
+
+
 
 func (p *ShowBlockRequest) GetDbName() string {
 	return p.DbName
 }
 
+
+
 func (p *ShowBlockRequest) GetTableName() string {
 	return p.TableName
 }
 
+
+
 func (p *ShowBlockRequest) GetSegmentID() int64 {
 	return p.SegmentID
 }
+
+
 
 func (p *ShowBlockRequest) GetBlockID() int64 {
 	return p.BlockID
@@ -25728,6 +24767,7 @@ func (p *ShowBlockRequest) Read(ctx context.Context, iprot thrift.TProtocol) err
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -25853,21 +24893,11 @@ func (p *ShowBlockRequest) Write(ctx context.Context, oprot thrift.TProtocol) er
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField4(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField5(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField4(ctx, oprot); err != nil { return err }
+		if err := p.writeField5(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -25949,21 +24979,11 @@ func (p *ShowBlockRequest) Equals(other *ShowBlockRequest) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.SessionID != other.SessionID {
-		return false
-	}
-	if p.DbName != other.DbName {
-		return false
-	}
-	if p.TableName != other.TableName {
-		return false
-	}
-	if p.SegmentID != other.SegmentID {
-		return false
-	}
-	if p.BlockID != other.BlockID {
-		return false
-	}
+	if p.SessionID != other.SessionID { return false }
+	if p.DbName != other.DbName { return false }
+	if p.TableName != other.TableName { return false }
+	if p.SegmentID != other.SegmentID { return false }
+	if p.BlockID != other.BlockID { return false }
 	return true
 }
 
@@ -25979,7 +24999,7 @@ func (p *ShowBlockRequest) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.ShowBlockRequest",
+		Type: "*infinity.ShowBlockRequest",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -25992,56 +25012,73 @@ func (p *ShowBlockRequest) Validate() error {
 }
 
 // Attributes:
-//   - ErrorCode
-//   - ErrorMsg
-//   - BlockID
-//   - Path
-//   - Size
-//   - RowCapacity
-//   - RowCount
-//   - ColumnCount
+//  - ErrorCode
+//  - ErrorMsg
+//  - BlockID
+//  - Path
+//  - Size
+//  - RowCapacity
+//  - RowCount
+//  - ColumnCount
+// 
 type ShowBlockResponse struct {
-	ErrorCode   int64  `thrift:"error_code,1" db:"error_code" json:"error_code"`
-	ErrorMsg    string `thrift:"error_msg,2" db:"error_msg" json:"error_msg"`
-	BlockID     int64  `thrift:"block_id,3" db:"block_id" json:"block_id"`
-	Path        string `thrift:"path,4" db:"path" json:"path"`
-	Size        string `thrift:"size,5" db:"size" json:"size"`
-	RowCapacity int64  `thrift:"row_capacity,6" db:"row_capacity" json:"row_capacity"`
-	RowCount    int64  `thrift:"row_count,7" db:"row_count" json:"row_count"`
-	ColumnCount int64  `thrift:"column_count,8" db:"column_count" json:"column_count"`
+	ErrorCode int64 `thrift:"error_code,1" db:"error_code" json:"error_code"`
+	ErrorMsg string `thrift:"error_msg,2" db:"error_msg" json:"error_msg"`
+	BlockID int64 `thrift:"block_id,3" db:"block_id" json:"block_id"`
+	Path string `thrift:"path,4" db:"path" json:"path"`
+	Size string `thrift:"size,5" db:"size" json:"size"`
+	RowCapacity int64 `thrift:"row_capacity,6" db:"row_capacity" json:"row_capacity"`
+	RowCount int64 `thrift:"row_count,7" db:"row_count" json:"row_count"`
+	ColumnCount int64 `thrift:"column_count,8" db:"column_count" json:"column_count"`
 }
 
 func NewShowBlockResponse() *ShowBlockResponse {
 	return &ShowBlockResponse{}
 }
 
+
+
 func (p *ShowBlockResponse) GetErrorCode() int64 {
 	return p.ErrorCode
 }
+
+
 
 func (p *ShowBlockResponse) GetErrorMsg() string {
 	return p.ErrorMsg
 }
 
+
+
 func (p *ShowBlockResponse) GetBlockID() int64 {
 	return p.BlockID
 }
+
+
 
 func (p *ShowBlockResponse) GetPath() string {
 	return p.Path
 }
 
+
+
 func (p *ShowBlockResponse) GetSize() string {
 	return p.Size
 }
+
+
 
 func (p *ShowBlockResponse) GetRowCapacity() int64 {
 	return p.RowCapacity
 }
 
+
+
 func (p *ShowBlockResponse) GetRowCount() int64 {
 	return p.RowCount
 }
+
+
 
 func (p *ShowBlockResponse) GetColumnCount() int64 {
 	return p.ColumnCount
@@ -26051,6 +25088,7 @@ func (p *ShowBlockResponse) Read(ctx context.Context, iprot thrift.TProtocol) er
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -26233,30 +25271,14 @@ func (p *ShowBlockResponse) Write(ctx context.Context, oprot thrift.TProtocol) e
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField4(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField5(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField6(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField7(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField8(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField4(ctx, oprot); err != nil { return err }
+		if err := p.writeField5(ctx, oprot); err != nil { return err }
+		if err := p.writeField6(ctx, oprot); err != nil { return err }
+		if err := p.writeField7(ctx, oprot); err != nil { return err }
+		if err := p.writeField8(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -26377,30 +25399,14 @@ func (p *ShowBlockResponse) Equals(other *ShowBlockResponse) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.ErrorCode != other.ErrorCode {
-		return false
-	}
-	if p.ErrorMsg != other.ErrorMsg {
-		return false
-	}
-	if p.BlockID != other.BlockID {
-		return false
-	}
-	if p.Path != other.Path {
-		return false
-	}
-	if p.Size != other.Size {
-		return false
-	}
-	if p.RowCapacity != other.RowCapacity {
-		return false
-	}
-	if p.RowCount != other.RowCount {
-		return false
-	}
-	if p.ColumnCount != other.ColumnCount {
-		return false
-	}
+	if p.ErrorCode != other.ErrorCode { return false }
+	if p.ErrorMsg != other.ErrorMsg { return false }
+	if p.BlockID != other.BlockID { return false }
+	if p.Path != other.Path { return false }
+	if p.Size != other.Size { return false }
+	if p.RowCapacity != other.RowCapacity { return false }
+	if p.RowCount != other.RowCount { return false }
+	if p.ColumnCount != other.ColumnCount { return false }
 	return true
 }
 
@@ -26416,7 +25422,7 @@ func (p *ShowBlockResponse) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.ShowBlockResponse",
+		Type: "*infinity.ShowBlockResponse",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -26429,44 +25435,57 @@ func (p *ShowBlockResponse) Validate() error {
 }
 
 // Attributes:
-//   - SessionID
-//   - DbName
-//   - TableName
-//   - SegmentID
-//   - BlockID
-//   - ColumnID
+//  - SessionID
+//  - DbName
+//  - TableName
+//  - SegmentID
+//  - BlockID
+//  - ColumnID
+// 
 type ShowBlockColumnRequest struct {
-	SessionID int64  `thrift:"session_id,1" db:"session_id" json:"session_id"`
-	DbName    string `thrift:"db_name,2" db:"db_name" json:"db_name"`
+	SessionID int64 `thrift:"session_id,1" db:"session_id" json:"session_id"`
+	DbName string `thrift:"db_name,2" db:"db_name" json:"db_name"`
 	TableName string `thrift:"table_name,3" db:"table_name" json:"table_name"`
-	SegmentID int64  `thrift:"segment_id,4" db:"segment_id" json:"segment_id"`
-	BlockID   int64  `thrift:"block_id,5" db:"block_id" json:"block_id"`
-	ColumnID  int64  `thrift:"column_id,6" db:"column_id" json:"column_id"`
+	SegmentID int64 `thrift:"segment_id,4" db:"segment_id" json:"segment_id"`
+	BlockID int64 `thrift:"block_id,5" db:"block_id" json:"block_id"`
+	ColumnID int64 `thrift:"column_id,6" db:"column_id" json:"column_id"`
 }
 
 func NewShowBlockColumnRequest() *ShowBlockColumnRequest {
 	return &ShowBlockColumnRequest{}
 }
 
+
+
 func (p *ShowBlockColumnRequest) GetSessionID() int64 {
 	return p.SessionID
 }
+
+
 
 func (p *ShowBlockColumnRequest) GetDbName() string {
 	return p.DbName
 }
 
+
+
 func (p *ShowBlockColumnRequest) GetTableName() string {
 	return p.TableName
 }
+
+
 
 func (p *ShowBlockColumnRequest) GetSegmentID() int64 {
 	return p.SegmentID
 }
 
+
+
 func (p *ShowBlockColumnRequest) GetBlockID() int64 {
 	return p.BlockID
 }
+
+
 
 func (p *ShowBlockColumnRequest) GetColumnID() int64 {
 	return p.ColumnID
@@ -26476,6 +25495,7 @@ func (p *ShowBlockColumnRequest) Read(ctx context.Context, iprot thrift.TProtoco
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -26620,24 +25640,12 @@ func (p *ShowBlockColumnRequest) Write(ctx context.Context, oprot thrift.TProtoc
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField4(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField5(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField6(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField4(ctx, oprot); err != nil { return err }
+		if err := p.writeField5(ctx, oprot); err != nil { return err }
+		if err := p.writeField6(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -26732,24 +25740,12 @@ func (p *ShowBlockColumnRequest) Equals(other *ShowBlockColumnRequest) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.SessionID != other.SessionID {
-		return false
-	}
-	if p.DbName != other.DbName {
-		return false
-	}
-	if p.TableName != other.TableName {
-		return false
-	}
-	if p.SegmentID != other.SegmentID {
-		return false
-	}
-	if p.BlockID != other.BlockID {
-		return false
-	}
-	if p.ColumnID != other.ColumnID {
-		return false
-	}
+	if p.SessionID != other.SessionID { return false }
+	if p.DbName != other.DbName { return false }
+	if p.TableName != other.TableName { return false }
+	if p.SegmentID != other.SegmentID { return false }
+	if p.BlockID != other.BlockID { return false }
+	if p.ColumnID != other.ColumnID { return false }
 	return true
 }
 
@@ -26765,7 +25761,7 @@ func (p *ShowBlockColumnRequest) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.ShowBlockColumnRequest",
+		Type: "*infinity.ShowBlockColumnRequest",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -26778,22 +25774,23 @@ func (p *ShowBlockColumnRequest) Validate() error {
 }
 
 // Attributes:
-//   - ErrorCode
-//   - ErrorMsg
-//   - ColumnName
-//   - ColumnID
-//   - DataType
-//   - Path
-//   - ExtraFileCount
-//   - ExtraFileNames
+//  - ErrorCode
+//  - ErrorMsg
+//  - ColumnName
+//  - ColumnID
+//  - DataType
+//  - Path
+//  - ExtraFileCount
+//  - ExtraFileNames
+// 
 type ShowBlockColumnResponse struct {
-	ErrorCode      int64  `thrift:"error_code,1" db:"error_code" json:"error_code"`
-	ErrorMsg       string `thrift:"error_msg,2" db:"error_msg" json:"error_msg"`
-	ColumnName     string `thrift:"column_name,3" db:"column_name" json:"column_name"`
-	ColumnID       int64  `thrift:"column_id,4" db:"column_id" json:"column_id"`
-	DataType       string `thrift:"data_type,5" db:"data_type" json:"data_type"`
-	Path           string `thrift:"path,6" db:"path" json:"path"`
-	ExtraFileCount int64  `thrift:"extra_file_count,7" db:"extra_file_count" json:"extra_file_count"`
+	ErrorCode int64 `thrift:"error_code,1" db:"error_code" json:"error_code"`
+	ErrorMsg string `thrift:"error_msg,2" db:"error_msg" json:"error_msg"`
+	ColumnName string `thrift:"column_name,3" db:"column_name" json:"column_name"`
+	ColumnID int64 `thrift:"column_id,4" db:"column_id" json:"column_id"`
+	DataType string `thrift:"data_type,5" db:"data_type" json:"data_type"`
+	Path string `thrift:"path,6" db:"path" json:"path"`
+	ExtraFileCount int64 `thrift:"extra_file_count,7" db:"extra_file_count" json:"extra_file_count"`
 	ExtraFileNames string `thrift:"extra_file_names,8" db:"extra_file_names" json:"extra_file_names"`
 }
 
@@ -26801,33 +25798,49 @@ func NewShowBlockColumnResponse() *ShowBlockColumnResponse {
 	return &ShowBlockColumnResponse{}
 }
 
+
+
 func (p *ShowBlockColumnResponse) GetErrorCode() int64 {
 	return p.ErrorCode
 }
+
+
 
 func (p *ShowBlockColumnResponse) GetErrorMsg() string {
 	return p.ErrorMsg
 }
 
+
+
 func (p *ShowBlockColumnResponse) GetColumnName() string {
 	return p.ColumnName
 }
+
+
 
 func (p *ShowBlockColumnResponse) GetColumnID() int64 {
 	return p.ColumnID
 }
 
+
+
 func (p *ShowBlockColumnResponse) GetDataType() string {
 	return p.DataType
 }
+
+
 
 func (p *ShowBlockColumnResponse) GetPath() string {
 	return p.Path
 }
 
+
+
 func (p *ShowBlockColumnResponse) GetExtraFileCount() int64 {
 	return p.ExtraFileCount
 }
+
+
 
 func (p *ShowBlockColumnResponse) GetExtraFileNames() string {
 	return p.ExtraFileNames
@@ -26837,6 +25850,7 @@ func (p *ShowBlockColumnResponse) Read(ctx context.Context, iprot thrift.TProtoc
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -27019,30 +26033,14 @@ func (p *ShowBlockColumnResponse) Write(ctx context.Context, oprot thrift.TProto
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField4(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField5(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField6(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField7(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField8(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField4(ctx, oprot); err != nil { return err }
+		if err := p.writeField5(ctx, oprot); err != nil { return err }
+		if err := p.writeField6(ctx, oprot); err != nil { return err }
+		if err := p.writeField7(ctx, oprot); err != nil { return err }
+		if err := p.writeField8(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -27163,30 +26161,14 @@ func (p *ShowBlockColumnResponse) Equals(other *ShowBlockColumnResponse) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.ErrorCode != other.ErrorCode {
-		return false
-	}
-	if p.ErrorMsg != other.ErrorMsg {
-		return false
-	}
-	if p.ColumnName != other.ColumnName {
-		return false
-	}
-	if p.ColumnID != other.ColumnID {
-		return false
-	}
-	if p.DataType != other.DataType {
-		return false
-	}
-	if p.Path != other.Path {
-		return false
-	}
-	if p.ExtraFileCount != other.ExtraFileCount {
-		return false
-	}
-	if p.ExtraFileNames != other.ExtraFileNames {
-		return false
-	}
+	if p.ErrorCode != other.ErrorCode { return false }
+	if p.ErrorMsg != other.ErrorMsg { return false }
+	if p.ColumnName != other.ColumnName { return false }
+	if p.ColumnID != other.ColumnID { return false }
+	if p.DataType != other.DataType { return false }
+	if p.Path != other.Path { return false }
+	if p.ExtraFileCount != other.ExtraFileCount { return false }
+	if p.ExtraFileNames != other.ExtraFileNames { return false }
 	return true
 }
 
@@ -27202,7 +26184,7 @@ func (p *ShowBlockColumnResponse) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.ShowBlockColumnResponse",
+		Type: "*infinity.ShowBlockColumnResponse",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -27215,7 +26197,8 @@ func (p *ShowBlockColumnResponse) Validate() error {
 }
 
 // Attributes:
-//   - SessionID
+//  - SessionID
+// 
 type ShowCurrentNodeRequest struct {
 	SessionID int64 `thrift:"session_id,1" db:"session_id" json:"session_id"`
 }
@@ -27223,6 +26206,8 @@ type ShowCurrentNodeRequest struct {
 func NewShowCurrentNodeRequest() *ShowCurrentNodeRequest {
 	return &ShowCurrentNodeRequest{}
 }
+
+
 
 func (p *ShowCurrentNodeRequest) GetSessionID() int64 {
 	return p.SessionID
@@ -27232,6 +26217,7 @@ func (p *ShowCurrentNodeRequest) Read(ctx context.Context, iprot thrift.TProtoco
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -27281,9 +26267,7 @@ func (p *ShowCurrentNodeRequest) Write(ctx context.Context, oprot thrift.TProtoc
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -27313,9 +26297,7 @@ func (p *ShowCurrentNodeRequest) Equals(other *ShowCurrentNodeRequest) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.SessionID != other.SessionID {
-		return false
-	}
+	if p.SessionID != other.SessionID { return false }
 	return true
 }
 
@@ -27331,7 +26313,7 @@ func (p *ShowCurrentNodeRequest) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.ShowCurrentNodeRequest",
+		Type: "*infinity.ShowCurrentNodeRequest",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -27344,14 +26326,15 @@ func (p *ShowCurrentNodeRequest) Validate() error {
 }
 
 // Attributes:
-//   - ErrorCode
-//   - ErrorMsg
-//   - NodeRole
-//   - ServerStatus
+//  - ErrorCode
+//  - ErrorMsg
+//  - NodeRole
+//  - ServerStatus
+// 
 type ShowCurrentNodeResponse struct {
-	ErrorCode    int64  `thrift:"error_code,1" db:"error_code" json:"error_code"`
-	ErrorMsg     string `thrift:"error_msg,2" db:"error_msg" json:"error_msg"`
-	NodeRole     string `thrift:"node_role,3" db:"node_role" json:"node_role"`
+	ErrorCode int64 `thrift:"error_code,1" db:"error_code" json:"error_code"`
+	ErrorMsg string `thrift:"error_msg,2" db:"error_msg" json:"error_msg"`
+	NodeRole string `thrift:"node_role,3" db:"node_role" json:"node_role"`
 	ServerStatus string `thrift:"server_status,4" db:"server_status" json:"server_status"`
 }
 
@@ -27359,17 +26342,25 @@ func NewShowCurrentNodeResponse() *ShowCurrentNodeResponse {
 	return &ShowCurrentNodeResponse{}
 }
 
+
+
 func (p *ShowCurrentNodeResponse) GetErrorCode() int64 {
 	return p.ErrorCode
 }
+
+
 
 func (p *ShowCurrentNodeResponse) GetErrorMsg() string {
 	return p.ErrorMsg
 }
 
+
+
 func (p *ShowCurrentNodeResponse) GetNodeRole() string {
 	return p.NodeRole
 }
+
+
 
 func (p *ShowCurrentNodeResponse) GetServerStatus() string {
 	return p.ServerStatus
@@ -27379,6 +26370,7 @@ func (p *ShowCurrentNodeResponse) Read(ctx context.Context, iprot thrift.TProtoc
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -27485,18 +26477,10 @@ func (p *ShowCurrentNodeResponse) Write(ctx context.Context, oprot thrift.TProto
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField4(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField4(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -27565,18 +26549,10 @@ func (p *ShowCurrentNodeResponse) Equals(other *ShowCurrentNodeResponse) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.ErrorCode != other.ErrorCode {
-		return false
-	}
-	if p.ErrorMsg != other.ErrorMsg {
-		return false
-	}
-	if p.NodeRole != other.NodeRole {
-		return false
-	}
-	if p.ServerStatus != other.ServerStatus {
-		return false
-	}
+	if p.ErrorCode != other.ErrorCode { return false }
+	if p.ErrorMsg != other.ErrorMsg { return false }
+	if p.NodeRole != other.NodeRole { return false }
+	if p.ServerStatus != other.ServerStatus { return false }
 	return true
 }
 
@@ -27592,7 +26568,7 @@ func (p *ShowCurrentNodeResponse) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.ShowCurrentNodeResponse",
+		Type: "*infinity.ShowCurrentNodeResponse",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -27605,12 +26581,13 @@ func (p *ShowCurrentNodeResponse) Validate() error {
 }
 
 // Attributes:
-//   - SessionID
-//   - CommandType
-//   - TestCommandContent
+//  - SessionID
+//  - CommandType
+//  - TestCommandContent
+// 
 type CommandRequest struct {
-	SessionID          int64  `thrift:"session_id,1" db:"session_id" json:"session_id"`
-	CommandType        string `thrift:"command_type,2" db:"command_type" json:"command_type"`
+	SessionID int64 `thrift:"session_id,1" db:"session_id" json:"session_id"`
+	CommandType string `thrift:"command_type,2" db:"command_type" json:"command_type"`
 	TestCommandContent string `thrift:"test_command_content,3" db:"test_command_content" json:"test_command_content"`
 }
 
@@ -27618,13 +26595,19 @@ func NewCommandRequest() *CommandRequest {
 	return &CommandRequest{}
 }
 
+
+
 func (p *CommandRequest) GetSessionID() int64 {
 	return p.SessionID
 }
 
+
+
 func (p *CommandRequest) GetCommandType() string {
 	return p.CommandType
 }
+
+
 
 func (p *CommandRequest) GetTestCommandContent() string {
 	return p.TestCommandContent
@@ -27634,6 +26617,7 @@ func (p *CommandRequest) Read(ctx context.Context, iprot thrift.TProtocol) error
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -27721,15 +26705,9 @@ func (p *CommandRequest) Write(ctx context.Context, oprot thrift.TProtocol) erro
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -27785,15 +26763,9 @@ func (p *CommandRequest) Equals(other *CommandRequest) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.SessionID != other.SessionID {
-		return false
-	}
-	if p.CommandType != other.CommandType {
-		return false
-	}
-	if p.TestCommandContent != other.TestCommandContent {
-		return false
-	}
+	if p.SessionID != other.SessionID { return false }
+	if p.CommandType != other.CommandType { return false }
+	if p.TestCommandContent != other.TestCommandContent { return false }
 	return true
 }
 
@@ -27809,7 +26781,7 @@ func (p *CommandRequest) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.CommandRequest",
+		Type: "*infinity.CommandRequest",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -27822,10 +26794,11 @@ func (p *CommandRequest) Validate() error {
 }
 
 // Attributes:
-//   - SessionID
-//   - FlushType
+//  - SessionID
+//  - FlushType
+// 
 type FlushRequest struct {
-	SessionID int64  `thrift:"session_id,1" db:"session_id" json:"session_id"`
+	SessionID int64 `thrift:"session_id,1" db:"session_id" json:"session_id"`
 	FlushType string `thrift:"flush_type,2" db:"flush_type" json:"flush_type"`
 }
 
@@ -27833,9 +26806,13 @@ func NewFlushRequest() *FlushRequest {
 	return &FlushRequest{}
 }
 
+
+
 func (p *FlushRequest) GetSessionID() int64 {
 	return p.SessionID
 }
+
+
 
 func (p *FlushRequest) GetFlushType() string {
 	return p.FlushType
@@ -27845,6 +26822,7 @@ func (p *FlushRequest) Read(ctx context.Context, iprot thrift.TProtocol) error {
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -27913,12 +26891,8 @@ func (p *FlushRequest) Write(ctx context.Context, oprot thrift.TProtocol) error 
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -27961,12 +26935,8 @@ func (p *FlushRequest) Equals(other *FlushRequest) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.SessionID != other.SessionID {
-		return false
-	}
-	if p.FlushType != other.FlushType {
-		return false
-	}
+	if p.SessionID != other.SessionID { return false }
+	if p.FlushType != other.FlushType { return false }
 	return true
 }
 
@@ -27982,7 +26952,7 @@ func (p *FlushRequest) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.FlushRequest",
+		Type: "*infinity.FlushRequest",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -27995,12 +26965,13 @@ func (p *FlushRequest) Validate() error {
 }
 
 // Attributes:
-//   - SessionID
-//   - DbName
-//   - TableName
+//  - SessionID
+//  - DbName
+//  - TableName
+// 
 type CompactRequest struct {
-	SessionID int64  `thrift:"session_id,1" db:"session_id" json:"session_id"`
-	DbName    string `thrift:"db_name,2" db:"db_name" json:"db_name"`
+	SessionID int64 `thrift:"session_id,1" db:"session_id" json:"session_id"`
+	DbName string `thrift:"db_name,2" db:"db_name" json:"db_name"`
 	TableName string `thrift:"table_name,3" db:"table_name" json:"table_name"`
 }
 
@@ -28008,13 +26979,19 @@ func NewCompactRequest() *CompactRequest {
 	return &CompactRequest{}
 }
 
+
+
 func (p *CompactRequest) GetSessionID() int64 {
 	return p.SessionID
 }
 
+
+
 func (p *CompactRequest) GetDbName() string {
 	return p.DbName
 }
+
+
 
 func (p *CompactRequest) GetTableName() string {
 	return p.TableName
@@ -28024,6 +27001,7 @@ func (p *CompactRequest) Read(ctx context.Context, iprot thrift.TProtocol) error
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -28111,15 +27089,9 @@ func (p *CompactRequest) Write(ctx context.Context, oprot thrift.TProtocol) erro
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -28175,15 +27147,9 @@ func (p *CompactRequest) Equals(other *CompactRequest) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.SessionID != other.SessionID {
-		return false
-	}
-	if p.DbName != other.DbName {
-		return false
-	}
-	if p.TableName != other.TableName {
-		return false
-	}
+	if p.SessionID != other.SessionID { return false }
+	if p.DbName != other.DbName { return false }
+	if p.TableName != other.TableName { return false }
 	return true
 }
 
@@ -28199,7 +27165,7 @@ func (p *CompactRequest) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.CompactRequest",
+		Type: "*infinity.CompactRequest",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -28212,14 +27178,15 @@ func (p *CompactRequest) Validate() error {
 }
 
 // Attributes:
-//   - SessionID
-//   - DbName
-//   - TableName
-//   - SnapshotName
+//  - SessionID
+//  - DbName
+//  - TableName
+//  - SnapshotName
+// 
 type CreateTableSnapshotRequest struct {
-	SessionID    int64  `thrift:"session_id,1" db:"session_id" json:"session_id"`
-	DbName       string `thrift:"db_name,2" db:"db_name" json:"db_name"`
-	TableName    string `thrift:"table_name,3" db:"table_name" json:"table_name"`
+	SessionID int64 `thrift:"session_id,1" db:"session_id" json:"session_id"`
+	DbName string `thrift:"db_name,2" db:"db_name" json:"db_name"`
+	TableName string `thrift:"table_name,3" db:"table_name" json:"table_name"`
 	SnapshotName string `thrift:"snapshot_name,4" db:"snapshot_name" json:"snapshot_name"`
 }
 
@@ -28227,17 +27194,25 @@ func NewCreateTableSnapshotRequest() *CreateTableSnapshotRequest {
 	return &CreateTableSnapshotRequest{}
 }
 
+
+
 func (p *CreateTableSnapshotRequest) GetSessionID() int64 {
 	return p.SessionID
 }
+
+
 
 func (p *CreateTableSnapshotRequest) GetDbName() string {
 	return p.DbName
 }
 
+
+
 func (p *CreateTableSnapshotRequest) GetTableName() string {
 	return p.TableName
 }
+
+
 
 func (p *CreateTableSnapshotRequest) GetSnapshotName() string {
 	return p.SnapshotName
@@ -28247,6 +27222,7 @@ func (p *CreateTableSnapshotRequest) Read(ctx context.Context, iprot thrift.TPro
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -28353,18 +27329,10 @@ func (p *CreateTableSnapshotRequest) Write(ctx context.Context, oprot thrift.TPr
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField4(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField4(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -28433,18 +27401,10 @@ func (p *CreateTableSnapshotRequest) Equals(other *CreateTableSnapshotRequest) b
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.SessionID != other.SessionID {
-		return false
-	}
-	if p.DbName != other.DbName {
-		return false
-	}
-	if p.TableName != other.TableName {
-		return false
-	}
-	if p.SnapshotName != other.SnapshotName {
-		return false
-	}
+	if p.SessionID != other.SessionID { return false }
+	if p.DbName != other.DbName { return false }
+	if p.TableName != other.TableName { return false }
+	if p.SnapshotName != other.SnapshotName { return false }
 	return true
 }
 
@@ -28460,7 +27420,7 @@ func (p *CreateTableSnapshotRequest) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.CreateTableSnapshotRequest",
+		Type: "*infinity.CreateTableSnapshotRequest",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -28473,12 +27433,13 @@ func (p *CreateTableSnapshotRequest) Validate() error {
 }
 
 // Attributes:
-//   - SessionID
-//   - DbName
-//   - SnapshotName
+//  - SessionID
+//  - DbName
+//  - SnapshotName
+// 
 type CreateDatabaseSnapshotRequest struct {
-	SessionID    int64  `thrift:"session_id,1" db:"session_id" json:"session_id"`
-	DbName       string `thrift:"db_name,2" db:"db_name" json:"db_name"`
+	SessionID int64 `thrift:"session_id,1" db:"session_id" json:"session_id"`
+	DbName string `thrift:"db_name,2" db:"db_name" json:"db_name"`
 	SnapshotName string `thrift:"snapshot_name,3" db:"snapshot_name" json:"snapshot_name"`
 }
 
@@ -28486,13 +27447,19 @@ func NewCreateDatabaseSnapshotRequest() *CreateDatabaseSnapshotRequest {
 	return &CreateDatabaseSnapshotRequest{}
 }
 
+
+
 func (p *CreateDatabaseSnapshotRequest) GetSessionID() int64 {
 	return p.SessionID
 }
 
+
+
 func (p *CreateDatabaseSnapshotRequest) GetDbName() string {
 	return p.DbName
 }
+
+
 
 func (p *CreateDatabaseSnapshotRequest) GetSnapshotName() string {
 	return p.SnapshotName
@@ -28502,6 +27469,7 @@ func (p *CreateDatabaseSnapshotRequest) Read(ctx context.Context, iprot thrift.T
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -28589,15 +27557,9 @@ func (p *CreateDatabaseSnapshotRequest) Write(ctx context.Context, oprot thrift.
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -28653,15 +27615,9 @@ func (p *CreateDatabaseSnapshotRequest) Equals(other *CreateDatabaseSnapshotRequ
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.SessionID != other.SessionID {
-		return false
-	}
-	if p.DbName != other.DbName {
-		return false
-	}
-	if p.SnapshotName != other.SnapshotName {
-		return false
-	}
+	if p.SessionID != other.SessionID { return false }
+	if p.DbName != other.DbName { return false }
+	if p.SnapshotName != other.SnapshotName { return false }
 	return true
 }
 
@@ -28677,7 +27633,7 @@ func (p *CreateDatabaseSnapshotRequest) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.CreateDatabaseSnapshotRequest",
+		Type: "*infinity.CreateDatabaseSnapshotRequest",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -28690,10 +27646,11 @@ func (p *CreateDatabaseSnapshotRequest) Validate() error {
 }
 
 // Attributes:
-//   - SessionID
-//   - SnapshotName
+//  - SessionID
+//  - SnapshotName
+// 
 type CreateSystemSnapshotRequest struct {
-	SessionID    int64  `thrift:"session_id,1" db:"session_id" json:"session_id"`
+	SessionID int64 `thrift:"session_id,1" db:"session_id" json:"session_id"`
 	SnapshotName string `thrift:"snapshot_name,2" db:"snapshot_name" json:"snapshot_name"`
 }
 
@@ -28701,9 +27658,13 @@ func NewCreateSystemSnapshotRequest() *CreateSystemSnapshotRequest {
 	return &CreateSystemSnapshotRequest{}
 }
 
+
+
 func (p *CreateSystemSnapshotRequest) GetSessionID() int64 {
 	return p.SessionID
 }
+
+
 
 func (p *CreateSystemSnapshotRequest) GetSnapshotName() string {
 	return p.SnapshotName
@@ -28713,6 +27674,7 @@ func (p *CreateSystemSnapshotRequest) Read(ctx context.Context, iprot thrift.TPr
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -28781,12 +27743,8 @@ func (p *CreateSystemSnapshotRequest) Write(ctx context.Context, oprot thrift.TP
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -28829,12 +27787,8 @@ func (p *CreateSystemSnapshotRequest) Equals(other *CreateSystemSnapshotRequest)
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.SessionID != other.SessionID {
-		return false
-	}
-	if p.SnapshotName != other.SnapshotName {
-		return false
-	}
+	if p.SessionID != other.SessionID { return false }
+	if p.SnapshotName != other.SnapshotName { return false }
 	return true
 }
 
@@ -28850,7 +27804,7 @@ func (p *CreateSystemSnapshotRequest) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.CreateSystemSnapshotRequest",
+		Type: "*infinity.CreateSystemSnapshotRequest",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -28863,26 +27817,33 @@ func (p *CreateSystemSnapshotRequest) Validate() error {
 }
 
 // Attributes:
-//   - SessionID
-//   - SnapshotName
-//   - Scope
+//  - SessionID
+//  - SnapshotName
+//  - Scope
+// 
 type RestoreSnapshotRequest struct {
-	SessionID    int64  `thrift:"session_id,1" db:"session_id" json:"session_id"`
+	SessionID int64 `thrift:"session_id,1" db:"session_id" json:"session_id"`
 	SnapshotName string `thrift:"snapshot_name,2" db:"snapshot_name" json:"snapshot_name"`
-	Scope        string `thrift:"scope,3" db:"scope" json:"scope"`
+	Scope string `thrift:"scope,3" db:"scope" json:"scope"`
 }
 
 func NewRestoreSnapshotRequest() *RestoreSnapshotRequest {
 	return &RestoreSnapshotRequest{}
 }
 
+
+
 func (p *RestoreSnapshotRequest) GetSessionID() int64 {
 	return p.SessionID
 }
 
+
+
 func (p *RestoreSnapshotRequest) GetSnapshotName() string {
 	return p.SnapshotName
 }
+
+
 
 func (p *RestoreSnapshotRequest) GetScope() string {
 	return p.Scope
@@ -28892,6 +27853,7 @@ func (p *RestoreSnapshotRequest) Read(ctx context.Context, iprot thrift.TProtoco
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -28979,15 +27941,9 @@ func (p *RestoreSnapshotRequest) Write(ctx context.Context, oprot thrift.TProtoc
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -29043,15 +27999,9 @@ func (p *RestoreSnapshotRequest) Equals(other *RestoreSnapshotRequest) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.SessionID != other.SessionID {
-		return false
-	}
-	if p.SnapshotName != other.SnapshotName {
-		return false
-	}
-	if p.Scope != other.Scope {
-		return false
-	}
+	if p.SessionID != other.SessionID { return false }
+	if p.SnapshotName != other.SnapshotName { return false }
+	if p.Scope != other.Scope { return false }
 	return true
 }
 
@@ -29067,7 +28017,7 @@ func (p *RestoreSnapshotRequest) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.RestoreSnapshotRequest",
+		Type: "*infinity.RestoreSnapshotRequest",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -29080,38 +28030,49 @@ func (p *RestoreSnapshotRequest) Validate() error {
 }
 
 // Attributes:
-//   - Name
-//   - Scope
-//   - Time
-//   - Commit
-//   - Size
+//  - Name
+//  - Scope
+//  - Time
+//  - Commit
+//  - Size
+// 
 type SnapshotInfo struct {
-	Name   string `thrift:"name,1" db:"name" json:"name"`
-	Scope  string `thrift:"scope,2" db:"scope" json:"scope"`
-	Time   string `thrift:"time,3" db:"time" json:"time"`
-	Commit int64  `thrift:"commit,4" db:"commit" json:"commit"`
-	Size   string `thrift:"size,5" db:"size" json:"size"`
+	Name string `thrift:"name,1" db:"name" json:"name"`
+	Scope string `thrift:"scope,2" db:"scope" json:"scope"`
+	Time string `thrift:"time,3" db:"time" json:"time"`
+	Commit int64 `thrift:"commit,4" db:"commit" json:"commit"`
+	Size string `thrift:"size,5" db:"size" json:"size"`
 }
 
 func NewSnapshotInfo() *SnapshotInfo {
 	return &SnapshotInfo{}
 }
 
+
+
 func (p *SnapshotInfo) GetName() string {
 	return p.Name
 }
+
+
 
 func (p *SnapshotInfo) GetScope() string {
 	return p.Scope
 }
 
+
+
 func (p *SnapshotInfo) GetTime() string {
 	return p.Time
 }
 
+
+
 func (p *SnapshotInfo) GetCommit() int64 {
 	return p.Commit
 }
+
+
 
 func (p *SnapshotInfo) GetSize() string {
 	return p.Size
@@ -29121,6 +28082,7 @@ func (p *SnapshotInfo) Read(ctx context.Context, iprot thrift.TProtocol) error {
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -29246,21 +28208,11 @@ func (p *SnapshotInfo) Write(ctx context.Context, oprot thrift.TProtocol) error 
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField4(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField5(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField4(ctx, oprot); err != nil { return err }
+		if err := p.writeField5(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -29342,21 +28294,11 @@ func (p *SnapshotInfo) Equals(other *SnapshotInfo) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.Name != other.Name {
-		return false
-	}
-	if p.Scope != other.Scope {
-		return false
-	}
-	if p.Time != other.Time {
-		return false
-	}
-	if p.Commit != other.Commit {
-		return false
-	}
-	if p.Size != other.Size {
-		return false
-	}
+	if p.Name != other.Name { return false }
+	if p.Scope != other.Scope { return false }
+	if p.Time != other.Time { return false }
+	if p.Commit != other.Commit { return false }
+	if p.Size != other.Size { return false }
 	return true
 }
 
@@ -29372,7 +28314,7 @@ func (p *SnapshotInfo) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.SnapshotInfo",
+		Type: "*infinity.SnapshotInfo",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -29385,10 +28327,11 @@ func (p *SnapshotInfo) Validate() error {
 }
 
 // Attributes:
-//   - SessionID
-//   - SnapshotName
+//  - SessionID
+//  - SnapshotName
+// 
 type ShowSnapshotRequest struct {
-	SessionID    int64  `thrift:"session_id,1" db:"session_id" json:"session_id"`
+	SessionID int64 `thrift:"session_id,1" db:"session_id" json:"session_id"`
 	SnapshotName string `thrift:"snapshot_name,2" db:"snapshot_name" json:"snapshot_name"`
 }
 
@@ -29396,9 +28339,13 @@ func NewShowSnapshotRequest() *ShowSnapshotRequest {
 	return &ShowSnapshotRequest{}
 }
 
+
+
 func (p *ShowSnapshotRequest) GetSessionID() int64 {
 	return p.SessionID
 }
+
+
 
 func (p *ShowSnapshotRequest) GetSnapshotName() string {
 	return p.SnapshotName
@@ -29408,6 +28355,7 @@ func (p *ShowSnapshotRequest) Read(ctx context.Context, iprot thrift.TProtocol) 
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -29476,12 +28424,8 @@ func (p *ShowSnapshotRequest) Write(ctx context.Context, oprot thrift.TProtocol)
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -29524,12 +28468,8 @@ func (p *ShowSnapshotRequest) Equals(other *ShowSnapshotRequest) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.SessionID != other.SessionID {
-		return false
-	}
-	if p.SnapshotName != other.SnapshotName {
-		return false
-	}
+	if p.SessionID != other.SessionID { return false }
+	if p.SnapshotName != other.SnapshotName { return false }
 	return true
 }
 
@@ -29545,7 +28485,7 @@ func (p *ShowSnapshotRequest) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.ShowSnapshotRequest",
+		Type: "*infinity.ShowSnapshotRequest",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -29558,22 +28498,27 @@ func (p *ShowSnapshotRequest) Validate() error {
 }
 
 // Attributes:
-//   - ErrorCode
-//   - ErrorMsg
-//   - Snapshot
+//  - ErrorCode
+//  - ErrorMsg
+//  - Snapshot
+// 
 type ShowSnapshotResponse struct {
-	ErrorCode int64         `thrift:"error_code,1" db:"error_code" json:"error_code"`
-	ErrorMsg  string        `thrift:"error_msg,2" db:"error_msg" json:"error_msg"`
-	Snapshot  *SnapshotInfo `thrift:"snapshot,3" db:"snapshot" json:"snapshot"`
+	ErrorCode int64 `thrift:"error_code,1" db:"error_code" json:"error_code"`
+	ErrorMsg string `thrift:"error_msg,2" db:"error_msg" json:"error_msg"`
+	Snapshot *SnapshotInfo `thrift:"snapshot,3" db:"snapshot" json:"snapshot"`
 }
 
 func NewShowSnapshotResponse() *ShowSnapshotResponse {
 	return &ShowSnapshotResponse{}
 }
 
+
+
 func (p *ShowSnapshotResponse) GetErrorCode() int64 {
 	return p.ErrorCode
 }
+
+
 
 func (p *ShowSnapshotResponse) GetErrorMsg() string {
 	return p.ErrorMsg
@@ -29596,6 +28541,7 @@ func (p *ShowSnapshotResponse) Read(ctx context.Context, iprot thrift.TProtocol)
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -29682,15 +28628,9 @@ func (p *ShowSnapshotResponse) Write(ctx context.Context, oprot thrift.TProtocol
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -29746,15 +28686,9 @@ func (p *ShowSnapshotResponse) Equals(other *ShowSnapshotResponse) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.ErrorCode != other.ErrorCode {
-		return false
-	}
-	if p.ErrorMsg != other.ErrorMsg {
-		return false
-	}
-	if !p.Snapshot.Equals(other.Snapshot) {
-		return false
-	}
+	if p.ErrorCode != other.ErrorCode { return false }
+	if p.ErrorMsg != other.ErrorMsg { return false }
+	if !p.Snapshot.Equals(other.Snapshot) { return false }
 	return true
 }
 
@@ -29770,7 +28704,7 @@ func (p *ShowSnapshotResponse) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.ShowSnapshotResponse",
+		Type: "*infinity.ShowSnapshotResponse",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -29783,7 +28717,8 @@ func (p *ShowSnapshotResponse) Validate() error {
 }
 
 // Attributes:
-//   - SessionID
+//  - SessionID
+// 
 type ListSnapshotsRequest struct {
 	SessionID int64 `thrift:"session_id,1" db:"session_id" json:"session_id"`
 }
@@ -29791,6 +28726,8 @@ type ListSnapshotsRequest struct {
 func NewListSnapshotsRequest() *ListSnapshotsRequest {
 	return &ListSnapshotsRequest{}
 }
+
+
 
 func (p *ListSnapshotsRequest) GetSessionID() int64 {
 	return p.SessionID
@@ -29800,6 +28737,7 @@ func (p *ListSnapshotsRequest) Read(ctx context.Context, iprot thrift.TProtocol)
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -29849,9 +28787,7 @@ func (p *ListSnapshotsRequest) Write(ctx context.Context, oprot thrift.TProtocol
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -29881,9 +28817,7 @@ func (p *ListSnapshotsRequest) Equals(other *ListSnapshotsRequest) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.SessionID != other.SessionID {
-		return false
-	}
+	if p.SessionID != other.SessionID { return false }
 	return true
 }
 
@@ -29899,7 +28833,7 @@ func (p *ListSnapshotsRequest) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.ListSnapshotsRequest",
+		Type: "*infinity.ListSnapshotsRequest",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -29912,28 +28846,36 @@ func (p *ListSnapshotsRequest) Validate() error {
 }
 
 // Attributes:
-//   - ErrorCode
-//   - ErrorMsg
-//   - Snapshots
+//  - ErrorCode
+//  - ErrorMsg
+//  - Snapshots
+// 
 type ListSnapshotsResponse struct {
-	ErrorCode int64           `thrift:"error_code,1" db:"error_code" json:"error_code"`
-	ErrorMsg  string          `thrift:"error_msg,2" db:"error_msg" json:"error_msg"`
+	ErrorCode int64 `thrift:"error_code,1" db:"error_code" json:"error_code"`
+	ErrorMsg string `thrift:"error_msg,2" db:"error_msg" json:"error_msg"`
 	Snapshots []*SnapshotInfo `thrift:"snapshots,3" db:"snapshots" json:"snapshots"`
 }
 
 func NewListSnapshotsResponse() *ListSnapshotsResponse {
 	return &ListSnapshotsResponse{
-		Snapshots: []*SnapshotInfo{},
+		Snapshots: []*SnapshotInfo{
+		},
 	}
 }
+
+
 
 func (p *ListSnapshotsResponse) GetErrorCode() int64 {
 	return p.ErrorCode
 }
 
+
+
 func (p *ListSnapshotsResponse) GetErrorMsg() string {
 	return p.ErrorMsg
 }
+
+
 
 func (p *ListSnapshotsResponse) GetSnapshots() []*SnapshotInfo {
 	return p.Snapshots
@@ -29943,6 +28885,7 @@ func (p *ListSnapshotsResponse) Read(ctx context.Context, iprot thrift.TProtocol
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -30041,15 +28984,9 @@ func (p *ListSnapshotsResponse) Write(ctx context.Context, oprot thrift.TProtoco
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -30113,20 +29050,12 @@ func (p *ListSnapshotsResponse) Equals(other *ListSnapshotsResponse) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.ErrorCode != other.ErrorCode {
-		return false
-	}
-	if p.ErrorMsg != other.ErrorMsg {
-		return false
-	}
-	if len(p.Snapshots) != len(other.Snapshots) {
-		return false
-	}
+	if p.ErrorCode != other.ErrorCode { return false }
+	if p.ErrorMsg != other.ErrorMsg { return false }
+	if len(p.Snapshots) != len(other.Snapshots) { return false }
 	for i, _tgt := range p.Snapshots {
 		_src125 := other.Snapshots[i]
-		if !_tgt.Equals(_src125) {
-			return false
-		}
+		if !_tgt.Equals(_src125) { return false }
 	}
 	return true
 }
@@ -30143,7 +29072,7 @@ func (p *ListSnapshotsResponse) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.ListSnapshotsResponse",
+		Type: "*infinity.ListSnapshotsResponse",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -30156,10 +29085,11 @@ func (p *ListSnapshotsResponse) Validate() error {
 }
 
 // Attributes:
-//   - SessionID
-//   - SnapshotName
+//  - SessionID
+//  - SnapshotName
+// 
 type DropSnapshotRequest struct {
-	SessionID    int64  `thrift:"session_id,1" db:"session_id" json:"session_id"`
+	SessionID int64 `thrift:"session_id,1" db:"session_id" json:"session_id"`
 	SnapshotName string `thrift:"snapshot_name,2" db:"snapshot_name" json:"snapshot_name"`
 }
 
@@ -30167,9 +29097,13 @@ func NewDropSnapshotRequest() *DropSnapshotRequest {
 	return &DropSnapshotRequest{}
 }
 
+
+
 func (p *DropSnapshotRequest) GetSessionID() int64 {
 	return p.SessionID
 }
+
+
 
 func (p *DropSnapshotRequest) GetSnapshotName() string {
 	return p.SnapshotName
@@ -30179,6 +29113,7 @@ func (p *DropSnapshotRequest) Read(ctx context.Context, iprot thrift.TProtocol) 
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -30247,12 +29182,8 @@ func (p *DropSnapshotRequest) Write(ctx context.Context, oprot thrift.TProtocol)
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -30295,12 +29226,8 @@ func (p *DropSnapshotRequest) Equals(other *DropSnapshotRequest) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.SessionID != other.SessionID {
-		return false
-	}
-	if p.SnapshotName != other.SnapshotName {
-		return false
-	}
+	if p.SessionID != other.SessionID { return false }
+	if p.SnapshotName != other.SnapshotName { return false }
 	return true
 }
 
@@ -30316,7 +29243,7 @@ func (p *DropSnapshotRequest) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.DropSnapshotRequest",
+		Type: "*infinity.DropSnapshotRequest",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -30329,14 +29256,15 @@ func (p *DropSnapshotRequest) Validate() error {
 }
 
 // Attributes:
-//   - StringValue
-//   - IntValue
-//   - BoolValue
-//   - DoubleValue
+//  - StringValue
+//  - IntValue
+//  - BoolValue
+//  - DoubleValue
+// 
 type ConfigValue struct {
-	StringValue *string  `thrift:"string_value,1" db:"string_value" json:"string_value,omitempty"`
-	IntValue    *int64   `thrift:"int_value,2" db:"int_value" json:"int_value,omitempty"`
-	BoolValue   *bool    `thrift:"bool_value,3" db:"bool_value" json:"bool_value,omitempty"`
+	StringValue *string `thrift:"string_value,1" db:"string_value" json:"string_value,omitempty"`
+	IntValue *int64 `thrift:"int_value,2" db:"int_value" json:"int_value,omitempty"`
+	BoolValue *bool `thrift:"bool_value,3" db:"bool_value" json:"bool_value,omitempty"`
 	DoubleValue *float64 `thrift:"double_value,4" db:"double_value" json:"double_value,omitempty"`
 }
 
@@ -30382,16 +29310,16 @@ func (p *ConfigValue) GetDoubleValue() float64 {
 
 func (p *ConfigValue) CountSetFieldsConfigValue() int {
 	count := 0
-	if p.IsSetStringValue() {
+	if (p.IsSetStringValue()) {
 		count++
 	}
-	if p.IsSetIntValue() {
+	if (p.IsSetIntValue()) {
 		count++
 	}
-	if p.IsSetBoolValue() {
+	if (p.IsSetBoolValue()) {
 		count++
 	}
-	if p.IsSetDoubleValue() {
+	if (p.IsSetDoubleValue()) {
 		count++
 	}
 	return count
@@ -30418,6 +29346,7 @@ func (p *ConfigValue) Read(ctx context.Context, iprot thrift.TProtocol) error {
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -30527,18 +29456,10 @@ func (p *ConfigValue) Write(ctx context.Context, oprot thrift.TProtocol) error {
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField4(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField4(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -30619,33 +29540,25 @@ func (p *ConfigValue) Equals(other *ConfigValue) bool {
 		if p.StringValue == nil || other.StringValue == nil {
 			return false
 		}
-		if (*p.StringValue) != (*other.StringValue) {
-			return false
-		}
+		if (*p.StringValue) != (*other.StringValue) { return false }
 	}
 	if p.IntValue != other.IntValue {
 		if p.IntValue == nil || other.IntValue == nil {
 			return false
 		}
-		if (*p.IntValue) != (*other.IntValue) {
-			return false
-		}
+		if (*p.IntValue) != (*other.IntValue) { return false }
 	}
 	if p.BoolValue != other.BoolValue {
 		if p.BoolValue == nil || other.BoolValue == nil {
 			return false
 		}
-		if (*p.BoolValue) != (*other.BoolValue) {
-			return false
-		}
+		if (*p.BoolValue) != (*other.BoolValue) { return false }
 	}
 	if p.DoubleValue != other.DoubleValue {
 		if p.DoubleValue == nil || other.DoubleValue == nil {
 			return false
 		}
-		if (*p.DoubleValue) != (*other.DoubleValue) {
-			return false
-		}
+		if (*p.DoubleValue) != (*other.DoubleValue) { return false }
 	}
 	return true
 }
@@ -30662,7 +29575,7 @@ func (p *ConfigValue) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.ConfigValue",
+		Type: "*infinity.ConfigValue",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -30675,12 +29588,13 @@ func (p *ConfigValue) Validate() error {
 }
 
 // Attributes:
-//   - SessionID
-//   - ConfigName
-//   - ConfigValue
+//  - SessionID
+//  - ConfigName
+//  - ConfigValue
+// 
 type SetConfigRequest struct {
-	SessionID   int64        `thrift:"session_id,1" db:"session_id" json:"session_id"`
-	ConfigName  string       `thrift:"config_name,2" db:"config_name" json:"config_name"`
+	SessionID int64 `thrift:"session_id,1" db:"session_id" json:"session_id"`
+	ConfigName string `thrift:"config_name,2" db:"config_name" json:"config_name"`
 	ConfigValue *ConfigValue `thrift:"config_value,3" db:"config_value" json:"config_value"`
 }
 
@@ -30688,9 +29602,13 @@ func NewSetConfigRequest() *SetConfigRequest {
 	return &SetConfigRequest{}
 }
 
+
+
 func (p *SetConfigRequest) GetSessionID() int64 {
 	return p.SessionID
 }
+
+
 
 func (p *SetConfigRequest) GetConfigName() string {
 	return p.ConfigName
@@ -30713,6 +29631,7 @@ func (p *SetConfigRequest) Read(ctx context.Context, iprot thrift.TProtocol) err
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -30799,15 +29718,9 @@ func (p *SetConfigRequest) Write(ctx context.Context, oprot thrift.TProtocol) er
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -30863,15 +29776,9 @@ func (p *SetConfigRequest) Equals(other *SetConfigRequest) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.SessionID != other.SessionID {
-		return false
-	}
-	if p.ConfigName != other.ConfigName {
-		return false
-	}
-	if !p.ConfigValue.Equals(other.ConfigValue) {
-		return false
-	}
+	if p.SessionID != other.SessionID { return false }
+	if p.ConfigName != other.ConfigName { return false }
+	if !p.ConfigValue.Equals(other.ConfigValue) { return false }
 	return true
 }
 
@@ -30887,7 +29794,7 @@ func (p *SetConfigRequest) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.SetConfigRequest",
+		Type: "*infinity.SetConfigRequest",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -30900,10 +29807,11 @@ func (p *SetConfigRequest) Validate() error {
 }
 
 // Attributes:
-//   - SessionID
-//   - ConfigName
+//  - SessionID
+//  - ConfigName
+// 
 type ShowConfigRequest struct {
-	SessionID  int64  `thrift:"session_id,1" db:"session_id" json:"session_id"`
+	SessionID int64 `thrift:"session_id,1" db:"session_id" json:"session_id"`
 	ConfigName string `thrift:"config_name,2" db:"config_name" json:"config_name"`
 }
 
@@ -30911,9 +29819,13 @@ func NewShowConfigRequest() *ShowConfigRequest {
 	return &ShowConfigRequest{}
 }
 
+
+
 func (p *ShowConfigRequest) GetSessionID() int64 {
 	return p.SessionID
 }
+
+
 
 func (p *ShowConfigRequest) GetConfigName() string {
 	return p.ConfigName
@@ -30923,6 +29835,7 @@ func (p *ShowConfigRequest) Read(ctx context.Context, iprot thrift.TProtocol) er
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -30991,12 +29904,8 @@ func (p *ShowConfigRequest) Write(ctx context.Context, oprot thrift.TProtocol) e
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -31039,12 +29948,8 @@ func (p *ShowConfigRequest) Equals(other *ShowConfigRequest) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.SessionID != other.SessionID {
-		return false
-	}
-	if p.ConfigName != other.ConfigName {
-		return false
-	}
+	if p.SessionID != other.SessionID { return false }
+	if p.ConfigName != other.ConfigName { return false }
 	return true
 }
 
@@ -31060,7 +29965,7 @@ func (p *ShowConfigRequest) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.ShowConfigRequest",
+		Type: "*infinity.ShowConfigRequest",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -31073,14 +29978,15 @@ func (p *ShowConfigRequest) Validate() error {
 }
 
 // Attributes:
-//   - ErrorCode
-//   - ErrorMsg
-//   - ConfigName
-//   - ConfigValue
+//  - ErrorCode
+//  - ErrorMsg
+//  - ConfigName
+//  - ConfigValue
+// 
 type ShowConfigResponse struct {
-	ErrorCode   int64        `thrift:"error_code,1" db:"error_code" json:"error_code"`
-	ErrorMsg    string       `thrift:"error_msg,2" db:"error_msg" json:"error_msg"`
-	ConfigName  string       `thrift:"config_name,3" db:"config_name" json:"config_name"`
+	ErrorCode int64 `thrift:"error_code,1" db:"error_code" json:"error_code"`
+	ErrorMsg string `thrift:"error_msg,2" db:"error_msg" json:"error_msg"`
+	ConfigName string `thrift:"config_name,3" db:"config_name" json:"config_name"`
 	ConfigValue *ConfigValue `thrift:"config_value,4" db:"config_value" json:"config_value"`
 }
 
@@ -31088,13 +29994,19 @@ func NewShowConfigResponse() *ShowConfigResponse {
 	return &ShowConfigResponse{}
 }
 
+
+
 func (p *ShowConfigResponse) GetErrorCode() int64 {
 	return p.ErrorCode
 }
 
+
+
 func (p *ShowConfigResponse) GetErrorMsg() string {
 	return p.ErrorMsg
 }
+
+
 
 func (p *ShowConfigResponse) GetConfigName() string {
 	return p.ConfigName
@@ -31117,6 +30029,7 @@ func (p *ShowConfigResponse) Read(ctx context.Context, iprot thrift.TProtocol) e
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -31222,18 +30135,10 @@ func (p *ShowConfigResponse) Write(ctx context.Context, oprot thrift.TProtocol) 
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField2(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField3(ctx, oprot); err != nil {
-			return err
-		}
-		if err := p.writeField4(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
+		if err := p.writeField2(ctx, oprot); err != nil { return err }
+		if err := p.writeField3(ctx, oprot); err != nil { return err }
+		if err := p.writeField4(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -31302,18 +30207,10 @@ func (p *ShowConfigResponse) Equals(other *ShowConfigResponse) bool {
 	} else if p == nil || other == nil {
 		return false
 	}
-	if p.ErrorCode != other.ErrorCode {
-		return false
-	}
-	if p.ErrorMsg != other.ErrorMsg {
-		return false
-	}
-	if p.ConfigName != other.ConfigName {
-		return false
-	}
-	if !p.ConfigValue.Equals(other.ConfigValue) {
-		return false
-	}
+	if p.ErrorCode != other.ErrorCode { return false }
+	if p.ErrorMsg != other.ErrorMsg { return false }
+	if p.ConfigName != other.ConfigName { return false }
+	if !p.ConfigValue.Equals(other.ConfigValue) { return false }
 	return true
 }
 
@@ -31329,7 +30226,7 @@ func (p *ShowConfigResponse) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.ShowConfigResponse",
+		Type: "*infinity.ShowConfigResponse",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -31344,204 +30241,204 @@ func (p *ShowConfigResponse) Validate() error {
 type InfinityService interface {
 	// Parameters:
 	//  - Request
-	//
+	// 
 	Connect(ctx context.Context, request *ConnectRequest) (_r *CommonResponse, _err error)
 	// Parameters:
 	//  - Request
-	//
+	// 
 	Disconnect(ctx context.Context, request *CommonRequest) (_r *CommonResponse, _err error)
 	// Parameters:
 	//  - Request
-	//
+	// 
 	CreateDatabase(ctx context.Context, request *CreateDatabaseRequest) (_r *CommonResponse, _err error)
 	// Parameters:
 	//  - Request
-	//
+	// 
 	DropDatabase(ctx context.Context, request *DropDatabaseRequest) (_r *CommonResponse, _err error)
 	// Parameters:
 	//  - Request
-	//
+	// 
 	CreateTable(ctx context.Context, request *CreateTableRequest) (_r *CommonResponse, _err error)
 	// Parameters:
 	//  - Request
-	//
+	// 
 	DropTable(ctx context.Context, request *DropTableRequest) (_r *CommonResponse, _err error)
 	// Parameters:
 	//  - Request
-	//
+	// 
 	RenameTable(ctx context.Context, request *RenameTableRequest) (_r *CommonResponse, _err error)
 	// Parameters:
 	//  - Request
-	//
+	// 
 	Insert(ctx context.Context, request *InsertRequest) (_r *CommonResponse, _err error)
 	// Parameters:
 	//  - Request
-	//
+	// 
 	Import(ctx context.Context, request *ImportRequest) (_r *CommonResponse, _err error)
 	// Parameters:
 	//  - Request
-	//
+	// 
 	Export(ctx context.Context, request *ExportRequest) (_r *CommonResponse, _err error)
 	// Parameters:
 	//  - Request
-	//
+	// 
 	Select(ctx context.Context, request *SelectRequest) (_r *SelectResponse, _err error)
 	// Parameters:
 	//  - Request
-	//
+	// 
 	Explain(ctx context.Context, request *ExplainRequest) (_r *SelectResponse, _err error)
 	// Parameters:
 	//  - Request
-	//
+	// 
 	Delete(ctx context.Context, request *DeleteRequest) (_r *DeleteResponse, _err error)
 	// Parameters:
 	//  - Request
-	//
+	// 
 	Update(ctx context.Context, request *UpdateRequest) (_r *CommonResponse, _err error)
 	// Parameters:
 	//  - Request
-	//
+	// 
 	ListDatabase(ctx context.Context, request *ListDatabaseRequest) (_r *ListDatabaseResponse, _err error)
 	// Parameters:
 	//  - Request
-	//
+	// 
 	ListTable(ctx context.Context, request *ListTableRequest) (_r *ListTableResponse, _err error)
 	// Parameters:
 	//  - Request
-	//
+	// 
 	ListIndex(ctx context.Context, request *ListIndexRequest) (_r *ListIndexResponse, _err error)
 	// Parameters:
 	//  - Request
-	//
+	// 
 	ShowTable(ctx context.Context, request *ShowTableRequest) (_r *ShowTableResponse, _err error)
 	// Parameters:
 	//  - Request
-	//
+	// 
 	ShowColumns(ctx context.Context, request *ShowColumnsRequest) (_r *SelectResponse, _err error)
 	// Parameters:
 	//  - Request
-	//
+	// 
 	ShowDatabase(ctx context.Context, request *ShowDatabaseRequest) (_r *ShowDatabaseResponse, _err error)
 	// Parameters:
 	//  - Request
-	//
+	// 
 	ShowSegments(ctx context.Context, request *ShowSegmentsRequest) (_r *SelectResponse, _err error)
 	// Parameters:
 	//  - Request
-	//
+	// 
 	ShowSegment(ctx context.Context, request *ShowSegmentRequest) (_r *ShowSegmentResponse, _err error)
 	// Parameters:
 	//  - Request
-	//
+	// 
 	ShowBlocks(ctx context.Context, request *ShowBlocksRequest) (_r *SelectResponse, _err error)
 	// Parameters:
 	//  - Request
-	//
+	// 
 	ShowBlock(ctx context.Context, request *ShowBlockRequest) (_r *ShowBlockResponse, _err error)
 	// Parameters:
 	//  - Request
-	//
+	// 
 	ShowBlockColumn(ctx context.Context, request *ShowBlockColumnRequest) (_r *ShowBlockColumnResponse, _err error)
 	// Parameters:
 	//  - Request
-	//
+	// 
 	ShowCurrentNode(ctx context.Context, request *ShowCurrentNodeRequest) (_r *ShowCurrentNodeResponse, _err error)
 	// Parameters:
 	//  - Request
-	//
+	// 
 	GetDatabase(ctx context.Context, request *GetDatabaseRequest) (_r *CommonResponse, _err error)
 	// Parameters:
 	//  - Request
-	//
+	// 
 	GetTable(ctx context.Context, request *GetTableRequest) (_r *CommonResponse, _err error)
 	// Parameters:
 	//  - Request
-	//
+	// 
 	CreateIndex(ctx context.Context, request *CreateIndexRequest) (_r *CommonResponse, _err error)
 	// Parameters:
 	//  - Request
-	//
+	// 
 	DropIndex(ctx context.Context, request *DropIndexRequest) (_r *CommonResponse, _err error)
 	// Parameters:
 	//  - Request
-	//
+	// 
 	ShowIndex(ctx context.Context, request *ShowIndexRequest) (_r *ShowIndexResponse, _err error)
 	// Parameters:
 	//  - Request
-	//
+	// 
 	Optimize(ctx context.Context, request *OptimizeRequest) (_r *CommonResponse, _err error)
 	// Parameters:
 	//  - Request
-	//
+	// 
 	AlterIndex(ctx context.Context, request *AlterIndexRequest) (_r *CommonResponse, _err error)
 	// Parameters:
 	//  - Request
-	//
+	// 
 	AddColumns(ctx context.Context, request *AddColumnsRequest) (_r *CommonResponse, _err error)
 	// Parameters:
 	//  - Request
-	//
+	// 
 	DropColumns(ctx context.Context, request *DropColumnsRequest) (_r *CommonResponse, _err error)
 	// Parameters:
 	//  - Request
-	//
+	// 
 	Cleanup(ctx context.Context, request *CommonRequest) (_r *CommonResponse, _err error)
 	// Parameters:
 	//  - Request
-	//
+	// 
 	DumpIndex(ctx context.Context, request *DumpIndexRequest) (_r *CommonResponse, _err error)
 	// Parameters:
 	//  - Request
-	//
+	// 
 	Command(ctx context.Context, request *CommandRequest) (_r *CommonResponse, _err error)
 	// Parameters:
 	//  - Request
-	//
+	// 
 	Flush(ctx context.Context, request *FlushRequest) (_r *CommonResponse, _err error)
 	// Parameters:
 	//  - Request
-	//
+	// 
 	Compact(ctx context.Context, request *CompactRequest) (_r *CommonResponse, _err error)
 	// Parameters:
 	//  - Request
-	//
+	// 
 	CreateTableSnapshot(ctx context.Context, request *CreateTableSnapshotRequest) (_r *CommonResponse, _err error)
 	// Parameters:
 	//  - Request
-	//
+	// 
 	CreateDatabaseSnapshot(ctx context.Context, request *CreateDatabaseSnapshotRequest) (_r *CommonResponse, _err error)
 	// Parameters:
 	//  - Request
-	//
+	// 
 	CreateSystemSnapshot(ctx context.Context, request *CreateSystemSnapshotRequest) (_r *CommonResponse, _err error)
 	// Parameters:
 	//  - Request
-	//
+	// 
 	RestoreSnapshot(ctx context.Context, request *RestoreSnapshotRequest) (_r *CommonResponse, _err error)
 	// Parameters:
 	//  - Request
-	//
+	// 
 	ShowSnapshot(ctx context.Context, request *ShowSnapshotRequest) (_r *ShowSnapshotResponse, _err error)
 	// Parameters:
 	//  - Request
-	//
+	// 
 	ListSnapshots(ctx context.Context, request *ListSnapshotsRequest) (_r *ListSnapshotsResponse, _err error)
 	// Parameters:
 	//  - Request
-	//
+	// 
 	DropSnapshot(ctx context.Context, request *DropSnapshotRequest) (_r *CommonResponse, _err error)
 	// Parameters:
 	//  - Request
-	//
+	// 
 	SetConfig(ctx context.Context, request *SetConfigRequest) (_r *CommonResponse, _err error)
 	// Parameters:
 	//  - Request
-	//
+	// 
 	ShowConfig(ctx context.Context, request *ShowConfigRequest) (_r *ShowConfigResponse, _err error)
 }
 
 type InfinityServiceClient struct {
-	c    thrift.TClient
+	c thrift.TClient
 	meta thrift.ResponseMeta
 }
 
@@ -31576,7 +30473,8 @@ func (p *InfinityServiceClient) SetLastResponseMeta_(meta thrift.ResponseMeta) {
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) Connect(ctx context.Context, request *ConnectRequest) (_r *CommonResponse, _err error) {
 	var _args126 InfinityServiceConnectArgs
 	_args126.Request = request
@@ -31594,7 +30492,8 @@ func (p *InfinityServiceClient) Connect(ctx context.Context, request *ConnectReq
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) Disconnect(ctx context.Context, request *CommonRequest) (_r *CommonResponse, _err error) {
 	var _args130 InfinityServiceDisconnectArgs
 	_args130.Request = request
@@ -31612,7 +30511,8 @@ func (p *InfinityServiceClient) Disconnect(ctx context.Context, request *CommonR
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) CreateDatabase(ctx context.Context, request *CreateDatabaseRequest) (_r *CommonResponse, _err error) {
 	var _args134 InfinityServiceCreateDatabaseArgs
 	_args134.Request = request
@@ -31630,7 +30530,8 @@ func (p *InfinityServiceClient) CreateDatabase(ctx context.Context, request *Cre
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) DropDatabase(ctx context.Context, request *DropDatabaseRequest) (_r *CommonResponse, _err error) {
 	var _args138 InfinityServiceDropDatabaseArgs
 	_args138.Request = request
@@ -31648,7 +30549,8 @@ func (p *InfinityServiceClient) DropDatabase(ctx context.Context, request *DropD
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) CreateTable(ctx context.Context, request *CreateTableRequest) (_r *CommonResponse, _err error) {
 	var _args142 InfinityServiceCreateTableArgs
 	_args142.Request = request
@@ -31666,7 +30568,8 @@ func (p *InfinityServiceClient) CreateTable(ctx context.Context, request *Create
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) DropTable(ctx context.Context, request *DropTableRequest) (_r *CommonResponse, _err error) {
 	var _args146 InfinityServiceDropTableArgs
 	_args146.Request = request
@@ -31684,7 +30587,8 @@ func (p *InfinityServiceClient) DropTable(ctx context.Context, request *DropTabl
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) RenameTable(ctx context.Context, request *RenameTableRequest) (_r *CommonResponse, _err error) {
 	var _args150 InfinityServiceRenameTableArgs
 	_args150.Request = request
@@ -31702,7 +30606,8 @@ func (p *InfinityServiceClient) RenameTable(ctx context.Context, request *Rename
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) Insert(ctx context.Context, request *InsertRequest) (_r *CommonResponse, _err error) {
 	var _args154 InfinityServiceInsertArgs
 	_args154.Request = request
@@ -31720,7 +30625,8 @@ func (p *InfinityServiceClient) Insert(ctx context.Context, request *InsertReque
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) Import(ctx context.Context, request *ImportRequest) (_r *CommonResponse, _err error) {
 	var _args158 InfinityServiceImportArgs
 	_args158.Request = request
@@ -31738,7 +30644,8 @@ func (p *InfinityServiceClient) Import(ctx context.Context, request *ImportReque
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) Export(ctx context.Context, request *ExportRequest) (_r *CommonResponse, _err error) {
 	var _args162 InfinityServiceExportArgs
 	_args162.Request = request
@@ -31756,7 +30663,8 @@ func (p *InfinityServiceClient) Export(ctx context.Context, request *ExportReque
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) Select(ctx context.Context, request *SelectRequest) (_r *SelectResponse, _err error) {
 	var _args166 InfinityServiceSelectArgs
 	_args166.Request = request
@@ -31774,7 +30682,8 @@ func (p *InfinityServiceClient) Select(ctx context.Context, request *SelectReque
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) Explain(ctx context.Context, request *ExplainRequest) (_r *SelectResponse, _err error) {
 	var _args170 InfinityServiceExplainArgs
 	_args170.Request = request
@@ -31792,7 +30701,8 @@ func (p *InfinityServiceClient) Explain(ctx context.Context, request *ExplainReq
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) Delete(ctx context.Context, request *DeleteRequest) (_r *DeleteResponse, _err error) {
 	var _args174 InfinityServiceDeleteArgs
 	_args174.Request = request
@@ -31810,7 +30720,8 @@ func (p *InfinityServiceClient) Delete(ctx context.Context, request *DeleteReque
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) Update(ctx context.Context, request *UpdateRequest) (_r *CommonResponse, _err error) {
 	var _args178 InfinityServiceUpdateArgs
 	_args178.Request = request
@@ -31828,7 +30739,8 @@ func (p *InfinityServiceClient) Update(ctx context.Context, request *UpdateReque
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) ListDatabase(ctx context.Context, request *ListDatabaseRequest) (_r *ListDatabaseResponse, _err error) {
 	var _args182 InfinityServiceListDatabaseArgs
 	_args182.Request = request
@@ -31846,7 +30758,8 @@ func (p *InfinityServiceClient) ListDatabase(ctx context.Context, request *ListD
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) ListTable(ctx context.Context, request *ListTableRequest) (_r *ListTableResponse, _err error) {
 	var _args186 InfinityServiceListTableArgs
 	_args186.Request = request
@@ -31864,7 +30777,8 @@ func (p *InfinityServiceClient) ListTable(ctx context.Context, request *ListTabl
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) ListIndex(ctx context.Context, request *ListIndexRequest) (_r *ListIndexResponse, _err error) {
 	var _args190 InfinityServiceListIndexArgs
 	_args190.Request = request
@@ -31882,7 +30796,8 @@ func (p *InfinityServiceClient) ListIndex(ctx context.Context, request *ListInde
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) ShowTable(ctx context.Context, request *ShowTableRequest) (_r *ShowTableResponse, _err error) {
 	var _args194 InfinityServiceShowTableArgs
 	_args194.Request = request
@@ -31900,7 +30815,8 @@ func (p *InfinityServiceClient) ShowTable(ctx context.Context, request *ShowTabl
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) ShowColumns(ctx context.Context, request *ShowColumnsRequest) (_r *SelectResponse, _err error) {
 	var _args198 InfinityServiceShowColumnsArgs
 	_args198.Request = request
@@ -31918,7 +30834,8 @@ func (p *InfinityServiceClient) ShowColumns(ctx context.Context, request *ShowCo
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) ShowDatabase(ctx context.Context, request *ShowDatabaseRequest) (_r *ShowDatabaseResponse, _err error) {
 	var _args202 InfinityServiceShowDatabaseArgs
 	_args202.Request = request
@@ -31936,7 +30853,8 @@ func (p *InfinityServiceClient) ShowDatabase(ctx context.Context, request *ShowD
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) ShowSegments(ctx context.Context, request *ShowSegmentsRequest) (_r *SelectResponse, _err error) {
 	var _args206 InfinityServiceShowSegmentsArgs
 	_args206.Request = request
@@ -31954,7 +30872,8 @@ func (p *InfinityServiceClient) ShowSegments(ctx context.Context, request *ShowS
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) ShowSegment(ctx context.Context, request *ShowSegmentRequest) (_r *ShowSegmentResponse, _err error) {
 	var _args210 InfinityServiceShowSegmentArgs
 	_args210.Request = request
@@ -31972,7 +30891,8 @@ func (p *InfinityServiceClient) ShowSegment(ctx context.Context, request *ShowSe
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) ShowBlocks(ctx context.Context, request *ShowBlocksRequest) (_r *SelectResponse, _err error) {
 	var _args214 InfinityServiceShowBlocksArgs
 	_args214.Request = request
@@ -31990,7 +30910,8 @@ func (p *InfinityServiceClient) ShowBlocks(ctx context.Context, request *ShowBlo
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) ShowBlock(ctx context.Context, request *ShowBlockRequest) (_r *ShowBlockResponse, _err error) {
 	var _args218 InfinityServiceShowBlockArgs
 	_args218.Request = request
@@ -32008,7 +30929,8 @@ func (p *InfinityServiceClient) ShowBlock(ctx context.Context, request *ShowBloc
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) ShowBlockColumn(ctx context.Context, request *ShowBlockColumnRequest) (_r *ShowBlockColumnResponse, _err error) {
 	var _args222 InfinityServiceShowBlockColumnArgs
 	_args222.Request = request
@@ -32026,7 +30948,8 @@ func (p *InfinityServiceClient) ShowBlockColumn(ctx context.Context, request *Sh
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) ShowCurrentNode(ctx context.Context, request *ShowCurrentNodeRequest) (_r *ShowCurrentNodeResponse, _err error) {
 	var _args226 InfinityServiceShowCurrentNodeArgs
 	_args226.Request = request
@@ -32044,7 +30967,8 @@ func (p *InfinityServiceClient) ShowCurrentNode(ctx context.Context, request *Sh
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) GetDatabase(ctx context.Context, request *GetDatabaseRequest) (_r *CommonResponse, _err error) {
 	var _args230 InfinityServiceGetDatabaseArgs
 	_args230.Request = request
@@ -32062,7 +30986,8 @@ func (p *InfinityServiceClient) GetDatabase(ctx context.Context, request *GetDat
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) GetTable(ctx context.Context, request *GetTableRequest) (_r *CommonResponse, _err error) {
 	var _args234 InfinityServiceGetTableArgs
 	_args234.Request = request
@@ -32080,7 +31005,8 @@ func (p *InfinityServiceClient) GetTable(ctx context.Context, request *GetTableR
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) CreateIndex(ctx context.Context, request *CreateIndexRequest) (_r *CommonResponse, _err error) {
 	var _args238 InfinityServiceCreateIndexArgs
 	_args238.Request = request
@@ -32098,7 +31024,8 @@ func (p *InfinityServiceClient) CreateIndex(ctx context.Context, request *Create
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) DropIndex(ctx context.Context, request *DropIndexRequest) (_r *CommonResponse, _err error) {
 	var _args242 InfinityServiceDropIndexArgs
 	_args242.Request = request
@@ -32116,7 +31043,8 @@ func (p *InfinityServiceClient) DropIndex(ctx context.Context, request *DropInde
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) ShowIndex(ctx context.Context, request *ShowIndexRequest) (_r *ShowIndexResponse, _err error) {
 	var _args246 InfinityServiceShowIndexArgs
 	_args246.Request = request
@@ -32134,7 +31062,8 @@ func (p *InfinityServiceClient) ShowIndex(ctx context.Context, request *ShowInde
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) Optimize(ctx context.Context, request *OptimizeRequest) (_r *CommonResponse, _err error) {
 	var _args250 InfinityServiceOptimizeArgs
 	_args250.Request = request
@@ -32152,7 +31081,8 @@ func (p *InfinityServiceClient) Optimize(ctx context.Context, request *OptimizeR
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) AlterIndex(ctx context.Context, request *AlterIndexRequest) (_r *CommonResponse, _err error) {
 	var _args254 InfinityServiceAlterIndexArgs
 	_args254.Request = request
@@ -32170,7 +31100,8 @@ func (p *InfinityServiceClient) AlterIndex(ctx context.Context, request *AlterIn
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) AddColumns(ctx context.Context, request *AddColumnsRequest) (_r *CommonResponse, _err error) {
 	var _args258 InfinityServiceAddColumnsArgs
 	_args258.Request = request
@@ -32188,7 +31119,8 @@ func (p *InfinityServiceClient) AddColumns(ctx context.Context, request *AddColu
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) DropColumns(ctx context.Context, request *DropColumnsRequest) (_r *CommonResponse, _err error) {
 	var _args262 InfinityServiceDropColumnsArgs
 	_args262.Request = request
@@ -32206,7 +31138,8 @@ func (p *InfinityServiceClient) DropColumns(ctx context.Context, request *DropCo
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) Cleanup(ctx context.Context, request *CommonRequest) (_r *CommonResponse, _err error) {
 	var _args266 InfinityServiceCleanupArgs
 	_args266.Request = request
@@ -32224,7 +31157,8 @@ func (p *InfinityServiceClient) Cleanup(ctx context.Context, request *CommonRequ
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) DumpIndex(ctx context.Context, request *DumpIndexRequest) (_r *CommonResponse, _err error) {
 	var _args270 InfinityServiceDumpIndexArgs
 	_args270.Request = request
@@ -32242,7 +31176,8 @@ func (p *InfinityServiceClient) DumpIndex(ctx context.Context, request *DumpInde
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) Command(ctx context.Context, request *CommandRequest) (_r *CommonResponse, _err error) {
 	var _args274 InfinityServiceCommandArgs
 	_args274.Request = request
@@ -32260,7 +31195,8 @@ func (p *InfinityServiceClient) Command(ctx context.Context, request *CommandReq
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) Flush(ctx context.Context, request *FlushRequest) (_r *CommonResponse, _err error) {
 	var _args278 InfinityServiceFlushArgs
 	_args278.Request = request
@@ -32278,7 +31214,8 @@ func (p *InfinityServiceClient) Flush(ctx context.Context, request *FlushRequest
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) Compact(ctx context.Context, request *CompactRequest) (_r *CommonResponse, _err error) {
 	var _args282 InfinityServiceCompactArgs
 	_args282.Request = request
@@ -32296,7 +31233,8 @@ func (p *InfinityServiceClient) Compact(ctx context.Context, request *CompactReq
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) CreateTableSnapshot(ctx context.Context, request *CreateTableSnapshotRequest) (_r *CommonResponse, _err error) {
 	var _args286 InfinityServiceCreateTableSnapshotArgs
 	_args286.Request = request
@@ -32314,7 +31252,8 @@ func (p *InfinityServiceClient) CreateTableSnapshot(ctx context.Context, request
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) CreateDatabaseSnapshot(ctx context.Context, request *CreateDatabaseSnapshotRequest) (_r *CommonResponse, _err error) {
 	var _args290 InfinityServiceCreateDatabaseSnapshotArgs
 	_args290.Request = request
@@ -32332,7 +31271,8 @@ func (p *InfinityServiceClient) CreateDatabaseSnapshot(ctx context.Context, requ
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) CreateSystemSnapshot(ctx context.Context, request *CreateSystemSnapshotRequest) (_r *CommonResponse, _err error) {
 	var _args294 InfinityServiceCreateSystemSnapshotArgs
 	_args294.Request = request
@@ -32350,7 +31290,8 @@ func (p *InfinityServiceClient) CreateSystemSnapshot(ctx context.Context, reques
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) RestoreSnapshot(ctx context.Context, request *RestoreSnapshotRequest) (_r *CommonResponse, _err error) {
 	var _args298 InfinityServiceRestoreSnapshotArgs
 	_args298.Request = request
@@ -32368,7 +31309,8 @@ func (p *InfinityServiceClient) RestoreSnapshot(ctx context.Context, request *Re
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) ShowSnapshot(ctx context.Context, request *ShowSnapshotRequest) (_r *ShowSnapshotResponse, _err error) {
 	var _args302 InfinityServiceShowSnapshotArgs
 	_args302.Request = request
@@ -32386,7 +31328,8 @@ func (p *InfinityServiceClient) ShowSnapshot(ctx context.Context, request *ShowS
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) ListSnapshots(ctx context.Context, request *ListSnapshotsRequest) (_r *ListSnapshotsResponse, _err error) {
 	var _args306 InfinityServiceListSnapshotsArgs
 	_args306.Request = request
@@ -32404,7 +31347,8 @@ func (p *InfinityServiceClient) ListSnapshots(ctx context.Context, request *List
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) DropSnapshot(ctx context.Context, request *DropSnapshotRequest) (_r *CommonResponse, _err error) {
 	var _args310 InfinityServiceDropSnapshotArgs
 	_args310.Request = request
@@ -32422,7 +31366,8 @@ func (p *InfinityServiceClient) DropSnapshot(ctx context.Context, request *DropS
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) SetConfig(ctx context.Context, request *SetConfigRequest) (_r *CommonResponse, _err error) {
 	var _args314 InfinityServiceSetConfigArgs
 	_args314.Request = request
@@ -32440,7 +31385,8 @@ func (p *InfinityServiceClient) SetConfig(ctx context.Context, request *SetConfi
 }
 
 // Parameters:
-//   - Request
+//  - Request
+// 
 func (p *InfinityServiceClient) ShowConfig(ctx context.Context, request *ShowConfigRequest) (_r *ShowConfigResponse, _err error) {
 	var _args318 InfinityServiceShowConfigArgs
 	_args318.Request = request
@@ -32459,7 +31405,7 @@ func (p *InfinityServiceClient) ShowConfig(ctx context.Context, request *ShowCon
 
 type InfinityServiceProcessor struct {
 	processorMap map[string]thrift.TProcessorFunction
-	handler      InfinityService
+	handler InfinityService
 }
 
 func (p *InfinityServiceProcessor) AddToProcessorMap(key string, processor thrift.TProcessorFunction) {
@@ -32477,70 +31423,68 @@ func (p *InfinityServiceProcessor) ProcessorMap() map[string]thrift.TProcessorFu
 
 func NewInfinityServiceProcessor(handler InfinityService) *InfinityServiceProcessor {
 
-	self322 := &InfinityServiceProcessor{handler: handler, processorMap: make(map[string]thrift.TProcessorFunction)}
-	self322.processorMap["Connect"] = &infinityServiceProcessorConnect{handler: handler}
-	self322.processorMap["Disconnect"] = &infinityServiceProcessorDisconnect{handler: handler}
-	self322.processorMap["CreateDatabase"] = &infinityServiceProcessorCreateDatabase{handler: handler}
-	self322.processorMap["DropDatabase"] = &infinityServiceProcessorDropDatabase{handler: handler}
-	self322.processorMap["CreateTable"] = &infinityServiceProcessorCreateTable{handler: handler}
-	self322.processorMap["DropTable"] = &infinityServiceProcessorDropTable{handler: handler}
-	self322.processorMap["RenameTable"] = &infinityServiceProcessorRenameTable{handler: handler}
-	self322.processorMap["Insert"] = &infinityServiceProcessorInsert{handler: handler}
-	self322.processorMap["Import"] = &infinityServiceProcessorImport{handler: handler}
-	self322.processorMap["Export"] = &infinityServiceProcessorExport{handler: handler}
-	self322.processorMap["Select"] = &infinityServiceProcessorSelect{handler: handler}
-	self322.processorMap["Explain"] = &infinityServiceProcessorExplain{handler: handler}
-	self322.processorMap["Delete"] = &infinityServiceProcessorDelete{handler: handler}
-	self322.processorMap["Update"] = &infinityServiceProcessorUpdate{handler: handler}
-	self322.processorMap["ListDatabase"] = &infinityServiceProcessorListDatabase{handler: handler}
-	self322.processorMap["ListTable"] = &infinityServiceProcessorListTable{handler: handler}
-	self322.processorMap["ListIndex"] = &infinityServiceProcessorListIndex{handler: handler}
-	self322.processorMap["ShowTable"] = &infinityServiceProcessorShowTable{handler: handler}
-	self322.processorMap["ShowColumns"] = &infinityServiceProcessorShowColumns{handler: handler}
-	self322.processorMap["ShowDatabase"] = &infinityServiceProcessorShowDatabase{handler: handler}
-	self322.processorMap["ShowSegments"] = &infinityServiceProcessorShowSegments{handler: handler}
-	self322.processorMap["ShowSegment"] = &infinityServiceProcessorShowSegment{handler: handler}
-	self322.processorMap["ShowBlocks"] = &infinityServiceProcessorShowBlocks{handler: handler}
-	self322.processorMap["ShowBlock"] = &infinityServiceProcessorShowBlock{handler: handler}
-	self322.processorMap["ShowBlockColumn"] = &infinityServiceProcessorShowBlockColumn{handler: handler}
-	self322.processorMap["ShowCurrentNode"] = &infinityServiceProcessorShowCurrentNode{handler: handler}
-	self322.processorMap["GetDatabase"] = &infinityServiceProcessorGetDatabase{handler: handler}
-	self322.processorMap["GetTable"] = &infinityServiceProcessorGetTable{handler: handler}
-	self322.processorMap["CreateIndex"] = &infinityServiceProcessorCreateIndex{handler: handler}
-	self322.processorMap["DropIndex"] = &infinityServiceProcessorDropIndex{handler: handler}
-	self322.processorMap["ShowIndex"] = &infinityServiceProcessorShowIndex{handler: handler}
-	self322.processorMap["Optimize"] = &infinityServiceProcessorOptimize{handler: handler}
-	self322.processorMap["AlterIndex"] = &infinityServiceProcessorAlterIndex{handler: handler}
-	self322.processorMap["AddColumns"] = &infinityServiceProcessorAddColumns{handler: handler}
-	self322.processorMap["DropColumns"] = &infinityServiceProcessorDropColumns{handler: handler}
-	self322.processorMap["Cleanup"] = &infinityServiceProcessorCleanup{handler: handler}
-	self322.processorMap["DumpIndex"] = &infinityServiceProcessorDumpIndex{handler: handler}
-	self322.processorMap["Command"] = &infinityServiceProcessorCommand{handler: handler}
-	self322.processorMap["Flush"] = &infinityServiceProcessorFlush{handler: handler}
-	self322.processorMap["Compact"] = &infinityServiceProcessorCompact{handler: handler}
-	self322.processorMap["CreateTableSnapshot"] = &infinityServiceProcessorCreateTableSnapshot{handler: handler}
-	self322.processorMap["CreateDatabaseSnapshot"] = &infinityServiceProcessorCreateDatabaseSnapshot{handler: handler}
-	self322.processorMap["CreateSystemSnapshot"] = &infinityServiceProcessorCreateSystemSnapshot{handler: handler}
-	self322.processorMap["RestoreSnapshot"] = &infinityServiceProcessorRestoreSnapshot{handler: handler}
-	self322.processorMap["ShowSnapshot"] = &infinityServiceProcessorShowSnapshot{handler: handler}
-	self322.processorMap["ListSnapshots"] = &infinityServiceProcessorListSnapshots{handler: handler}
-	self322.processorMap["DropSnapshot"] = &infinityServiceProcessorDropSnapshot{handler: handler}
-	self322.processorMap["SetConfig"] = &infinityServiceProcessorSetConfig{handler: handler}
-	self322.processorMap["ShowConfig"] = &infinityServiceProcessorShowConfig{handler: handler}
+	self322 := &InfinityServiceProcessor{handler:handler, processorMap:make(map[string]thrift.TProcessorFunction)}
+	self322.processorMap["Connect"] = &infinityServiceProcessorConnect{handler:handler}
+	self322.processorMap["Disconnect"] = &infinityServiceProcessorDisconnect{handler:handler}
+	self322.processorMap["CreateDatabase"] = &infinityServiceProcessorCreateDatabase{handler:handler}
+	self322.processorMap["DropDatabase"] = &infinityServiceProcessorDropDatabase{handler:handler}
+	self322.processorMap["CreateTable"] = &infinityServiceProcessorCreateTable{handler:handler}
+	self322.processorMap["DropTable"] = &infinityServiceProcessorDropTable{handler:handler}
+	self322.processorMap["RenameTable"] = &infinityServiceProcessorRenameTable{handler:handler}
+	self322.processorMap["Insert"] = &infinityServiceProcessorInsert{handler:handler}
+	self322.processorMap["Import"] = &infinityServiceProcessorImport{handler:handler}
+	self322.processorMap["Export"] = &infinityServiceProcessorExport{handler:handler}
+	self322.processorMap["Select"] = &infinityServiceProcessorSelect{handler:handler}
+	self322.processorMap["Explain"] = &infinityServiceProcessorExplain{handler:handler}
+	self322.processorMap["Delete"] = &infinityServiceProcessorDelete{handler:handler}
+	self322.processorMap["Update"] = &infinityServiceProcessorUpdate{handler:handler}
+	self322.processorMap["ListDatabase"] = &infinityServiceProcessorListDatabase{handler:handler}
+	self322.processorMap["ListTable"] = &infinityServiceProcessorListTable{handler:handler}
+	self322.processorMap["ListIndex"] = &infinityServiceProcessorListIndex{handler:handler}
+	self322.processorMap["ShowTable"] = &infinityServiceProcessorShowTable{handler:handler}
+	self322.processorMap["ShowColumns"] = &infinityServiceProcessorShowColumns{handler:handler}
+	self322.processorMap["ShowDatabase"] = &infinityServiceProcessorShowDatabase{handler:handler}
+	self322.processorMap["ShowSegments"] = &infinityServiceProcessorShowSegments{handler:handler}
+	self322.processorMap["ShowSegment"] = &infinityServiceProcessorShowSegment{handler:handler}
+	self322.processorMap["ShowBlocks"] = &infinityServiceProcessorShowBlocks{handler:handler}
+	self322.processorMap["ShowBlock"] = &infinityServiceProcessorShowBlock{handler:handler}
+	self322.processorMap["ShowBlockColumn"] = &infinityServiceProcessorShowBlockColumn{handler:handler}
+	self322.processorMap["ShowCurrentNode"] = &infinityServiceProcessorShowCurrentNode{handler:handler}
+	self322.processorMap["GetDatabase"] = &infinityServiceProcessorGetDatabase{handler:handler}
+	self322.processorMap["GetTable"] = &infinityServiceProcessorGetTable{handler:handler}
+	self322.processorMap["CreateIndex"] = &infinityServiceProcessorCreateIndex{handler:handler}
+	self322.processorMap["DropIndex"] = &infinityServiceProcessorDropIndex{handler:handler}
+	self322.processorMap["ShowIndex"] = &infinityServiceProcessorShowIndex{handler:handler}
+	self322.processorMap["Optimize"] = &infinityServiceProcessorOptimize{handler:handler}
+	self322.processorMap["AlterIndex"] = &infinityServiceProcessorAlterIndex{handler:handler}
+	self322.processorMap["AddColumns"] = &infinityServiceProcessorAddColumns{handler:handler}
+	self322.processorMap["DropColumns"] = &infinityServiceProcessorDropColumns{handler:handler}
+	self322.processorMap["Cleanup"] = &infinityServiceProcessorCleanup{handler:handler}
+	self322.processorMap["DumpIndex"] = &infinityServiceProcessorDumpIndex{handler:handler}
+	self322.processorMap["Command"] = &infinityServiceProcessorCommand{handler:handler}
+	self322.processorMap["Flush"] = &infinityServiceProcessorFlush{handler:handler}
+	self322.processorMap["Compact"] = &infinityServiceProcessorCompact{handler:handler}
+	self322.processorMap["CreateTableSnapshot"] = &infinityServiceProcessorCreateTableSnapshot{handler:handler}
+	self322.processorMap["CreateDatabaseSnapshot"] = &infinityServiceProcessorCreateDatabaseSnapshot{handler:handler}
+	self322.processorMap["CreateSystemSnapshot"] = &infinityServiceProcessorCreateSystemSnapshot{handler:handler}
+	self322.processorMap["RestoreSnapshot"] = &infinityServiceProcessorRestoreSnapshot{handler:handler}
+	self322.processorMap["ShowSnapshot"] = &infinityServiceProcessorShowSnapshot{handler:handler}
+	self322.processorMap["ListSnapshots"] = &infinityServiceProcessorListSnapshots{handler:handler}
+	self322.processorMap["DropSnapshot"] = &infinityServiceProcessorDropSnapshot{handler:handler}
+	self322.processorMap["SetConfig"] = &infinityServiceProcessorSetConfig{handler:handler}
+	self322.processorMap["ShowConfig"] = &infinityServiceProcessorShowConfig{handler:handler}
 	return self322
 }
 
 func (p *InfinityServiceProcessor) Process(ctx context.Context, iprot, oprot thrift.TProtocol) (success bool, err thrift.TException) {
 	name, _, seqId, err2 := iprot.ReadMessageBegin(ctx)
-	if err2 != nil {
-		return false, thrift.WrapTException(err2)
-	}
+	if err2 != nil { return false, thrift.WrapTException(err2) }
 	if processor, ok := p.GetProcessorFunction(name); ok {
 		return processor.Process(ctx, seqId, iprot, oprot)
 	}
 	iprot.Skip(ctx, thrift.STRUCT)
 	iprot.ReadMessageEnd(ctx)
-	x323 := thrift.NewTApplicationException(thrift.UNKNOWN_METHOD, "Unknown function "+name)
+	x323 := thrift.NewTApplicationException(thrift.UNKNOWN_METHOD, "Unknown function " + name)
 	oprot.WriteMessageBegin(ctx, name, thrift.EXCEPTION, seqId)
 	x323.Write(ctx, oprot)
 	oprot.WriteMessageEnd(ctx)
@@ -32610,7 +31554,7 @@ func (p *infinityServiceProcessorConnect) Process(ctx context.Context, seqId int
 				}
 			}
 		}
-		_exc325 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing Connect: "+err2.Error())
+		_exc325 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing Connect: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "Connect", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err324 = thrift.WrapTException(err2)
 		}
@@ -32717,7 +31661,7 @@ func (p *infinityServiceProcessorDisconnect) Process(ctx context.Context, seqId 
 				}
 			}
 		}
-		_exc327 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing Disconnect: "+err2.Error())
+		_exc327 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing Disconnect: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "Disconnect", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err326 = thrift.WrapTException(err2)
 		}
@@ -32824,7 +31768,7 @@ func (p *infinityServiceProcessorCreateDatabase) Process(ctx context.Context, se
 				}
 			}
 		}
-		_exc329 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing CreateDatabase: "+err2.Error())
+		_exc329 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing CreateDatabase: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "CreateDatabase", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err328 = thrift.WrapTException(err2)
 		}
@@ -32931,7 +31875,7 @@ func (p *infinityServiceProcessorDropDatabase) Process(ctx context.Context, seqI
 				}
 			}
 		}
-		_exc331 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing DropDatabase: "+err2.Error())
+		_exc331 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing DropDatabase: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "DropDatabase", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err330 = thrift.WrapTException(err2)
 		}
@@ -33038,7 +31982,7 @@ func (p *infinityServiceProcessorCreateTable) Process(ctx context.Context, seqId
 				}
 			}
 		}
-		_exc333 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing CreateTable: "+err2.Error())
+		_exc333 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing CreateTable: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "CreateTable", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err332 = thrift.WrapTException(err2)
 		}
@@ -33145,7 +32089,7 @@ func (p *infinityServiceProcessorDropTable) Process(ctx context.Context, seqId i
 				}
 			}
 		}
-		_exc335 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing DropTable: "+err2.Error())
+		_exc335 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing DropTable: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "DropTable", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err334 = thrift.WrapTException(err2)
 		}
@@ -33252,7 +32196,7 @@ func (p *infinityServiceProcessorRenameTable) Process(ctx context.Context, seqId
 				}
 			}
 		}
-		_exc337 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing RenameTable: "+err2.Error())
+		_exc337 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing RenameTable: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "RenameTable", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err336 = thrift.WrapTException(err2)
 		}
@@ -33359,7 +32303,7 @@ func (p *infinityServiceProcessorInsert) Process(ctx context.Context, seqId int3
 				}
 			}
 		}
-		_exc339 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing Insert: "+err2.Error())
+		_exc339 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing Insert: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "Insert", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err338 = thrift.WrapTException(err2)
 		}
@@ -33466,7 +32410,7 @@ func (p *infinityServiceProcessorImport) Process(ctx context.Context, seqId int3
 				}
 			}
 		}
-		_exc341 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing Import: "+err2.Error())
+		_exc341 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing Import: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "Import", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err340 = thrift.WrapTException(err2)
 		}
@@ -33573,7 +32517,7 @@ func (p *infinityServiceProcessorExport) Process(ctx context.Context, seqId int3
 				}
 			}
 		}
-		_exc343 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing Export: "+err2.Error())
+		_exc343 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing Export: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "Export", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err342 = thrift.WrapTException(err2)
 		}
@@ -33680,7 +32624,7 @@ func (p *infinityServiceProcessorSelect) Process(ctx context.Context, seqId int3
 				}
 			}
 		}
-		_exc345 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing Select: "+err2.Error())
+		_exc345 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing Select: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "Select", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err344 = thrift.WrapTException(err2)
 		}
@@ -33787,7 +32731,7 @@ func (p *infinityServiceProcessorExplain) Process(ctx context.Context, seqId int
 				}
 			}
 		}
-		_exc347 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing Explain: "+err2.Error())
+		_exc347 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing Explain: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "Explain", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err346 = thrift.WrapTException(err2)
 		}
@@ -33894,7 +32838,7 @@ func (p *infinityServiceProcessorDelete) Process(ctx context.Context, seqId int3
 				}
 			}
 		}
-		_exc349 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing Delete: "+err2.Error())
+		_exc349 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing Delete: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "Delete", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err348 = thrift.WrapTException(err2)
 		}
@@ -34001,7 +32945,7 @@ func (p *infinityServiceProcessorUpdate) Process(ctx context.Context, seqId int3
 				}
 			}
 		}
-		_exc351 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing Update: "+err2.Error())
+		_exc351 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing Update: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "Update", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err350 = thrift.WrapTException(err2)
 		}
@@ -34108,7 +33052,7 @@ func (p *infinityServiceProcessorListDatabase) Process(ctx context.Context, seqI
 				}
 			}
 		}
-		_exc353 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing ListDatabase: "+err2.Error())
+		_exc353 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing ListDatabase: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "ListDatabase", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err352 = thrift.WrapTException(err2)
 		}
@@ -34215,7 +33159,7 @@ func (p *infinityServiceProcessorListTable) Process(ctx context.Context, seqId i
 				}
 			}
 		}
-		_exc355 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing ListTable: "+err2.Error())
+		_exc355 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing ListTable: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "ListTable", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err354 = thrift.WrapTException(err2)
 		}
@@ -34322,7 +33266,7 @@ func (p *infinityServiceProcessorListIndex) Process(ctx context.Context, seqId i
 				}
 			}
 		}
-		_exc357 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing ListIndex: "+err2.Error())
+		_exc357 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing ListIndex: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "ListIndex", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err356 = thrift.WrapTException(err2)
 		}
@@ -34429,7 +33373,7 @@ func (p *infinityServiceProcessorShowTable) Process(ctx context.Context, seqId i
 				}
 			}
 		}
-		_exc359 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing ShowTable: "+err2.Error())
+		_exc359 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing ShowTable: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "ShowTable", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err358 = thrift.WrapTException(err2)
 		}
@@ -34536,7 +33480,7 @@ func (p *infinityServiceProcessorShowColumns) Process(ctx context.Context, seqId
 				}
 			}
 		}
-		_exc361 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing ShowColumns: "+err2.Error())
+		_exc361 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing ShowColumns: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "ShowColumns", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err360 = thrift.WrapTException(err2)
 		}
@@ -34643,7 +33587,7 @@ func (p *infinityServiceProcessorShowDatabase) Process(ctx context.Context, seqI
 				}
 			}
 		}
-		_exc363 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing ShowDatabase: "+err2.Error())
+		_exc363 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing ShowDatabase: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "ShowDatabase", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err362 = thrift.WrapTException(err2)
 		}
@@ -34750,7 +33694,7 @@ func (p *infinityServiceProcessorShowSegments) Process(ctx context.Context, seqI
 				}
 			}
 		}
-		_exc365 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing ShowSegments: "+err2.Error())
+		_exc365 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing ShowSegments: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "ShowSegments", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err364 = thrift.WrapTException(err2)
 		}
@@ -34857,7 +33801,7 @@ func (p *infinityServiceProcessorShowSegment) Process(ctx context.Context, seqId
 				}
 			}
 		}
-		_exc367 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing ShowSegment: "+err2.Error())
+		_exc367 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing ShowSegment: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "ShowSegment", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err366 = thrift.WrapTException(err2)
 		}
@@ -34964,7 +33908,7 @@ func (p *infinityServiceProcessorShowBlocks) Process(ctx context.Context, seqId 
 				}
 			}
 		}
-		_exc369 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing ShowBlocks: "+err2.Error())
+		_exc369 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing ShowBlocks: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "ShowBlocks", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err368 = thrift.WrapTException(err2)
 		}
@@ -35071,7 +34015,7 @@ func (p *infinityServiceProcessorShowBlock) Process(ctx context.Context, seqId i
 				}
 			}
 		}
-		_exc371 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing ShowBlock: "+err2.Error())
+		_exc371 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing ShowBlock: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "ShowBlock", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err370 = thrift.WrapTException(err2)
 		}
@@ -35178,7 +34122,7 @@ func (p *infinityServiceProcessorShowBlockColumn) Process(ctx context.Context, s
 				}
 			}
 		}
-		_exc373 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing ShowBlockColumn: "+err2.Error())
+		_exc373 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing ShowBlockColumn: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "ShowBlockColumn", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err372 = thrift.WrapTException(err2)
 		}
@@ -35285,7 +34229,7 @@ func (p *infinityServiceProcessorShowCurrentNode) Process(ctx context.Context, s
 				}
 			}
 		}
-		_exc375 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing ShowCurrentNode: "+err2.Error())
+		_exc375 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing ShowCurrentNode: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "ShowCurrentNode", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err374 = thrift.WrapTException(err2)
 		}
@@ -35392,7 +34336,7 @@ func (p *infinityServiceProcessorGetDatabase) Process(ctx context.Context, seqId
 				}
 			}
 		}
-		_exc377 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing GetDatabase: "+err2.Error())
+		_exc377 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing GetDatabase: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "GetDatabase", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err376 = thrift.WrapTException(err2)
 		}
@@ -35499,7 +34443,7 @@ func (p *infinityServiceProcessorGetTable) Process(ctx context.Context, seqId in
 				}
 			}
 		}
-		_exc379 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing GetTable: "+err2.Error())
+		_exc379 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing GetTable: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "GetTable", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err378 = thrift.WrapTException(err2)
 		}
@@ -35606,7 +34550,7 @@ func (p *infinityServiceProcessorCreateIndex) Process(ctx context.Context, seqId
 				}
 			}
 		}
-		_exc381 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing CreateIndex: "+err2.Error())
+		_exc381 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing CreateIndex: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "CreateIndex", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err380 = thrift.WrapTException(err2)
 		}
@@ -35713,7 +34657,7 @@ func (p *infinityServiceProcessorDropIndex) Process(ctx context.Context, seqId i
 				}
 			}
 		}
-		_exc383 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing DropIndex: "+err2.Error())
+		_exc383 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing DropIndex: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "DropIndex", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err382 = thrift.WrapTException(err2)
 		}
@@ -35820,7 +34764,7 @@ func (p *infinityServiceProcessorShowIndex) Process(ctx context.Context, seqId i
 				}
 			}
 		}
-		_exc385 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing ShowIndex: "+err2.Error())
+		_exc385 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing ShowIndex: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "ShowIndex", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err384 = thrift.WrapTException(err2)
 		}
@@ -35927,7 +34871,7 @@ func (p *infinityServiceProcessorOptimize) Process(ctx context.Context, seqId in
 				}
 			}
 		}
-		_exc387 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing Optimize: "+err2.Error())
+		_exc387 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing Optimize: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "Optimize", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err386 = thrift.WrapTException(err2)
 		}
@@ -36034,7 +34978,7 @@ func (p *infinityServiceProcessorAlterIndex) Process(ctx context.Context, seqId 
 				}
 			}
 		}
-		_exc389 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing AlterIndex: "+err2.Error())
+		_exc389 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing AlterIndex: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "AlterIndex", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err388 = thrift.WrapTException(err2)
 		}
@@ -36141,7 +35085,7 @@ func (p *infinityServiceProcessorAddColumns) Process(ctx context.Context, seqId 
 				}
 			}
 		}
-		_exc391 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing AddColumns: "+err2.Error())
+		_exc391 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing AddColumns: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "AddColumns", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err390 = thrift.WrapTException(err2)
 		}
@@ -36248,7 +35192,7 @@ func (p *infinityServiceProcessorDropColumns) Process(ctx context.Context, seqId
 				}
 			}
 		}
-		_exc393 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing DropColumns: "+err2.Error())
+		_exc393 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing DropColumns: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "DropColumns", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err392 = thrift.WrapTException(err2)
 		}
@@ -36355,7 +35299,7 @@ func (p *infinityServiceProcessorCleanup) Process(ctx context.Context, seqId int
 				}
 			}
 		}
-		_exc395 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing Cleanup: "+err2.Error())
+		_exc395 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing Cleanup: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "Cleanup", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err394 = thrift.WrapTException(err2)
 		}
@@ -36462,7 +35406,7 @@ func (p *infinityServiceProcessorDumpIndex) Process(ctx context.Context, seqId i
 				}
 			}
 		}
-		_exc397 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing DumpIndex: "+err2.Error())
+		_exc397 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing DumpIndex: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "DumpIndex", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err396 = thrift.WrapTException(err2)
 		}
@@ -36569,7 +35513,7 @@ func (p *infinityServiceProcessorCommand) Process(ctx context.Context, seqId int
 				}
 			}
 		}
-		_exc399 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing Command: "+err2.Error())
+		_exc399 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing Command: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "Command", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err398 = thrift.WrapTException(err2)
 		}
@@ -36676,7 +35620,7 @@ func (p *infinityServiceProcessorFlush) Process(ctx context.Context, seqId int32
 				}
 			}
 		}
-		_exc401 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing Flush: "+err2.Error())
+		_exc401 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing Flush: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "Flush", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err400 = thrift.WrapTException(err2)
 		}
@@ -36783,7 +35727,7 @@ func (p *infinityServiceProcessorCompact) Process(ctx context.Context, seqId int
 				}
 			}
 		}
-		_exc403 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing Compact: "+err2.Error())
+		_exc403 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing Compact: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "Compact", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err402 = thrift.WrapTException(err2)
 		}
@@ -36890,7 +35834,7 @@ func (p *infinityServiceProcessorCreateTableSnapshot) Process(ctx context.Contex
 				}
 			}
 		}
-		_exc405 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing CreateTableSnapshot: "+err2.Error())
+		_exc405 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing CreateTableSnapshot: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "CreateTableSnapshot", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err404 = thrift.WrapTException(err2)
 		}
@@ -36997,7 +35941,7 @@ func (p *infinityServiceProcessorCreateDatabaseSnapshot) Process(ctx context.Con
 				}
 			}
 		}
-		_exc407 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing CreateDatabaseSnapshot: "+err2.Error())
+		_exc407 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing CreateDatabaseSnapshot: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "CreateDatabaseSnapshot", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err406 = thrift.WrapTException(err2)
 		}
@@ -37104,7 +36048,7 @@ func (p *infinityServiceProcessorCreateSystemSnapshot) Process(ctx context.Conte
 				}
 			}
 		}
-		_exc409 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing CreateSystemSnapshot: "+err2.Error())
+		_exc409 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing CreateSystemSnapshot: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "CreateSystemSnapshot", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err408 = thrift.WrapTException(err2)
 		}
@@ -37211,7 +36155,7 @@ func (p *infinityServiceProcessorRestoreSnapshot) Process(ctx context.Context, s
 				}
 			}
 		}
-		_exc411 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing RestoreSnapshot: "+err2.Error())
+		_exc411 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing RestoreSnapshot: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "RestoreSnapshot", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err410 = thrift.WrapTException(err2)
 		}
@@ -37318,7 +36262,7 @@ func (p *infinityServiceProcessorShowSnapshot) Process(ctx context.Context, seqI
 				}
 			}
 		}
-		_exc413 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing ShowSnapshot: "+err2.Error())
+		_exc413 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing ShowSnapshot: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "ShowSnapshot", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err412 = thrift.WrapTException(err2)
 		}
@@ -37425,7 +36369,7 @@ func (p *infinityServiceProcessorListSnapshots) Process(ctx context.Context, seq
 				}
 			}
 		}
-		_exc415 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing ListSnapshots: "+err2.Error())
+		_exc415 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing ListSnapshots: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "ListSnapshots", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err414 = thrift.WrapTException(err2)
 		}
@@ -37532,7 +36476,7 @@ func (p *infinityServiceProcessorDropSnapshot) Process(ctx context.Context, seqI
 				}
 			}
 		}
-		_exc417 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing DropSnapshot: "+err2.Error())
+		_exc417 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing DropSnapshot: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "DropSnapshot", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err416 = thrift.WrapTException(err2)
 		}
@@ -37639,7 +36583,7 @@ func (p *infinityServiceProcessorSetConfig) Process(ctx context.Context, seqId i
 				}
 			}
 		}
-		_exc419 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing SetConfig: "+err2.Error())
+		_exc419 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing SetConfig: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "SetConfig", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err418 = thrift.WrapTException(err2)
 		}
@@ -37746,7 +36690,7 @@ func (p *infinityServiceProcessorShowConfig) Process(ctx context.Context, seqId 
 				}
 			}
 		}
-		_exc421 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing ShowConfig: "+err2.Error())
+		_exc421 := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing ShowConfig: " + err2.Error())
 		if err2 := oprot.WriteMessageBegin(ctx, "ShowConfig", thrift.EXCEPTION, seqId); err2 != nil {
 			_write_err420 = thrift.WrapTException(err2)
 		}
@@ -37791,10 +36735,12 @@ func (p *infinityServiceProcessorShowConfig) Process(ctx context.Context, seqId 
 	return true, err
 }
 
+
 // HELPER FUNCTIONS AND STRUCTURES
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceConnectArgs struct {
 	Request *ConnectRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -37820,6 +36766,7 @@ func (p *InfinityServiceConnectArgs) Read(ctx context.Context, iprot thrift.TPro
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -37868,9 +36815,7 @@ func (p *InfinityServiceConnectArgs) Write(ctx context.Context, oprot thrift.TPr
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -37906,7 +36851,7 @@ func (p *InfinityServiceConnectArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceConnectArgs",
+		Type: "*infinity.InfinityServiceConnectArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -37915,7 +36860,8 @@ func (p *InfinityServiceConnectArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceConnectArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceConnectResult struct {
 	Success *CommonResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -37941,6 +36887,7 @@ func (p *InfinityServiceConnectResult) Read(ctx context.Context, iprot thrift.TP
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -37989,9 +36936,7 @@ func (p *InfinityServiceConnectResult) Write(ctx context.Context, oprot thrift.T
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -38029,7 +36974,7 @@ func (p *InfinityServiceConnectResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceConnectResult",
+		Type: "*infinity.InfinityServiceConnectResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -38038,7 +36983,8 @@ func (p *InfinityServiceConnectResult) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceConnectResult)(nil)
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceDisconnectArgs struct {
 	Request *CommonRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -38064,6 +37010,7 @@ func (p *InfinityServiceDisconnectArgs) Read(ctx context.Context, iprot thrift.T
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -38112,9 +37059,7 @@ func (p *InfinityServiceDisconnectArgs) Write(ctx context.Context, oprot thrift.
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -38150,7 +37095,7 @@ func (p *InfinityServiceDisconnectArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceDisconnectArgs",
+		Type: "*infinity.InfinityServiceDisconnectArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -38159,7 +37104,8 @@ func (p *InfinityServiceDisconnectArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceDisconnectArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceDisconnectResult struct {
 	Success *CommonResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -38185,6 +37131,7 @@ func (p *InfinityServiceDisconnectResult) Read(ctx context.Context, iprot thrift
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -38233,9 +37180,7 @@ func (p *InfinityServiceDisconnectResult) Write(ctx context.Context, oprot thrif
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -38273,7 +37218,7 @@ func (p *InfinityServiceDisconnectResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceDisconnectResult",
+		Type: "*infinity.InfinityServiceDisconnectResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -38282,7 +37227,8 @@ func (p *InfinityServiceDisconnectResult) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceDisconnectResult)(nil)
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceCreateDatabaseArgs struct {
 	Request *CreateDatabaseRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -38308,6 +37254,7 @@ func (p *InfinityServiceCreateDatabaseArgs) Read(ctx context.Context, iprot thri
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -38356,9 +37303,7 @@ func (p *InfinityServiceCreateDatabaseArgs) Write(ctx context.Context, oprot thr
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -38394,7 +37339,7 @@ func (p *InfinityServiceCreateDatabaseArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceCreateDatabaseArgs",
+		Type: "*infinity.InfinityServiceCreateDatabaseArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -38403,7 +37348,8 @@ func (p *InfinityServiceCreateDatabaseArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceCreateDatabaseArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceCreateDatabaseResult struct {
 	Success *CommonResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -38429,6 +37375,7 @@ func (p *InfinityServiceCreateDatabaseResult) Read(ctx context.Context, iprot th
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -38477,9 +37424,7 @@ func (p *InfinityServiceCreateDatabaseResult) Write(ctx context.Context, oprot t
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -38517,7 +37462,7 @@ func (p *InfinityServiceCreateDatabaseResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceCreateDatabaseResult",
+		Type: "*infinity.InfinityServiceCreateDatabaseResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -38526,7 +37471,8 @@ func (p *InfinityServiceCreateDatabaseResult) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceCreateDatabaseResult)(nil)
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceDropDatabaseArgs struct {
 	Request *DropDatabaseRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -38552,6 +37498,7 @@ func (p *InfinityServiceDropDatabaseArgs) Read(ctx context.Context, iprot thrift
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -38600,9 +37547,7 @@ func (p *InfinityServiceDropDatabaseArgs) Write(ctx context.Context, oprot thrif
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -38638,7 +37583,7 @@ func (p *InfinityServiceDropDatabaseArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceDropDatabaseArgs",
+		Type: "*infinity.InfinityServiceDropDatabaseArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -38647,7 +37592,8 @@ func (p *InfinityServiceDropDatabaseArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceDropDatabaseArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceDropDatabaseResult struct {
 	Success *CommonResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -38673,6 +37619,7 @@ func (p *InfinityServiceDropDatabaseResult) Read(ctx context.Context, iprot thri
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -38721,9 +37668,7 @@ func (p *InfinityServiceDropDatabaseResult) Write(ctx context.Context, oprot thr
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -38761,7 +37706,7 @@ func (p *InfinityServiceDropDatabaseResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceDropDatabaseResult",
+		Type: "*infinity.InfinityServiceDropDatabaseResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -38770,7 +37715,8 @@ func (p *InfinityServiceDropDatabaseResult) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceDropDatabaseResult)(nil)
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceCreateTableArgs struct {
 	Request *CreateTableRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -38796,6 +37742,7 @@ func (p *InfinityServiceCreateTableArgs) Read(ctx context.Context, iprot thrift.
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -38833,7 +37780,8 @@ func (p *InfinityServiceCreateTableArgs) Read(ctx context.Context, iprot thrift.
 
 func (p *InfinityServiceCreateTableArgs) ReadField1(ctx context.Context, iprot thrift.TProtocol) error {
 	p.Request = &CreateTableRequest{
-		ColumnDefs: []*ColumnDef{},
+		ColumnDefs: []*ColumnDef{
+		},
 	}
 	if err := p.Request.Read(ctx, iprot); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T error reading struct: ", p.Request), err)
@@ -38846,9 +37794,7 @@ func (p *InfinityServiceCreateTableArgs) Write(ctx context.Context, oprot thrift
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -38884,7 +37830,7 @@ func (p *InfinityServiceCreateTableArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceCreateTableArgs",
+		Type: "*infinity.InfinityServiceCreateTableArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -38893,7 +37839,8 @@ func (p *InfinityServiceCreateTableArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceCreateTableArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceCreateTableResult struct {
 	Success *CommonResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -38919,6 +37866,7 @@ func (p *InfinityServiceCreateTableResult) Read(ctx context.Context, iprot thrif
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -38967,9 +37915,7 @@ func (p *InfinityServiceCreateTableResult) Write(ctx context.Context, oprot thri
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -39007,7 +37953,7 @@ func (p *InfinityServiceCreateTableResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceCreateTableResult",
+		Type: "*infinity.InfinityServiceCreateTableResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -39016,7 +37962,8 @@ func (p *InfinityServiceCreateTableResult) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceCreateTableResult)(nil)
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceDropTableArgs struct {
 	Request *DropTableRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -39042,6 +37989,7 @@ func (p *InfinityServiceDropTableArgs) Read(ctx context.Context, iprot thrift.TP
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -39090,9 +38038,7 @@ func (p *InfinityServiceDropTableArgs) Write(ctx context.Context, oprot thrift.T
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -39128,7 +38074,7 @@ func (p *InfinityServiceDropTableArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceDropTableArgs",
+		Type: "*infinity.InfinityServiceDropTableArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -39137,7 +38083,8 @@ func (p *InfinityServiceDropTableArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceDropTableArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceDropTableResult struct {
 	Success *CommonResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -39163,6 +38110,7 @@ func (p *InfinityServiceDropTableResult) Read(ctx context.Context, iprot thrift.
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -39211,9 +38159,7 @@ func (p *InfinityServiceDropTableResult) Write(ctx context.Context, oprot thrift
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -39251,7 +38197,7 @@ func (p *InfinityServiceDropTableResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceDropTableResult",
+		Type: "*infinity.InfinityServiceDropTableResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -39260,7 +38206,8 @@ func (p *InfinityServiceDropTableResult) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceDropTableResult)(nil)
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceRenameTableArgs struct {
 	Request *RenameTableRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -39286,6 +38233,7 @@ func (p *InfinityServiceRenameTableArgs) Read(ctx context.Context, iprot thrift.
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -39334,9 +38282,7 @@ func (p *InfinityServiceRenameTableArgs) Write(ctx context.Context, oprot thrift
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -39372,7 +38318,7 @@ func (p *InfinityServiceRenameTableArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceRenameTableArgs",
+		Type: "*infinity.InfinityServiceRenameTableArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -39381,7 +38327,8 @@ func (p *InfinityServiceRenameTableArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceRenameTableArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceRenameTableResult struct {
 	Success *CommonResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -39407,6 +38354,7 @@ func (p *InfinityServiceRenameTableResult) Read(ctx context.Context, iprot thrif
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -39455,9 +38403,7 @@ func (p *InfinityServiceRenameTableResult) Write(ctx context.Context, oprot thri
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -39495,7 +38441,7 @@ func (p *InfinityServiceRenameTableResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceRenameTableResult",
+		Type: "*infinity.InfinityServiceRenameTableResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -39504,7 +38450,8 @@ func (p *InfinityServiceRenameTableResult) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceRenameTableResult)(nil)
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceInsertArgs struct {
 	Request *InsertRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -39530,6 +38477,7 @@ func (p *InfinityServiceInsertArgs) Read(ctx context.Context, iprot thrift.TProt
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -39567,7 +38515,8 @@ func (p *InfinityServiceInsertArgs) Read(ctx context.Context, iprot thrift.TProt
 
 func (p *InfinityServiceInsertArgs) ReadField1(ctx context.Context, iprot thrift.TProtocol) error {
 	p.Request = &InsertRequest{
-		Fields: []*Field{},
+		Fields: []*Field{
+		},
 	}
 	if err := p.Request.Read(ctx, iprot); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T error reading struct: ", p.Request), err)
@@ -39580,9 +38529,7 @@ func (p *InfinityServiceInsertArgs) Write(ctx context.Context, oprot thrift.TPro
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -39618,7 +38565,7 @@ func (p *InfinityServiceInsertArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceInsertArgs",
+		Type: "*infinity.InfinityServiceInsertArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -39627,7 +38574,8 @@ func (p *InfinityServiceInsertArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceInsertArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceInsertResult struct {
 	Success *CommonResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -39653,6 +38601,7 @@ func (p *InfinityServiceInsertResult) Read(ctx context.Context, iprot thrift.TPr
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -39701,9 +38650,7 @@ func (p *InfinityServiceInsertResult) Write(ctx context.Context, oprot thrift.TP
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -39741,7 +38688,7 @@ func (p *InfinityServiceInsertResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceInsertResult",
+		Type: "*infinity.InfinityServiceInsertResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -39750,7 +38697,8 @@ func (p *InfinityServiceInsertResult) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceInsertResult)(nil)
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceImportArgs struct {
 	Request *ImportRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -39776,6 +38724,7 @@ func (p *InfinityServiceImportArgs) Read(ctx context.Context, iprot thrift.TProt
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -39824,9 +38773,7 @@ func (p *InfinityServiceImportArgs) Write(ctx context.Context, oprot thrift.TPro
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -39862,7 +38809,7 @@ func (p *InfinityServiceImportArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceImportArgs",
+		Type: "*infinity.InfinityServiceImportArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -39871,7 +38818,8 @@ func (p *InfinityServiceImportArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceImportArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceImportResult struct {
 	Success *CommonResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -39897,6 +38845,7 @@ func (p *InfinityServiceImportResult) Read(ctx context.Context, iprot thrift.TPr
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -39945,9 +38894,7 @@ func (p *InfinityServiceImportResult) Write(ctx context.Context, oprot thrift.TP
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -39985,7 +38932,7 @@ func (p *InfinityServiceImportResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceImportResult",
+		Type: "*infinity.InfinityServiceImportResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -39994,7 +38941,8 @@ func (p *InfinityServiceImportResult) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceImportResult)(nil)
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceExportArgs struct {
 	Request *ExportRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -40020,6 +38968,7 @@ func (p *InfinityServiceExportArgs) Read(ctx context.Context, iprot thrift.TProt
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -40068,9 +39017,7 @@ func (p *InfinityServiceExportArgs) Write(ctx context.Context, oprot thrift.TPro
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -40106,7 +39053,7 @@ func (p *InfinityServiceExportArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceExportArgs",
+		Type: "*infinity.InfinityServiceExportArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -40115,7 +39062,8 @@ func (p *InfinityServiceExportArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceExportArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceExportResult struct {
 	Success *CommonResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -40141,6 +39089,7 @@ func (p *InfinityServiceExportResult) Read(ctx context.Context, iprot thrift.TPr
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -40189,9 +39138,7 @@ func (p *InfinityServiceExportResult) Write(ctx context.Context, oprot thrift.TP
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -40229,7 +39176,7 @@ func (p *InfinityServiceExportResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceExportResult",
+		Type: "*infinity.InfinityServiceExportResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -40238,7 +39185,8 @@ func (p *InfinityServiceExportResult) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceExportResult)(nil)
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceSelectArgs struct {
 	Request *SelectRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -40264,6 +39212,7 @@ func (p *InfinityServiceSelectArgs) Read(ctx context.Context, iprot thrift.TProt
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -40301,7 +39250,8 @@ func (p *InfinityServiceSelectArgs) Read(ctx context.Context, iprot thrift.TProt
 
 func (p *InfinityServiceSelectArgs) ReadField1(ctx context.Context, iprot thrift.TProtocol) error {
 	p.Request = &SelectRequest{
-		SelectList: []*ParsedExpr{},
+		SelectList: []*ParsedExpr{
+		},
 	}
 	if err := p.Request.Read(ctx, iprot); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T error reading struct: ", p.Request), err)
@@ -40314,9 +39264,7 @@ func (p *InfinityServiceSelectArgs) Write(ctx context.Context, oprot thrift.TPro
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -40352,7 +39300,7 @@ func (p *InfinityServiceSelectArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceSelectArgs",
+		Type: "*infinity.InfinityServiceSelectArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -40361,7 +39309,8 @@ func (p *InfinityServiceSelectArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceSelectArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceSelectResult struct {
 	Success *SelectResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -40387,6 +39336,7 @@ func (p *InfinityServiceSelectResult) Read(ctx context.Context, iprot thrift.TPr
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -40424,8 +39374,10 @@ func (p *InfinityServiceSelectResult) Read(ctx context.Context, iprot thrift.TPr
 
 func (p *InfinityServiceSelectResult) ReadField0(ctx context.Context, iprot thrift.TProtocol) error {
 	p.Success = &SelectResponse{
-		ColumnDefs:   []*ColumnDef{},
-		ColumnFields: []*ColumnField{},
+		ColumnDefs: []*ColumnDef{
+		},
+		ColumnFields: []*ColumnField{
+		},
 	}
 	if err := p.Success.Read(ctx, iprot); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T error reading struct: ", p.Success), err)
@@ -40438,9 +39390,7 @@ func (p *InfinityServiceSelectResult) Write(ctx context.Context, oprot thrift.TP
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -40478,7 +39428,7 @@ func (p *InfinityServiceSelectResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceSelectResult",
+		Type: "*infinity.InfinityServiceSelectResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -40487,7 +39437,8 @@ func (p *InfinityServiceSelectResult) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceSelectResult)(nil)
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceExplainArgs struct {
 	Request *ExplainRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -40513,6 +39464,7 @@ func (p *InfinityServiceExplainArgs) Read(ctx context.Context, iprot thrift.TPro
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -40550,7 +39502,8 @@ func (p *InfinityServiceExplainArgs) Read(ctx context.Context, iprot thrift.TPro
 
 func (p *InfinityServiceExplainArgs) ReadField1(ctx context.Context, iprot thrift.TProtocol) error {
 	p.Request = &ExplainRequest{
-		SelectList: []*ParsedExpr{},
+		SelectList: []*ParsedExpr{
+		},
 	}
 	if err := p.Request.Read(ctx, iprot); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T error reading struct: ", p.Request), err)
@@ -40563,9 +39516,7 @@ func (p *InfinityServiceExplainArgs) Write(ctx context.Context, oprot thrift.TPr
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -40601,7 +39552,7 @@ func (p *InfinityServiceExplainArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceExplainArgs",
+		Type: "*infinity.InfinityServiceExplainArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -40610,7 +39561,8 @@ func (p *InfinityServiceExplainArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceExplainArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceExplainResult struct {
 	Success *SelectResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -40636,6 +39588,7 @@ func (p *InfinityServiceExplainResult) Read(ctx context.Context, iprot thrift.TP
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -40673,8 +39626,10 @@ func (p *InfinityServiceExplainResult) Read(ctx context.Context, iprot thrift.TP
 
 func (p *InfinityServiceExplainResult) ReadField0(ctx context.Context, iprot thrift.TProtocol) error {
 	p.Success = &SelectResponse{
-		ColumnDefs:   []*ColumnDef{},
-		ColumnFields: []*ColumnField{},
+		ColumnDefs: []*ColumnDef{
+		},
+		ColumnFields: []*ColumnField{
+		},
 	}
 	if err := p.Success.Read(ctx, iprot); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T error reading struct: ", p.Success), err)
@@ -40687,9 +39642,7 @@ func (p *InfinityServiceExplainResult) Write(ctx context.Context, oprot thrift.T
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -40727,7 +39680,7 @@ func (p *InfinityServiceExplainResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceExplainResult",
+		Type: "*infinity.InfinityServiceExplainResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -40736,7 +39689,8 @@ func (p *InfinityServiceExplainResult) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceExplainResult)(nil)
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceDeleteArgs struct {
 	Request *DeleteRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -40762,6 +39716,7 @@ func (p *InfinityServiceDeleteArgs) Read(ctx context.Context, iprot thrift.TProt
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -40810,9 +39765,7 @@ func (p *InfinityServiceDeleteArgs) Write(ctx context.Context, oprot thrift.TPro
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -40848,7 +39801,7 @@ func (p *InfinityServiceDeleteArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceDeleteArgs",
+		Type: "*infinity.InfinityServiceDeleteArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -40857,7 +39810,8 @@ func (p *InfinityServiceDeleteArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceDeleteArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceDeleteResult struct {
 	Success *DeleteResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -40883,6 +39837,7 @@ func (p *InfinityServiceDeleteResult) Read(ctx context.Context, iprot thrift.TPr
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -40931,9 +39886,7 @@ func (p *InfinityServiceDeleteResult) Write(ctx context.Context, oprot thrift.TP
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -40971,7 +39924,7 @@ func (p *InfinityServiceDeleteResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceDeleteResult",
+		Type: "*infinity.InfinityServiceDeleteResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -40980,7 +39933,8 @@ func (p *InfinityServiceDeleteResult) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceDeleteResult)(nil)
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceUpdateArgs struct {
 	Request *UpdateRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -41006,6 +39960,7 @@ func (p *InfinityServiceUpdateArgs) Read(ctx context.Context, iprot thrift.TProt
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -41043,7 +39998,8 @@ func (p *InfinityServiceUpdateArgs) Read(ctx context.Context, iprot thrift.TProt
 
 func (p *InfinityServiceUpdateArgs) ReadField1(ctx context.Context, iprot thrift.TProtocol) error {
 	p.Request = &UpdateRequest{
-		UpdateExprArray: []*UpdateExpr{},
+		UpdateExprArray: []*UpdateExpr{
+		},
 	}
 	if err := p.Request.Read(ctx, iprot); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T error reading struct: ", p.Request), err)
@@ -41056,9 +40012,7 @@ func (p *InfinityServiceUpdateArgs) Write(ctx context.Context, oprot thrift.TPro
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -41094,7 +40048,7 @@ func (p *InfinityServiceUpdateArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceUpdateArgs",
+		Type: "*infinity.InfinityServiceUpdateArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -41103,7 +40057,8 @@ func (p *InfinityServiceUpdateArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceUpdateArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceUpdateResult struct {
 	Success *CommonResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -41129,6 +40084,7 @@ func (p *InfinityServiceUpdateResult) Read(ctx context.Context, iprot thrift.TPr
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -41177,9 +40133,7 @@ func (p *InfinityServiceUpdateResult) Write(ctx context.Context, oprot thrift.TP
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -41217,7 +40171,7 @@ func (p *InfinityServiceUpdateResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceUpdateResult",
+		Type: "*infinity.InfinityServiceUpdateResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -41226,7 +40180,8 @@ func (p *InfinityServiceUpdateResult) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceUpdateResult)(nil)
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceListDatabaseArgs struct {
 	Request *ListDatabaseRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -41252,6 +40207,7 @@ func (p *InfinityServiceListDatabaseArgs) Read(ctx context.Context, iprot thrift
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -41300,9 +40256,7 @@ func (p *InfinityServiceListDatabaseArgs) Write(ctx context.Context, oprot thrif
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -41338,7 +40292,7 @@ func (p *InfinityServiceListDatabaseArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceListDatabaseArgs",
+		Type: "*infinity.InfinityServiceListDatabaseArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -41347,7 +40301,8 @@ func (p *InfinityServiceListDatabaseArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceListDatabaseArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceListDatabaseResult struct {
 	Success *ListDatabaseResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -41373,6 +40328,7 @@ func (p *InfinityServiceListDatabaseResult) Read(ctx context.Context, iprot thri
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -41410,9 +40366,12 @@ func (p *InfinityServiceListDatabaseResult) Read(ctx context.Context, iprot thri
 
 func (p *InfinityServiceListDatabaseResult) ReadField0(ctx context.Context, iprot thrift.TProtocol) error {
 	p.Success = &ListDatabaseResponse{
-		DbNames:    []string{},
-		DbDirs:     []string{},
-		DbComments: []string{},
+		DbNames: []string{
+		},
+		DbDirs: []string{
+		},
+		DbComments: []string{
+		},
 	}
 	if err := p.Success.Read(ctx, iprot); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T error reading struct: ", p.Success), err)
@@ -41425,9 +40384,7 @@ func (p *InfinityServiceListDatabaseResult) Write(ctx context.Context, oprot thr
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -41465,7 +40422,7 @@ func (p *InfinityServiceListDatabaseResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceListDatabaseResult",
+		Type: "*infinity.InfinityServiceListDatabaseResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -41474,7 +40431,8 @@ func (p *InfinityServiceListDatabaseResult) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceListDatabaseResult)(nil)
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceListTableArgs struct {
 	Request *ListTableRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -41500,6 +40458,7 @@ func (p *InfinityServiceListTableArgs) Read(ctx context.Context, iprot thrift.TP
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -41548,9 +40507,7 @@ func (p *InfinityServiceListTableArgs) Write(ctx context.Context, oprot thrift.T
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -41586,7 +40543,7 @@ func (p *InfinityServiceListTableArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceListTableArgs",
+		Type: "*infinity.InfinityServiceListTableArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -41595,7 +40552,8 @@ func (p *InfinityServiceListTableArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceListTableArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceListTableResult struct {
 	Success *ListTableResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -41621,6 +40579,7 @@ func (p *InfinityServiceListTableResult) Read(ctx context.Context, iprot thrift.
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -41658,7 +40617,8 @@ func (p *InfinityServiceListTableResult) Read(ctx context.Context, iprot thrift.
 
 func (p *InfinityServiceListTableResult) ReadField0(ctx context.Context, iprot thrift.TProtocol) error {
 	p.Success = &ListTableResponse{
-		TableNames: []string{},
+		TableNames: []string{
+		},
 	}
 	if err := p.Success.Read(ctx, iprot); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T error reading struct: ", p.Success), err)
@@ -41671,9 +40631,7 @@ func (p *InfinityServiceListTableResult) Write(ctx context.Context, oprot thrift
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -41711,7 +40669,7 @@ func (p *InfinityServiceListTableResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceListTableResult",
+		Type: "*infinity.InfinityServiceListTableResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -41720,7 +40678,8 @@ func (p *InfinityServiceListTableResult) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceListTableResult)(nil)
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceListIndexArgs struct {
 	Request *ListIndexRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -41746,6 +40705,7 @@ func (p *InfinityServiceListIndexArgs) Read(ctx context.Context, iprot thrift.TP
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -41794,9 +40754,7 @@ func (p *InfinityServiceListIndexArgs) Write(ctx context.Context, oprot thrift.T
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -41832,7 +40790,7 @@ func (p *InfinityServiceListIndexArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceListIndexArgs",
+		Type: "*infinity.InfinityServiceListIndexArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -41841,7 +40799,8 @@ func (p *InfinityServiceListIndexArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceListIndexArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceListIndexResult struct {
 	Success *ListIndexResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -41867,6 +40826,7 @@ func (p *InfinityServiceListIndexResult) Read(ctx context.Context, iprot thrift.
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -41904,7 +40864,8 @@ func (p *InfinityServiceListIndexResult) Read(ctx context.Context, iprot thrift.
 
 func (p *InfinityServiceListIndexResult) ReadField0(ctx context.Context, iprot thrift.TProtocol) error {
 	p.Success = &ListIndexResponse{
-		IndexNames: []string{},
+		IndexNames: []string{
+		},
 	}
 	if err := p.Success.Read(ctx, iprot); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T error reading struct: ", p.Success), err)
@@ -41917,9 +40878,7 @@ func (p *InfinityServiceListIndexResult) Write(ctx context.Context, oprot thrift
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -41957,7 +40916,7 @@ func (p *InfinityServiceListIndexResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceListIndexResult",
+		Type: "*infinity.InfinityServiceListIndexResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -41966,7 +40925,8 @@ func (p *InfinityServiceListIndexResult) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceListIndexResult)(nil)
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceShowTableArgs struct {
 	Request *ShowTableRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -41992,6 +40952,7 @@ func (p *InfinityServiceShowTableArgs) Read(ctx context.Context, iprot thrift.TP
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -42040,9 +41001,7 @@ func (p *InfinityServiceShowTableArgs) Write(ctx context.Context, oprot thrift.T
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -42078,7 +41037,7 @@ func (p *InfinityServiceShowTableArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceShowTableArgs",
+		Type: "*infinity.InfinityServiceShowTableArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -42087,7 +41046,8 @@ func (p *InfinityServiceShowTableArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceShowTableArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceShowTableResult struct {
 	Success *ShowTableResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -42113,6 +41073,7 @@ func (p *InfinityServiceShowTableResult) Read(ctx context.Context, iprot thrift.
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -42161,9 +41122,7 @@ func (p *InfinityServiceShowTableResult) Write(ctx context.Context, oprot thrift
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -42201,7 +41160,7 @@ func (p *InfinityServiceShowTableResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceShowTableResult",
+		Type: "*infinity.InfinityServiceShowTableResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -42210,7 +41169,8 @@ func (p *InfinityServiceShowTableResult) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceShowTableResult)(nil)
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceShowColumnsArgs struct {
 	Request *ShowColumnsRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -42236,6 +41196,7 @@ func (p *InfinityServiceShowColumnsArgs) Read(ctx context.Context, iprot thrift.
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -42284,9 +41245,7 @@ func (p *InfinityServiceShowColumnsArgs) Write(ctx context.Context, oprot thrift
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -42322,7 +41281,7 @@ func (p *InfinityServiceShowColumnsArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceShowColumnsArgs",
+		Type: "*infinity.InfinityServiceShowColumnsArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -42331,7 +41290,8 @@ func (p *InfinityServiceShowColumnsArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceShowColumnsArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceShowColumnsResult struct {
 	Success *SelectResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -42357,6 +41317,7 @@ func (p *InfinityServiceShowColumnsResult) Read(ctx context.Context, iprot thrif
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -42394,8 +41355,10 @@ func (p *InfinityServiceShowColumnsResult) Read(ctx context.Context, iprot thrif
 
 func (p *InfinityServiceShowColumnsResult) ReadField0(ctx context.Context, iprot thrift.TProtocol) error {
 	p.Success = &SelectResponse{
-		ColumnDefs:   []*ColumnDef{},
-		ColumnFields: []*ColumnField{},
+		ColumnDefs: []*ColumnDef{
+		},
+		ColumnFields: []*ColumnField{
+		},
 	}
 	if err := p.Success.Read(ctx, iprot); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T error reading struct: ", p.Success), err)
@@ -42408,9 +41371,7 @@ func (p *InfinityServiceShowColumnsResult) Write(ctx context.Context, oprot thri
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -42448,7 +41409,7 @@ func (p *InfinityServiceShowColumnsResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceShowColumnsResult",
+		Type: "*infinity.InfinityServiceShowColumnsResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -42457,7 +41418,8 @@ func (p *InfinityServiceShowColumnsResult) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceShowColumnsResult)(nil)
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceShowDatabaseArgs struct {
 	Request *ShowDatabaseRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -42483,6 +41445,7 @@ func (p *InfinityServiceShowDatabaseArgs) Read(ctx context.Context, iprot thrift
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -42531,9 +41494,7 @@ func (p *InfinityServiceShowDatabaseArgs) Write(ctx context.Context, oprot thrif
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -42569,7 +41530,7 @@ func (p *InfinityServiceShowDatabaseArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceShowDatabaseArgs",
+		Type: "*infinity.InfinityServiceShowDatabaseArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -42578,7 +41539,8 @@ func (p *InfinityServiceShowDatabaseArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceShowDatabaseArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceShowDatabaseResult struct {
 	Success *ShowDatabaseResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -42604,6 +41566,7 @@ func (p *InfinityServiceShowDatabaseResult) Read(ctx context.Context, iprot thri
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -42652,9 +41615,7 @@ func (p *InfinityServiceShowDatabaseResult) Write(ctx context.Context, oprot thr
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -42692,7 +41653,7 @@ func (p *InfinityServiceShowDatabaseResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceShowDatabaseResult",
+		Type: "*infinity.InfinityServiceShowDatabaseResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -42701,7 +41662,8 @@ func (p *InfinityServiceShowDatabaseResult) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceShowDatabaseResult)(nil)
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceShowSegmentsArgs struct {
 	Request *ShowSegmentsRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -42727,6 +41689,7 @@ func (p *InfinityServiceShowSegmentsArgs) Read(ctx context.Context, iprot thrift
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -42775,9 +41738,7 @@ func (p *InfinityServiceShowSegmentsArgs) Write(ctx context.Context, oprot thrif
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -42813,7 +41774,7 @@ func (p *InfinityServiceShowSegmentsArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceShowSegmentsArgs",
+		Type: "*infinity.InfinityServiceShowSegmentsArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -42822,7 +41783,8 @@ func (p *InfinityServiceShowSegmentsArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceShowSegmentsArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceShowSegmentsResult struct {
 	Success *SelectResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -42848,6 +41810,7 @@ func (p *InfinityServiceShowSegmentsResult) Read(ctx context.Context, iprot thri
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -42885,8 +41848,10 @@ func (p *InfinityServiceShowSegmentsResult) Read(ctx context.Context, iprot thri
 
 func (p *InfinityServiceShowSegmentsResult) ReadField0(ctx context.Context, iprot thrift.TProtocol) error {
 	p.Success = &SelectResponse{
-		ColumnDefs:   []*ColumnDef{},
-		ColumnFields: []*ColumnField{},
+		ColumnDefs: []*ColumnDef{
+		},
+		ColumnFields: []*ColumnField{
+		},
 	}
 	if err := p.Success.Read(ctx, iprot); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T error reading struct: ", p.Success), err)
@@ -42899,9 +41864,7 @@ func (p *InfinityServiceShowSegmentsResult) Write(ctx context.Context, oprot thr
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -42939,7 +41902,7 @@ func (p *InfinityServiceShowSegmentsResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceShowSegmentsResult",
+		Type: "*infinity.InfinityServiceShowSegmentsResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -42948,7 +41911,8 @@ func (p *InfinityServiceShowSegmentsResult) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceShowSegmentsResult)(nil)
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceShowSegmentArgs struct {
 	Request *ShowSegmentRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -42974,6 +41938,7 @@ func (p *InfinityServiceShowSegmentArgs) Read(ctx context.Context, iprot thrift.
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -43022,9 +41987,7 @@ func (p *InfinityServiceShowSegmentArgs) Write(ctx context.Context, oprot thrift
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -43060,7 +42023,7 @@ func (p *InfinityServiceShowSegmentArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceShowSegmentArgs",
+		Type: "*infinity.InfinityServiceShowSegmentArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -43069,7 +42032,8 @@ func (p *InfinityServiceShowSegmentArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceShowSegmentArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceShowSegmentResult struct {
 	Success *ShowSegmentResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -43095,6 +42059,7 @@ func (p *InfinityServiceShowSegmentResult) Read(ctx context.Context, iprot thrif
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -43143,9 +42108,7 @@ func (p *InfinityServiceShowSegmentResult) Write(ctx context.Context, oprot thri
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -43183,7 +42146,7 @@ func (p *InfinityServiceShowSegmentResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceShowSegmentResult",
+		Type: "*infinity.InfinityServiceShowSegmentResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -43192,7 +42155,8 @@ func (p *InfinityServiceShowSegmentResult) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceShowSegmentResult)(nil)
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceShowBlocksArgs struct {
 	Request *ShowBlocksRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -43218,6 +42182,7 @@ func (p *InfinityServiceShowBlocksArgs) Read(ctx context.Context, iprot thrift.T
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -43266,9 +42231,7 @@ func (p *InfinityServiceShowBlocksArgs) Write(ctx context.Context, oprot thrift.
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -43304,7 +42267,7 @@ func (p *InfinityServiceShowBlocksArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceShowBlocksArgs",
+		Type: "*infinity.InfinityServiceShowBlocksArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -43313,7 +42276,8 @@ func (p *InfinityServiceShowBlocksArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceShowBlocksArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceShowBlocksResult struct {
 	Success *SelectResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -43339,6 +42303,7 @@ func (p *InfinityServiceShowBlocksResult) Read(ctx context.Context, iprot thrift
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -43376,8 +42341,10 @@ func (p *InfinityServiceShowBlocksResult) Read(ctx context.Context, iprot thrift
 
 func (p *InfinityServiceShowBlocksResult) ReadField0(ctx context.Context, iprot thrift.TProtocol) error {
 	p.Success = &SelectResponse{
-		ColumnDefs:   []*ColumnDef{},
-		ColumnFields: []*ColumnField{},
+		ColumnDefs: []*ColumnDef{
+		},
+		ColumnFields: []*ColumnField{
+		},
 	}
 	if err := p.Success.Read(ctx, iprot); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T error reading struct: ", p.Success), err)
@@ -43390,9 +42357,7 @@ func (p *InfinityServiceShowBlocksResult) Write(ctx context.Context, oprot thrif
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -43430,7 +42395,7 @@ func (p *InfinityServiceShowBlocksResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceShowBlocksResult",
+		Type: "*infinity.InfinityServiceShowBlocksResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -43439,7 +42404,8 @@ func (p *InfinityServiceShowBlocksResult) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceShowBlocksResult)(nil)
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceShowBlockArgs struct {
 	Request *ShowBlockRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -43465,6 +42431,7 @@ func (p *InfinityServiceShowBlockArgs) Read(ctx context.Context, iprot thrift.TP
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -43513,9 +42480,7 @@ func (p *InfinityServiceShowBlockArgs) Write(ctx context.Context, oprot thrift.T
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -43551,7 +42516,7 @@ func (p *InfinityServiceShowBlockArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceShowBlockArgs",
+		Type: "*infinity.InfinityServiceShowBlockArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -43560,7 +42525,8 @@ func (p *InfinityServiceShowBlockArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceShowBlockArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceShowBlockResult struct {
 	Success *ShowBlockResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -43586,6 +42552,7 @@ func (p *InfinityServiceShowBlockResult) Read(ctx context.Context, iprot thrift.
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -43634,9 +42601,7 @@ func (p *InfinityServiceShowBlockResult) Write(ctx context.Context, oprot thrift
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -43674,7 +42639,7 @@ func (p *InfinityServiceShowBlockResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceShowBlockResult",
+		Type: "*infinity.InfinityServiceShowBlockResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -43683,7 +42648,8 @@ func (p *InfinityServiceShowBlockResult) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceShowBlockResult)(nil)
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceShowBlockColumnArgs struct {
 	Request *ShowBlockColumnRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -43709,6 +42675,7 @@ func (p *InfinityServiceShowBlockColumnArgs) Read(ctx context.Context, iprot thr
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -43757,9 +42724,7 @@ func (p *InfinityServiceShowBlockColumnArgs) Write(ctx context.Context, oprot th
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -43795,7 +42760,7 @@ func (p *InfinityServiceShowBlockColumnArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceShowBlockColumnArgs",
+		Type: "*infinity.InfinityServiceShowBlockColumnArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -43804,7 +42769,8 @@ func (p *InfinityServiceShowBlockColumnArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceShowBlockColumnArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceShowBlockColumnResult struct {
 	Success *ShowBlockColumnResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -43830,6 +42796,7 @@ func (p *InfinityServiceShowBlockColumnResult) Read(ctx context.Context, iprot t
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -43878,9 +42845,7 @@ func (p *InfinityServiceShowBlockColumnResult) Write(ctx context.Context, oprot 
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -43918,7 +42883,7 @@ func (p *InfinityServiceShowBlockColumnResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceShowBlockColumnResult",
+		Type: "*infinity.InfinityServiceShowBlockColumnResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -43927,7 +42892,8 @@ func (p *InfinityServiceShowBlockColumnResult) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceShowBlockColumnResult)(nil)
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceShowCurrentNodeArgs struct {
 	Request *ShowCurrentNodeRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -43953,6 +42919,7 @@ func (p *InfinityServiceShowCurrentNodeArgs) Read(ctx context.Context, iprot thr
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -44001,9 +42968,7 @@ func (p *InfinityServiceShowCurrentNodeArgs) Write(ctx context.Context, oprot th
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -44039,7 +43004,7 @@ func (p *InfinityServiceShowCurrentNodeArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceShowCurrentNodeArgs",
+		Type: "*infinity.InfinityServiceShowCurrentNodeArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -44048,7 +43013,8 @@ func (p *InfinityServiceShowCurrentNodeArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceShowCurrentNodeArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceShowCurrentNodeResult struct {
 	Success *ShowCurrentNodeResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -44074,6 +43040,7 @@ func (p *InfinityServiceShowCurrentNodeResult) Read(ctx context.Context, iprot t
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -44122,9 +43089,7 @@ func (p *InfinityServiceShowCurrentNodeResult) Write(ctx context.Context, oprot 
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -44162,7 +43127,7 @@ func (p *InfinityServiceShowCurrentNodeResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceShowCurrentNodeResult",
+		Type: "*infinity.InfinityServiceShowCurrentNodeResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -44171,7 +43136,8 @@ func (p *InfinityServiceShowCurrentNodeResult) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceShowCurrentNodeResult)(nil)
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceGetDatabaseArgs struct {
 	Request *GetDatabaseRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -44197,6 +43163,7 @@ func (p *InfinityServiceGetDatabaseArgs) Read(ctx context.Context, iprot thrift.
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -44245,9 +43212,7 @@ func (p *InfinityServiceGetDatabaseArgs) Write(ctx context.Context, oprot thrift
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -44283,7 +43248,7 @@ func (p *InfinityServiceGetDatabaseArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceGetDatabaseArgs",
+		Type: "*infinity.InfinityServiceGetDatabaseArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -44292,7 +43257,8 @@ func (p *InfinityServiceGetDatabaseArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceGetDatabaseArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceGetDatabaseResult struct {
 	Success *CommonResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -44318,6 +43284,7 @@ func (p *InfinityServiceGetDatabaseResult) Read(ctx context.Context, iprot thrif
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -44366,9 +43333,7 @@ func (p *InfinityServiceGetDatabaseResult) Write(ctx context.Context, oprot thri
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -44406,7 +43371,7 @@ func (p *InfinityServiceGetDatabaseResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceGetDatabaseResult",
+		Type: "*infinity.InfinityServiceGetDatabaseResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -44415,7 +43380,8 @@ func (p *InfinityServiceGetDatabaseResult) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceGetDatabaseResult)(nil)
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceGetTableArgs struct {
 	Request *GetTableRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -44441,6 +43407,7 @@ func (p *InfinityServiceGetTableArgs) Read(ctx context.Context, iprot thrift.TPr
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -44489,9 +43456,7 @@ func (p *InfinityServiceGetTableArgs) Write(ctx context.Context, oprot thrift.TP
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -44527,7 +43492,7 @@ func (p *InfinityServiceGetTableArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceGetTableArgs",
+		Type: "*infinity.InfinityServiceGetTableArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -44536,7 +43501,8 @@ func (p *InfinityServiceGetTableArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceGetTableArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceGetTableResult struct {
 	Success *CommonResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -44562,6 +43528,7 @@ func (p *InfinityServiceGetTableResult) Read(ctx context.Context, iprot thrift.T
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -44610,9 +43577,7 @@ func (p *InfinityServiceGetTableResult) Write(ctx context.Context, oprot thrift.
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -44650,7 +43615,7 @@ func (p *InfinityServiceGetTableResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceGetTableResult",
+		Type: "*infinity.InfinityServiceGetTableResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -44659,7 +43624,8 @@ func (p *InfinityServiceGetTableResult) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceGetTableResult)(nil)
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceCreateIndexArgs struct {
 	Request *CreateIndexRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -44685,6 +43651,7 @@ func (p *InfinityServiceCreateIndexArgs) Read(ctx context.Context, iprot thrift.
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -44733,9 +43700,7 @@ func (p *InfinityServiceCreateIndexArgs) Write(ctx context.Context, oprot thrift
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -44771,7 +43736,7 @@ func (p *InfinityServiceCreateIndexArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceCreateIndexArgs",
+		Type: "*infinity.InfinityServiceCreateIndexArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -44780,7 +43745,8 @@ func (p *InfinityServiceCreateIndexArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceCreateIndexArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceCreateIndexResult struct {
 	Success *CommonResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -44806,6 +43772,7 @@ func (p *InfinityServiceCreateIndexResult) Read(ctx context.Context, iprot thrif
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -44854,9 +43821,7 @@ func (p *InfinityServiceCreateIndexResult) Write(ctx context.Context, oprot thri
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -44894,7 +43859,7 @@ func (p *InfinityServiceCreateIndexResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceCreateIndexResult",
+		Type: "*infinity.InfinityServiceCreateIndexResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -44903,7 +43868,8 @@ func (p *InfinityServiceCreateIndexResult) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceCreateIndexResult)(nil)
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceDropIndexArgs struct {
 	Request *DropIndexRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -44929,6 +43895,7 @@ func (p *InfinityServiceDropIndexArgs) Read(ctx context.Context, iprot thrift.TP
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -44977,9 +43944,7 @@ func (p *InfinityServiceDropIndexArgs) Write(ctx context.Context, oprot thrift.T
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -45015,7 +43980,7 @@ func (p *InfinityServiceDropIndexArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceDropIndexArgs",
+		Type: "*infinity.InfinityServiceDropIndexArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -45024,7 +43989,8 @@ func (p *InfinityServiceDropIndexArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceDropIndexArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceDropIndexResult struct {
 	Success *CommonResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -45050,6 +44016,7 @@ func (p *InfinityServiceDropIndexResult) Read(ctx context.Context, iprot thrift.
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -45098,9 +44065,7 @@ func (p *InfinityServiceDropIndexResult) Write(ctx context.Context, oprot thrift
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -45138,7 +44103,7 @@ func (p *InfinityServiceDropIndexResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceDropIndexResult",
+		Type: "*infinity.InfinityServiceDropIndexResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -45147,7 +44112,8 @@ func (p *InfinityServiceDropIndexResult) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceDropIndexResult)(nil)
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceShowIndexArgs struct {
 	Request *ShowIndexRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -45173,6 +44139,7 @@ func (p *InfinityServiceShowIndexArgs) Read(ctx context.Context, iprot thrift.TP
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -45221,9 +44188,7 @@ func (p *InfinityServiceShowIndexArgs) Write(ctx context.Context, oprot thrift.T
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -45259,7 +44224,7 @@ func (p *InfinityServiceShowIndexArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceShowIndexArgs",
+		Type: "*infinity.InfinityServiceShowIndexArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -45268,7 +44233,8 @@ func (p *InfinityServiceShowIndexArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceShowIndexArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceShowIndexResult struct {
 	Success *ShowIndexResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -45294,6 +44260,7 @@ func (p *InfinityServiceShowIndexResult) Read(ctx context.Context, iprot thrift.
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -45342,9 +44309,7 @@ func (p *InfinityServiceShowIndexResult) Write(ctx context.Context, oprot thrift
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -45382,7 +44347,7 @@ func (p *InfinityServiceShowIndexResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceShowIndexResult",
+		Type: "*infinity.InfinityServiceShowIndexResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -45391,7 +44356,8 @@ func (p *InfinityServiceShowIndexResult) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceShowIndexResult)(nil)
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceOptimizeArgs struct {
 	Request *OptimizeRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -45417,6 +44383,7 @@ func (p *InfinityServiceOptimizeArgs) Read(ctx context.Context, iprot thrift.TPr
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -45465,9 +44432,7 @@ func (p *InfinityServiceOptimizeArgs) Write(ctx context.Context, oprot thrift.TP
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -45503,7 +44468,7 @@ func (p *InfinityServiceOptimizeArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceOptimizeArgs",
+		Type: "*infinity.InfinityServiceOptimizeArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -45512,7 +44477,8 @@ func (p *InfinityServiceOptimizeArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceOptimizeArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceOptimizeResult struct {
 	Success *CommonResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -45538,6 +44504,7 @@ func (p *InfinityServiceOptimizeResult) Read(ctx context.Context, iprot thrift.T
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -45586,9 +44553,7 @@ func (p *InfinityServiceOptimizeResult) Write(ctx context.Context, oprot thrift.
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -45626,7 +44591,7 @@ func (p *InfinityServiceOptimizeResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceOptimizeResult",
+		Type: "*infinity.InfinityServiceOptimizeResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -45635,7 +44600,8 @@ func (p *InfinityServiceOptimizeResult) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceOptimizeResult)(nil)
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceAlterIndexArgs struct {
 	Request *AlterIndexRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -45661,6 +44627,7 @@ func (p *InfinityServiceAlterIndexArgs) Read(ctx context.Context, iprot thrift.T
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -45709,9 +44676,7 @@ func (p *InfinityServiceAlterIndexArgs) Write(ctx context.Context, oprot thrift.
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -45747,7 +44712,7 @@ func (p *InfinityServiceAlterIndexArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceAlterIndexArgs",
+		Type: "*infinity.InfinityServiceAlterIndexArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -45756,7 +44721,8 @@ func (p *InfinityServiceAlterIndexArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceAlterIndexArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceAlterIndexResult struct {
 	Success *CommonResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -45782,6 +44748,7 @@ func (p *InfinityServiceAlterIndexResult) Read(ctx context.Context, iprot thrift
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -45830,9 +44797,7 @@ func (p *InfinityServiceAlterIndexResult) Write(ctx context.Context, oprot thrif
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -45870,7 +44835,7 @@ func (p *InfinityServiceAlterIndexResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceAlterIndexResult",
+		Type: "*infinity.InfinityServiceAlterIndexResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -45879,7 +44844,8 @@ func (p *InfinityServiceAlterIndexResult) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceAlterIndexResult)(nil)
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceAddColumnsArgs struct {
 	Request *AddColumnsRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -45905,6 +44871,7 @@ func (p *InfinityServiceAddColumnsArgs) Read(ctx context.Context, iprot thrift.T
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -45942,7 +44909,8 @@ func (p *InfinityServiceAddColumnsArgs) Read(ctx context.Context, iprot thrift.T
 
 func (p *InfinityServiceAddColumnsArgs) ReadField1(ctx context.Context, iprot thrift.TProtocol) error {
 	p.Request = &AddColumnsRequest{
-		ColumnDefs: []*ColumnDef{},
+		ColumnDefs: []*ColumnDef{
+		},
 	}
 	if err := p.Request.Read(ctx, iprot); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T error reading struct: ", p.Request), err)
@@ -45955,9 +44923,7 @@ func (p *InfinityServiceAddColumnsArgs) Write(ctx context.Context, oprot thrift.
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -45993,7 +44959,7 @@ func (p *InfinityServiceAddColumnsArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceAddColumnsArgs",
+		Type: "*infinity.InfinityServiceAddColumnsArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -46002,7 +44968,8 @@ func (p *InfinityServiceAddColumnsArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceAddColumnsArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceAddColumnsResult struct {
 	Success *CommonResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -46028,6 +44995,7 @@ func (p *InfinityServiceAddColumnsResult) Read(ctx context.Context, iprot thrift
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -46076,9 +45044,7 @@ func (p *InfinityServiceAddColumnsResult) Write(ctx context.Context, oprot thrif
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -46116,7 +45082,7 @@ func (p *InfinityServiceAddColumnsResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceAddColumnsResult",
+		Type: "*infinity.InfinityServiceAddColumnsResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -46125,7 +45091,8 @@ func (p *InfinityServiceAddColumnsResult) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceAddColumnsResult)(nil)
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceDropColumnsArgs struct {
 	Request *DropColumnsRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -46151,6 +45118,7 @@ func (p *InfinityServiceDropColumnsArgs) Read(ctx context.Context, iprot thrift.
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -46188,7 +45156,8 @@ func (p *InfinityServiceDropColumnsArgs) Read(ctx context.Context, iprot thrift.
 
 func (p *InfinityServiceDropColumnsArgs) ReadField1(ctx context.Context, iprot thrift.TProtocol) error {
 	p.Request = &DropColumnsRequest{
-		ColumnNames: []string{},
+		ColumnNames: []string{
+		},
 	}
 	if err := p.Request.Read(ctx, iprot); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T error reading struct: ", p.Request), err)
@@ -46201,9 +45170,7 @@ func (p *InfinityServiceDropColumnsArgs) Write(ctx context.Context, oprot thrift
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -46239,7 +45206,7 @@ func (p *InfinityServiceDropColumnsArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceDropColumnsArgs",
+		Type: "*infinity.InfinityServiceDropColumnsArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -46248,7 +45215,8 @@ func (p *InfinityServiceDropColumnsArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceDropColumnsArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceDropColumnsResult struct {
 	Success *CommonResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -46274,6 +45242,7 @@ func (p *InfinityServiceDropColumnsResult) Read(ctx context.Context, iprot thrif
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -46322,9 +45291,7 @@ func (p *InfinityServiceDropColumnsResult) Write(ctx context.Context, oprot thri
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -46362,7 +45329,7 @@ func (p *InfinityServiceDropColumnsResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceDropColumnsResult",
+		Type: "*infinity.InfinityServiceDropColumnsResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -46371,7 +45338,8 @@ func (p *InfinityServiceDropColumnsResult) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceDropColumnsResult)(nil)
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceCleanupArgs struct {
 	Request *CommonRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -46397,6 +45365,7 @@ func (p *InfinityServiceCleanupArgs) Read(ctx context.Context, iprot thrift.TPro
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -46445,9 +45414,7 @@ func (p *InfinityServiceCleanupArgs) Write(ctx context.Context, oprot thrift.TPr
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -46483,7 +45450,7 @@ func (p *InfinityServiceCleanupArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceCleanupArgs",
+		Type: "*infinity.InfinityServiceCleanupArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -46492,7 +45459,8 @@ func (p *InfinityServiceCleanupArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceCleanupArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceCleanupResult struct {
 	Success *CommonResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -46518,6 +45486,7 @@ func (p *InfinityServiceCleanupResult) Read(ctx context.Context, iprot thrift.TP
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -46566,9 +45535,7 @@ func (p *InfinityServiceCleanupResult) Write(ctx context.Context, oprot thrift.T
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -46606,7 +45573,7 @@ func (p *InfinityServiceCleanupResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceCleanupResult",
+		Type: "*infinity.InfinityServiceCleanupResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -46615,7 +45582,8 @@ func (p *InfinityServiceCleanupResult) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceCleanupResult)(nil)
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceDumpIndexArgs struct {
 	Request *DumpIndexRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -46641,6 +45609,7 @@ func (p *InfinityServiceDumpIndexArgs) Read(ctx context.Context, iprot thrift.TP
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -46689,9 +45658,7 @@ func (p *InfinityServiceDumpIndexArgs) Write(ctx context.Context, oprot thrift.T
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -46727,7 +45694,7 @@ func (p *InfinityServiceDumpIndexArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceDumpIndexArgs",
+		Type: "*infinity.InfinityServiceDumpIndexArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -46736,7 +45703,8 @@ func (p *InfinityServiceDumpIndexArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceDumpIndexArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceDumpIndexResult struct {
 	Success *CommonResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -46762,6 +45730,7 @@ func (p *InfinityServiceDumpIndexResult) Read(ctx context.Context, iprot thrift.
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -46810,9 +45779,7 @@ func (p *InfinityServiceDumpIndexResult) Write(ctx context.Context, oprot thrift
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -46850,7 +45817,7 @@ func (p *InfinityServiceDumpIndexResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceDumpIndexResult",
+		Type: "*infinity.InfinityServiceDumpIndexResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -46859,7 +45826,8 @@ func (p *InfinityServiceDumpIndexResult) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceDumpIndexResult)(nil)
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceCommandArgs struct {
 	Request *CommandRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -46885,6 +45853,7 @@ func (p *InfinityServiceCommandArgs) Read(ctx context.Context, iprot thrift.TPro
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -46933,9 +45902,7 @@ func (p *InfinityServiceCommandArgs) Write(ctx context.Context, oprot thrift.TPr
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -46971,7 +45938,7 @@ func (p *InfinityServiceCommandArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceCommandArgs",
+		Type: "*infinity.InfinityServiceCommandArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -46980,7 +45947,8 @@ func (p *InfinityServiceCommandArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceCommandArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceCommandResult struct {
 	Success *CommonResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -47006,6 +45974,7 @@ func (p *InfinityServiceCommandResult) Read(ctx context.Context, iprot thrift.TP
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -47054,9 +46023,7 @@ func (p *InfinityServiceCommandResult) Write(ctx context.Context, oprot thrift.T
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -47094,7 +46061,7 @@ func (p *InfinityServiceCommandResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceCommandResult",
+		Type: "*infinity.InfinityServiceCommandResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -47103,7 +46070,8 @@ func (p *InfinityServiceCommandResult) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceCommandResult)(nil)
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceFlushArgs struct {
 	Request *FlushRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -47129,6 +46097,7 @@ func (p *InfinityServiceFlushArgs) Read(ctx context.Context, iprot thrift.TProto
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -47177,9 +46146,7 @@ func (p *InfinityServiceFlushArgs) Write(ctx context.Context, oprot thrift.TProt
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -47215,7 +46182,7 @@ func (p *InfinityServiceFlushArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceFlushArgs",
+		Type: "*infinity.InfinityServiceFlushArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -47224,7 +46191,8 @@ func (p *InfinityServiceFlushArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceFlushArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceFlushResult struct {
 	Success *CommonResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -47250,6 +46218,7 @@ func (p *InfinityServiceFlushResult) Read(ctx context.Context, iprot thrift.TPro
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -47298,9 +46267,7 @@ func (p *InfinityServiceFlushResult) Write(ctx context.Context, oprot thrift.TPr
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -47338,7 +46305,7 @@ func (p *InfinityServiceFlushResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceFlushResult",
+		Type: "*infinity.InfinityServiceFlushResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -47347,7 +46314,8 @@ func (p *InfinityServiceFlushResult) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceFlushResult)(nil)
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceCompactArgs struct {
 	Request *CompactRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -47373,6 +46341,7 @@ func (p *InfinityServiceCompactArgs) Read(ctx context.Context, iprot thrift.TPro
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -47421,9 +46390,7 @@ func (p *InfinityServiceCompactArgs) Write(ctx context.Context, oprot thrift.TPr
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -47459,7 +46426,7 @@ func (p *InfinityServiceCompactArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceCompactArgs",
+		Type: "*infinity.InfinityServiceCompactArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -47468,7 +46435,8 @@ func (p *InfinityServiceCompactArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceCompactArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceCompactResult struct {
 	Success *CommonResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -47494,6 +46462,7 @@ func (p *InfinityServiceCompactResult) Read(ctx context.Context, iprot thrift.TP
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -47542,9 +46511,7 @@ func (p *InfinityServiceCompactResult) Write(ctx context.Context, oprot thrift.T
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -47582,7 +46549,7 @@ func (p *InfinityServiceCompactResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceCompactResult",
+		Type: "*infinity.InfinityServiceCompactResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -47591,7 +46558,8 @@ func (p *InfinityServiceCompactResult) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceCompactResult)(nil)
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceCreateTableSnapshotArgs struct {
 	Request *CreateTableSnapshotRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -47617,6 +46585,7 @@ func (p *InfinityServiceCreateTableSnapshotArgs) Read(ctx context.Context, iprot
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -47665,9 +46634,7 @@ func (p *InfinityServiceCreateTableSnapshotArgs) Write(ctx context.Context, opro
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -47703,7 +46670,7 @@ func (p *InfinityServiceCreateTableSnapshotArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceCreateTableSnapshotArgs",
+		Type: "*infinity.InfinityServiceCreateTableSnapshotArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -47712,7 +46679,8 @@ func (p *InfinityServiceCreateTableSnapshotArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceCreateTableSnapshotArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceCreateTableSnapshotResult struct {
 	Success *CommonResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -47738,6 +46706,7 @@ func (p *InfinityServiceCreateTableSnapshotResult) Read(ctx context.Context, ipr
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -47786,9 +46755,7 @@ func (p *InfinityServiceCreateTableSnapshotResult) Write(ctx context.Context, op
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -47826,7 +46793,7 @@ func (p *InfinityServiceCreateTableSnapshotResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceCreateTableSnapshotResult",
+		Type: "*infinity.InfinityServiceCreateTableSnapshotResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -47835,7 +46802,8 @@ func (p *InfinityServiceCreateTableSnapshotResult) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceCreateTableSnapshotResult)(nil)
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceCreateDatabaseSnapshotArgs struct {
 	Request *CreateDatabaseSnapshotRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -47861,6 +46829,7 @@ func (p *InfinityServiceCreateDatabaseSnapshotArgs) Read(ctx context.Context, ip
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -47909,9 +46878,7 @@ func (p *InfinityServiceCreateDatabaseSnapshotArgs) Write(ctx context.Context, o
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -47947,7 +46914,7 @@ func (p *InfinityServiceCreateDatabaseSnapshotArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceCreateDatabaseSnapshotArgs",
+		Type: "*infinity.InfinityServiceCreateDatabaseSnapshotArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -47956,7 +46923,8 @@ func (p *InfinityServiceCreateDatabaseSnapshotArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceCreateDatabaseSnapshotArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceCreateDatabaseSnapshotResult struct {
 	Success *CommonResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -47982,6 +46950,7 @@ func (p *InfinityServiceCreateDatabaseSnapshotResult) Read(ctx context.Context, 
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -48030,9 +46999,7 @@ func (p *InfinityServiceCreateDatabaseSnapshotResult) Write(ctx context.Context,
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -48070,7 +47037,7 @@ func (p *InfinityServiceCreateDatabaseSnapshotResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceCreateDatabaseSnapshotResult",
+		Type: "*infinity.InfinityServiceCreateDatabaseSnapshotResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -48079,7 +47046,8 @@ func (p *InfinityServiceCreateDatabaseSnapshotResult) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceCreateDatabaseSnapshotResult)(nil)
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceCreateSystemSnapshotArgs struct {
 	Request *CreateSystemSnapshotRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -48105,6 +47073,7 @@ func (p *InfinityServiceCreateSystemSnapshotArgs) Read(ctx context.Context, ipro
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -48153,9 +47122,7 @@ func (p *InfinityServiceCreateSystemSnapshotArgs) Write(ctx context.Context, opr
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -48191,7 +47158,7 @@ func (p *InfinityServiceCreateSystemSnapshotArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceCreateSystemSnapshotArgs",
+		Type: "*infinity.InfinityServiceCreateSystemSnapshotArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -48200,7 +47167,8 @@ func (p *InfinityServiceCreateSystemSnapshotArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceCreateSystemSnapshotArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceCreateSystemSnapshotResult struct {
 	Success *CommonResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -48226,6 +47194,7 @@ func (p *InfinityServiceCreateSystemSnapshotResult) Read(ctx context.Context, ip
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -48274,9 +47243,7 @@ func (p *InfinityServiceCreateSystemSnapshotResult) Write(ctx context.Context, o
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -48314,7 +47281,7 @@ func (p *InfinityServiceCreateSystemSnapshotResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceCreateSystemSnapshotResult",
+		Type: "*infinity.InfinityServiceCreateSystemSnapshotResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -48323,7 +47290,8 @@ func (p *InfinityServiceCreateSystemSnapshotResult) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceCreateSystemSnapshotResult)(nil)
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceRestoreSnapshotArgs struct {
 	Request *RestoreSnapshotRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -48349,6 +47317,7 @@ func (p *InfinityServiceRestoreSnapshotArgs) Read(ctx context.Context, iprot thr
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -48397,9 +47366,7 @@ func (p *InfinityServiceRestoreSnapshotArgs) Write(ctx context.Context, oprot th
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -48435,7 +47402,7 @@ func (p *InfinityServiceRestoreSnapshotArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceRestoreSnapshotArgs",
+		Type: "*infinity.InfinityServiceRestoreSnapshotArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -48444,7 +47411,8 @@ func (p *InfinityServiceRestoreSnapshotArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceRestoreSnapshotArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceRestoreSnapshotResult struct {
 	Success *CommonResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -48470,6 +47438,7 @@ func (p *InfinityServiceRestoreSnapshotResult) Read(ctx context.Context, iprot t
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -48518,9 +47487,7 @@ func (p *InfinityServiceRestoreSnapshotResult) Write(ctx context.Context, oprot 
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -48558,7 +47525,7 @@ func (p *InfinityServiceRestoreSnapshotResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceRestoreSnapshotResult",
+		Type: "*infinity.InfinityServiceRestoreSnapshotResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -48567,7 +47534,8 @@ func (p *InfinityServiceRestoreSnapshotResult) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceRestoreSnapshotResult)(nil)
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceShowSnapshotArgs struct {
 	Request *ShowSnapshotRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -48593,6 +47561,7 @@ func (p *InfinityServiceShowSnapshotArgs) Read(ctx context.Context, iprot thrift
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -48641,9 +47610,7 @@ func (p *InfinityServiceShowSnapshotArgs) Write(ctx context.Context, oprot thrif
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -48679,7 +47646,7 @@ func (p *InfinityServiceShowSnapshotArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceShowSnapshotArgs",
+		Type: "*infinity.InfinityServiceShowSnapshotArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -48688,7 +47655,8 @@ func (p *InfinityServiceShowSnapshotArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceShowSnapshotArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceShowSnapshotResult struct {
 	Success *ShowSnapshotResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -48714,6 +47682,7 @@ func (p *InfinityServiceShowSnapshotResult) Read(ctx context.Context, iprot thri
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -48762,9 +47731,7 @@ func (p *InfinityServiceShowSnapshotResult) Write(ctx context.Context, oprot thr
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -48802,7 +47769,7 @@ func (p *InfinityServiceShowSnapshotResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceShowSnapshotResult",
+		Type: "*infinity.InfinityServiceShowSnapshotResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -48811,7 +47778,8 @@ func (p *InfinityServiceShowSnapshotResult) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceShowSnapshotResult)(nil)
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceListSnapshotsArgs struct {
 	Request *ListSnapshotsRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -48837,6 +47805,7 @@ func (p *InfinityServiceListSnapshotsArgs) Read(ctx context.Context, iprot thrif
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -48885,9 +47854,7 @@ func (p *InfinityServiceListSnapshotsArgs) Write(ctx context.Context, oprot thri
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -48923,7 +47890,7 @@ func (p *InfinityServiceListSnapshotsArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceListSnapshotsArgs",
+		Type: "*infinity.InfinityServiceListSnapshotsArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -48932,7 +47899,8 @@ func (p *InfinityServiceListSnapshotsArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceListSnapshotsArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceListSnapshotsResult struct {
 	Success *ListSnapshotsResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -48958,6 +47926,7 @@ func (p *InfinityServiceListSnapshotsResult) Read(ctx context.Context, iprot thr
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -48995,7 +47964,8 @@ func (p *InfinityServiceListSnapshotsResult) Read(ctx context.Context, iprot thr
 
 func (p *InfinityServiceListSnapshotsResult) ReadField0(ctx context.Context, iprot thrift.TProtocol) error {
 	p.Success = &ListSnapshotsResponse{
-		Snapshots: []*SnapshotInfo{},
+		Snapshots: []*SnapshotInfo{
+		},
 	}
 	if err := p.Success.Read(ctx, iprot); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T error reading struct: ", p.Success), err)
@@ -49008,9 +47978,7 @@ func (p *InfinityServiceListSnapshotsResult) Write(ctx context.Context, oprot th
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -49048,7 +48016,7 @@ func (p *InfinityServiceListSnapshotsResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceListSnapshotsResult",
+		Type: "*infinity.InfinityServiceListSnapshotsResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -49057,7 +48025,8 @@ func (p *InfinityServiceListSnapshotsResult) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceListSnapshotsResult)(nil)
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceDropSnapshotArgs struct {
 	Request *DropSnapshotRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -49083,6 +48052,7 @@ func (p *InfinityServiceDropSnapshotArgs) Read(ctx context.Context, iprot thrift
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -49131,9 +48101,7 @@ func (p *InfinityServiceDropSnapshotArgs) Write(ctx context.Context, oprot thrif
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -49169,7 +48137,7 @@ func (p *InfinityServiceDropSnapshotArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceDropSnapshotArgs",
+		Type: "*infinity.InfinityServiceDropSnapshotArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -49178,7 +48146,8 @@ func (p *InfinityServiceDropSnapshotArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceDropSnapshotArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceDropSnapshotResult struct {
 	Success *CommonResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -49204,6 +48173,7 @@ func (p *InfinityServiceDropSnapshotResult) Read(ctx context.Context, iprot thri
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -49252,9 +48222,7 @@ func (p *InfinityServiceDropSnapshotResult) Write(ctx context.Context, oprot thr
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -49292,7 +48260,7 @@ func (p *InfinityServiceDropSnapshotResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceDropSnapshotResult",
+		Type: "*infinity.InfinityServiceDropSnapshotResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -49301,7 +48269,8 @@ func (p *InfinityServiceDropSnapshotResult) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceDropSnapshotResult)(nil)
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceSetConfigArgs struct {
 	Request *SetConfigRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -49327,6 +48296,7 @@ func (p *InfinityServiceSetConfigArgs) Read(ctx context.Context, iprot thrift.TP
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -49375,9 +48345,7 @@ func (p *InfinityServiceSetConfigArgs) Write(ctx context.Context, oprot thrift.T
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -49413,7 +48381,7 @@ func (p *InfinityServiceSetConfigArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceSetConfigArgs",
+		Type: "*infinity.InfinityServiceSetConfigArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -49422,7 +48390,8 @@ func (p *InfinityServiceSetConfigArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceSetConfigArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceSetConfigResult struct {
 	Success *CommonResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -49448,6 +48417,7 @@ func (p *InfinityServiceSetConfigResult) Read(ctx context.Context, iprot thrift.
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -49496,9 +48466,7 @@ func (p *InfinityServiceSetConfigResult) Write(ctx context.Context, oprot thrift
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -49536,7 +48504,7 @@ func (p *InfinityServiceSetConfigResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceSetConfigResult",
+		Type: "*infinity.InfinityServiceSetConfigResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -49545,7 +48513,8 @@ func (p *InfinityServiceSetConfigResult) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceSetConfigResult)(nil)
 
 // Attributes:
-//   - Request
+//  - Request
+// 
 type InfinityServiceShowConfigArgs struct {
 	Request *ShowConfigRequest `thrift:"request,1" db:"request" json:"request"`
 }
@@ -49571,6 +48540,7 @@ func (p *InfinityServiceShowConfigArgs) Read(ctx context.Context, iprot thrift.T
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -49619,9 +48589,7 @@ func (p *InfinityServiceShowConfigArgs) Write(ctx context.Context, oprot thrift.
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField1(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField1(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -49657,7 +48625,7 @@ func (p *InfinityServiceShowConfigArgs) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceShowConfigArgs",
+		Type: "*infinity.InfinityServiceShowConfigArgs",
 		Value: p,
 	}
 	return slog.AnyValue(v)
@@ -49666,7 +48634,8 @@ func (p *InfinityServiceShowConfigArgs) LogValue() slog.Value {
 var _ slog.LogValuer = (*InfinityServiceShowConfigArgs)(nil)
 
 // Attributes:
-//   - Success
+//  - Success
+// 
 type InfinityServiceShowConfigResult struct {
 	Success *ShowConfigResponse `thrift:"success,0" db:"success" json:"success,omitempty"`
 }
@@ -49692,6 +48661,7 @@ func (p *InfinityServiceShowConfigResult) Read(ctx context.Context, iprot thrift
 	if _, err := iprot.ReadStructBegin(ctx); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
 	}
+
 
 	for {
 		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin(ctx)
@@ -49740,9 +48710,7 @@ func (p *InfinityServiceShowConfigResult) Write(ctx context.Context, oprot thrif
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if p != nil {
-		if err := p.writeField0(ctx, oprot); err != nil {
-			return err
-		}
+		if err := p.writeField0(ctx, oprot); err != nil { return err }
 	}
 	if err := oprot.WriteFieldStop(ctx); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -49780,10 +48748,12 @@ func (p *InfinityServiceShowConfigResult) LogValue() slog.Value {
 		return slog.AnyValue(nil)
 	}
 	v := thrift.SlogTStructWrapper{
-		Type:  "*infinity.InfinityServiceShowConfigResult",
+		Type: "*infinity.InfinityServiceShowConfigResult",
 		Value: p,
 	}
 	return slog.AnyValue(v)
 }
 
 var _ slog.LogValuer = (*InfinityServiceShowConfigResult)(nil)
+
+
