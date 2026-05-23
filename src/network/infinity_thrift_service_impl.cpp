@@ -2132,7 +2132,6 @@ IndexType InfinityThriftService::GetIndexTypeFromProto(const infinity_thrift_rpc
             return IndexType::kSMVE;
         case infinity_thrift_rpc::IndexType::SPFresh:
             return IndexType::kSPFresh;
-            return IndexType::kSMVE;
         default:
             return IndexType::kInvalid;
     }

@@ -1341,10 +1341,10 @@ func (t *Table) ToResult() (interface{}, error) {
 
 // DataFrame represents query results in a row-oriented format similar to pandas DataFrame
 type DataFrame struct {
-	Columns    []string               // Column names
+	Columns    []string                 // Column names
 	ColumnData map[string][]interface{} // Column name -> slice of values
-	RowCount   int                    // Number of rows
-	ExtraInfo  string                 // Extra info from query (e.g., total_hits_count)
+	RowCount   int                      // Number of rows
+	ExtraInfo  string                   // Extra info from query (e.g., total_hits_count)
 }
 
 // ToDataFrame executes query and returns results as a DataFrame-like structure
