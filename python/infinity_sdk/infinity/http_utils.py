@@ -273,7 +273,8 @@ index_type_transfrom = {
     7: "BMP",
     8: "DISKANN",
     9: "PLAID",
-    10: "SPFRESH",
+    10: "SMVE",
+    11: "SPFRESH",
 }
 
 baseResponse = {
