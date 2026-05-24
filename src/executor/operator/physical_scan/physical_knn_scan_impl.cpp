@@ -690,45 +690,13 @@ void PhysicalKnnScan::ExecuteInternalByColumnDataTypeAndQueryDataType(QueryConte
                     break;
                 }
                 case IndexType::kSPFresh: {
-                    // Fast path: use in-memory index
-                    SPFreshIndexInMem *spfresh_index = nullptr;
-                    // Keep BufferHandle alive to pin disk data if loaded from chunks
-                    BufferHandle disk_handle;
-                    {
-                        auto mem_index = segment_index_meta->GetMemIndex();
-                        if (mem_index != nullptr) {
-                            auto idx = mem_index->GetSPFreshIndex();
-                            if (idx != nullptr) {
-                                spfresh_index = idx.get();
-                            }
-                        }
-                    }
-                    // Fallback: load from disk chunks (e.g. after restart)
-                    if (spfresh_index == nullptr) {
-                        auto [chunk_ids_ptr, _] = get_chunks();
-                        for (ChunkID chunk_id : *chunk_ids_ptr) {
-                            ChunkIndexMeta chunk_index_meta(chunk_id, *segment_index_meta);
-                            BufferObj *index_buffer = nullptr;
-                            status = chunk_index_meta.GetIndexBuffer(index_buffer);
-                            if (!status.ok())
-                                continue;
-                            disk_handle = index_buffer->Load();
-                            spfresh_index = static_cast<SPFreshIndexInMem *>(disk_handle.GetDataMut());
-                            break;
-                        }
-                    }
-                    if (spfresh_index != nullptr) {
-                        ExecuteSPFreshSearch<t, ColumnDataType, C, DistanceDataType>(knn_scan_shared_data,
-                                                                                     merge_heap_hnsw,
-                                                                                     embedding_dim,
-                                                                                     segment_id,
-                                                                                     spfresh_index,
-                                                                                     use_bitmask,
-                                                                                     bitmask,
-                                                                                     block_index,
-                                                                                     knn_column_id,
-                                                                                     segment_index_meta);
-                    }
+                    ExecuteSPFreshSearch<t, ColumnDataType, C, DistanceDataType>(knn_scan_shared_data,
+                                                                                 merge_heap_hnsw,
+                                                                                 embedding_dim,
+                                                                                 segment_id,
+                                                                                 segment_index_meta,
+                                                                                 use_bitmask,
+                                                                                 bitmask);
                     break;
                 }
                 default: {
@@ -1020,73 +988,91 @@ void ExecuteHnswSearch(QueryContext *query_context,
     }
 }
 
-// SPFresh search: RaBitQ approximate distance → centroid pruning → direct RaBitQ result
-// No column store read or exact rerank needed — RaBitQ distance is used as the final score.
+// SPFresh search: search across all chunks + MemIndex for a segment, merge results via merge_heap.
+// Chunks are managed internally by SPFreshIndexInMem. The physical operator sees only segment_index_meta.
 template <LogicalType t, typename ColumnDataType, template <typename, typename> typename C, typename DistanceDataType>
 void ExecuteSPFreshSearch(KnnScanSharedData *knn_scan_shared_data,
                            MergeKnn<ColumnDataType, C, DistanceDataType> *merge_heap,
                            u32 embedding_dim,
                            SegmentID segment_id,
-                           SPFreshIndexInMem *spfresh_index,
+                           SegmentIndexMeta *segment_index_meta,
                            bool use_bitmask,
-                           const Bitmask &bitmask,
-                           BlockIndex *block_index,
-                           ColumnID knn_column_id,
-                           SegmentIndexMeta *segment_index_meta) {
+                           const Bitmask &bitmask) {
     if constexpr (!(IsAnyOf<ColumnDataType, u8, i8, f32>)) return;
 
-    const auto query_count = knn_scan_shared_data->query_count_;
     const u32 topk = knn_scan_shared_data->topk_;
-
-    // RaBitQ direct: use approximate distance as final score (no column store rerank needed)
     const f32 centroid_score_threshold = 0.5f;
     const u32 max_search_candidates = std::max(topk * 100u, 10000u);
 
-    const auto *queries = static_cast<const ColumnDataType *>(knn_scan_shared_data->query_embedding_);
+    // Per-index search lambda: search a single SPFreshIndexInMem and push results to merge_heap
+    auto search_index = [&](SPFreshIndexInMem *idx) {
+        const auto query_count = knn_scan_shared_data->query_count_;
+        const auto *queries = static_cast<const ColumnDataType *>(knn_scan_shared_data->query_embedding_);
 
-    auto satisfy_filter = [&](SegmentOffset offset) -> bool {
-        if (use_bitmask && offset >= bitmask.count()) return false;
-        return !use_bitmask || !bitmask.IsTrue(offset);
+        auto satisfy_filter = [&](SegmentOffset offset) -> bool {
+            if (use_bitmask && offset >= bitmask.count()) return false;
+            return !use_bitmask || !bitmask.IsTrue(offset);
+        };
+
+        for (u64 query_idx = 0; query_idx < query_count; ++query_idx) {
+            const auto *query = queries + query_idx * embedding_dim;
+            const auto *query_f32 = reinterpret_cast<const f32 *>(query);
+
+            struct Candidate { u32 offset; f32 dist; };
+            std::vector<Candidate> candidates;
+            candidates.reserve(max_search_candidates);
+
+            idx->Search(
+                query_f32, embedding_dim,
+                [&](SegmentOffset offset, f32 approx_dist) {
+                    if (!satisfy_filter(offset)) return;
+                    candidates.push_back({offset, approx_dist});
+                },
+                max_search_candidates,
+                centroid_score_threshold
+            );
+
+            if (candidates.empty()) continue;
+
+            u32 final_n = std::min(static_cast<u32>(candidates.size()), topk);
+            std::partial_sort(candidates.begin(), candidates.begin() + final_n, candidates.end(),
+                              [](const Candidate &a, const Candidate &b) { return a.dist < b.dist; });
+
+            std::vector<DistanceDataType> dists;
+            std::vector<RowID> row_ids;
+            dists.reserve(final_n);
+            row_ids.reserve(final_n);
+
+            for (u32 i = 0; i < final_n; ++i) {
+                dists.push_back(static_cast<DistanceDataType>(candidates[i].dist));
+                row_ids.emplace_back(segment_id, candidates[i].offset);
+            }
+            if (!dists.empty()) {
+                merge_heap->Search(query_idx, dists.data(), row_ids.data(), dists.size());
+            }
+        }
     };
 
-    for (u64 query_idx = 0; query_idx < query_count; ++query_idx) {
-        const auto *query = queries + query_idx * embedding_dim;
-        const auto *query_f32 = reinterpret_cast<const f32 *>(query);
-
-        // Collect candidates with RaBitQ approximate distances from SPFresh search
-        struct Candidate { u32 offset; f32 dist; };
-        std::vector<Candidate> candidates;
-        candidates.reserve(max_search_candidates);
-
-        spfresh_index->Search(
-            query_f32, embedding_dim,
-            [&](SegmentOffset offset, f32 approx_dist) {
-                if (!satisfy_filter(offset)) return;
-                candidates.push_back({offset, approx_dist});
-            },
-            max_search_candidates,
-            centroid_score_threshold
-        );
-
-        if (candidates.empty()) continue;
-
-        // Sort by approximate distance, keep top-k as final result
-        u32 final_n = std::min(static_cast<u32>(candidates.size()), topk);
-        std::partial_sort(candidates.begin(), candidates.begin() + final_n, candidates.end(),
-                          [](const Candidate &a, const Candidate &b) { return a.dist < b.dist; });
-
-        std::vector<DistanceDataType> dists;
-        std::vector<RowID> row_ids;
-        dists.reserve(final_n);
-        row_ids.reserve(final_n);
-
-        for (u32 i = 0; i < final_n; ++i) {
-            dists.push_back(static_cast<DistanceDataType>(candidates[i].dist));
-            row_ids.emplace_back(segment_id, candidates[i].offset);
+    // Search MemIndex (live in-memory index for incremental inserts)
+    auto mem_index = segment_index_meta->GetMemIndex();
+    if (mem_index != nullptr) {
+        auto idx = mem_index->GetSPFreshIndex();
+        if (idx != nullptr) {
+            search_index(idx.get());
         }
+    }
 
-        if (!dists.empty()) {
-            merge_heap->Search(query_idx, dists.data(), row_ids.data(), dists.size());
+    // Search each disk chunk (persisted snapshots)
+    auto [chunk_ids_ptr, _] = segment_index_meta->GetChunkIDs1();
+    for (ChunkID chunk_id : *chunk_ids_ptr) {
+        ChunkIndexMeta chunk_index_meta(chunk_id, *segment_index_meta);
+        BufferObj *index_buffer = nullptr;
+        Status status = chunk_index_meta.GetIndexBuffer(index_buffer);
+        if (!status.ok()) continue;
+        auto disk_handle = index_buffer->Load();
+        auto *idx = static_cast<SPFreshIndexInMem *>(disk_handle.GetDataMut());
+        if (idx != nullptr) {
+            search_index(idx);
         }
     }
 }
