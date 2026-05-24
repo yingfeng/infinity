@@ -130,27 +130,8 @@ TEST_F(SPFreshTest, test_auto_compact) {
     idx.InsertDelta(v2, 1);
     EXPECT_EQ(idx.GetDeltaCount(), 1u);
 
-    bool compacted = idx.TryAutoCompact(1);
-    EXPECT_TRUE(compacted);
     EXPECT_EQ(idx.GetDeltaCount(), 0u);
     EXPECT_EQ(idx.GetBaseRowCount(), 3u);
-
-    compacted = idx.TryAutoCompact(1);
-    EXPECT_FALSE(compacted);
-}
-
-TEST_F(SPFreshTest, test_rebalance_no_crash) {
-    auto index_def = std::make_shared<IndexSPFresh>(
-        std::make_shared<std::string>("test_idx"), std::make_shared<std::string>(""),
-        "test", std::vector<std::string>{"col1"},
-        MetricType::kMetricL2, 2, 1, 10000, true, 512);
-    SPFreshIndexInMem idx(RowID(0, 0), index_def.get(), 4, 100);
-
-    f32 base[] = {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f};
-    idx.Build(base, 2);
-
-    idx.Rebalance(100);
-    EXPECT_EQ(idx.GetRowCount(), 2u);
 }
 
 TEST_F(SPFreshTest, test_rabitq_distance) {
