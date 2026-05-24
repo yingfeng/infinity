@@ -1020,7 +1020,8 @@ void ExecuteHnswSearch(QueryContext *query_context,
     }
 }
 
-// SPFresh search: RaBitQ approximate distance → centroid pruning → column store reranking
+// SPFresh search: RaBitQ approximate distance → centroid pruning → direct RaBitQ result
+// No column store read or exact rerank needed — RaBitQ distance is used as the final score.
 template <LogicalType t, typename ColumnDataType, template <typename, typename> typename C, typename DistanceDataType>
 void ExecuteSPFreshSearch(KnnScanSharedData *knn_scan_shared_data,
                            MergeKnn<ColumnDataType, C, DistanceDataType> *merge_heap,
@@ -1037,11 +1038,9 @@ void ExecuteSPFreshSearch(KnnScanSharedData *knn_scan_shared_data,
     const auto query_count = knn_scan_shared_data->query_count_;
     const u32 topk = knn_scan_shared_data->topk_;
 
-    // LIRE-style two-stage rerank
-    const u32 n_doc_to_score = std::max(topk * 8u, 2000u);
-    const u32 n_full_scores = std::max(topk * 4u, 200u);
-    const f32 centroid_score_threshold = 0.6f;
-    const u32 max_search_candidates = n_doc_to_score * 2;
+    // RaBitQ direct: use approximate distance as final score (no column store rerank needed)
+    const f32 centroid_score_threshold = 0.5f;
+    const u32 max_search_candidates = std::max(topk * 100u, 10000u);
 
     const auto *queries = static_cast<const ColumnDataType *>(knn_scan_shared_data->query_embedding_);
 
@@ -1050,50 +1049,14 @@ void ExecuteSPFreshSearch(KnnScanSharedData *knn_scan_shared_data,
         return !use_bitmask || !bitmask.IsTrue(offset);
     };
 
-    // Pre-read all column vectors from column store for reranking
-    std::vector<f32> segment_vectors;
-    u32 segment_capacity = 0;
-    {
-        TableMeta *table_meta = block_index->table_meta_.get();
-        if (table_meta == nullptr) return;
-        SegmentMeta seg_meta(segment_id, *table_meta);
-
-        auto [col_def_ptr, col_status] = segment_index_meta->table_index_meta().GetColumnDef();
-        if (!col_status.ok()) return;
-
-        auto [block_ids, blk_status] = seg_meta.GetBlockIDs1();
-        if (!blk_status.ok()) return;
-        size_t block_capacity = DEFAULT_BLOCK_CAPACITY;
-        size_t total_row_cnt = 0;
-        for (size_t bi = 0; bi < block_ids->size(); ++bi) { total_row_cnt += block_capacity; }
-        total_row_cnt = std::min(total_row_cnt, seg_meta.segment_capacity());
-
-        for (size_t bi = 0; bi < block_ids->size(); ++bi) {
-            BlockID block_id = (*block_ids)[bi];
-            BlockMeta blk_meta(block_id, seg_meta);
-            ColumnMeta col_meta(knn_column_id, blk_meta);
-            size_t row_cnt = (bi == block_ids->size() - 1) ?
-                total_row_cnt - block_capacity * (block_ids->size() - 1) : block_capacity;
-            ColumnVector col_vec;
-            Status status = NewCatalog::GetColumnVector(col_meta, col_def_ptr, row_cnt, ColumnVectorMode::kReadOnly, col_vec);
-            if (!status.ok()) continue;
-            const f32 *src = reinterpret_cast<const f32 *>(col_vec.data());
-            size_t vec_bytes = row_cnt * embedding_dim;
-            segment_vectors.insert(segment_vectors.end(), src, src + vec_bytes);
-            segment_capacity = static_cast<u32>(segment_vectors.size() / embedding_dim);
-        }
-    }
-    if (segment_vectors.empty() || segment_capacity == 0) return;
-
-    // Per-query SPFresh search + two-stage rerank
     for (u64 query_idx = 0; query_idx < query_count; ++query_idx) {
         const auto *query = queries + query_idx * embedding_dim;
         const auto *query_f32 = reinterpret_cast<const f32 *>(query);
 
-        // Stage 1: SPFresh approximate search with centroid threshold + early termination
+        // Collect candidates with RaBitQ approximate distances from SPFresh search
         struct Candidate { u32 offset; f32 dist; };
         std::vector<Candidate> candidates;
-        candidates.reserve(n_doc_to_score);
+        candidates.reserve(max_search_candidates);
 
         spfresh_index->Search(
             query_f32, embedding_dim,
@@ -1107,32 +1070,19 @@ void ExecuteSPFreshSearch(KnnScanSharedData *knn_scan_shared_data,
 
         if (candidates.empty()) continue;
 
-        // Stage 2: Sort by approximate distance, keep top n_doc_to_score
-        u32 approx_n = std::min(static_cast<u32>(candidates.size()), n_doc_to_score);
-        std::partial_sort(candidates.begin(), candidates.begin() + approx_n, candidates.end(),
+        // Sort by approximate distance, keep top-k as final result
+        u32 final_n = std::min(static_cast<u32>(candidates.size()), topk);
+        std::partial_sort(candidates.begin(), candidates.begin() + final_n, candidates.end(),
                           [](const Candidate &a, const Candidate &b) { return a.dist < b.dist; });
-        candidates.resize(approx_n);
 
-        // Stage 3: Exact rerank from column store for top n_full_scores candidates
-        u32 rerank_n = std::min(approx_n, n_full_scores);
         std::vector<DistanceDataType> dists;
         std::vector<RowID> row_ids;
-        dists.reserve(rerank_n);
-        row_ids.reserve(rerank_n);
+        dists.reserve(final_n);
+        row_ids.reserve(final_n);
 
-        for (u32 i = 0; i < rerank_n; ++i) {
-            const auto &cand = candidates[i];
-            u32 offset = cand.offset;
-            if (offset >= segment_capacity) continue;
-
-            const f32 *exact_vec = segment_vectors.data() + static_cast<size_t>(offset) * embedding_dim;
-            DistanceDataType exact_dist = 0;
-            for (u32 d = 0; d < embedding_dim; ++d) {
-                f32 diff = query_f32[d] - exact_vec[d];
-                exact_dist += static_cast<DistanceDataType>(diff * diff);
-            }
-            dists.push_back(exact_dist);
-            row_ids.emplace_back(segment_id, offset);
+        for (u32 i = 0; i < final_n; ++i) {
+            dists.push_back(static_cast<DistanceDataType>(candidates[i].dist));
+            row_ids.emplace_back(segment_id, candidates[i].offset);
         }
 
         if (!dists.empty()) {
