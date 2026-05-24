@@ -75,11 +75,7 @@ public:
 
     void MarkDeleted(u32 row_id);
 
-    void StartBackgroundMaintenance();
-    void StopBackgroundMaintenance();
-    bool TryAutoCompact(u32 threshold = 8192);
-    void Rebalance(u32 bucket_size_limit = 10000);
-    std::vector<u32> SplitBucket(u32 bucket_id);
+    // Split/Rebalance is handled by OPTIMIZE (full rebuild from column store)
 
     void Save(LocalFileHandle &fh) const;
     void Load(LocalFileHandle &fh, size_t file_size);
@@ -97,8 +93,6 @@ public:
     u32 dim() const { return dim_; }
     u32 GetDeletedCount() const { return static_cast<u32>(deleted_set_.size()); }
     u32 GetNumCentroids() const { return static_cast<u32>(buckets_.size()); }
-    u64 GetCompactCount() const { return compact_count_; }
-    u64 GetSplitCount() const { return split_count_; }
 
 private:
     void GenerateHadamardParams();
@@ -160,15 +154,8 @@ private:
     mutable std::shared_mutex delete_mtx_;
     std::unordered_set<u32> deleted_set_;
 
-    // Background maintenance
-    std::jthread maintenance_thread_;
-
     // Dump: hold BufferHandle to prevent GC
     BufferHandle chunk_handle_;
-
-    // Metrics
-    std::atomic<u64> compact_count_{0};
-    std::atomic<u64> split_count_{0};
 
     size_t mem_used_{0};
 };

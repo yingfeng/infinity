@@ -24,21 +24,8 @@ import embedding_info;
 
 namespace infinity {
 
-// Background maintenance
-static void SpfreshMaintenanceLoop(std::stop_token st, SPFreshIndexInMem *idx) {
-    u32 cycle = 0;
-    while (!st.stop_requested()) {
-        // Check stop_token every 1s to avoid long blocking in ~SPFreshIndexInMem::join()
-        for (u32 i = 0; i < 60 && !st.stop_requested(); ++i) {
-            std::this_thread::sleep_for(std::chrono::seconds(1));
-        }
-        if (st.stop_requested())
-            break;
-        idx->TryAutoCompact(8192);
-        if (++cycle % 10 == 0)
-            idx->Rebalance(10000);
-    }
-}
+// Background thread deleted: Split/Rebalance is handled by OPTIMIZE (full rebuild from column store).
+// Delta compaction is triggered inline in InsertDelta when buffer exceeds max_delta_bytes_.
 
 // ========== Construction ==========
 
@@ -82,7 +69,6 @@ SPFreshIndexInMem::SPFreshIndexInMem(RowID begin_row_id,
 }
 
 SPFreshIndexInMem::~SPFreshIndexInMem() {
-    StopBackgroundMaintenance();
     delete[] hadamard_flip_;
     delete[] bucket_locks_;
     delete delta_a_;
@@ -408,14 +394,42 @@ void SPFreshIndexInMem::InsertDelta(const f32 *vec, u32 row_id) {
     if (active_snap->data_.size() > max_delta_bytes_)
         Compact();
 
-    std::vector<u32> cids;
-    std::vector<f32> cdists;
+    // RNG Selection: find top candidates, then apply diversity constraint
+    const u32 top_k_for_rng = replica_count_ * 4; // fetch more than needed for RNG pruning
+    std::vector<u32> all_cids;
+    std::vector<f32> all_cdists;
     {
         std::shared_lock rlock(global_mtx_);
-        FindTopKCentroids(vec, replica_count_, cids, cdists);
+        FindTopKCentroids(vec, top_k_for_rng, all_cids, all_cdists);
     }
-    if (cids.empty())
-        cids.push_back(0);
+    std::vector<u32> cids;
+    cids.reserve(replica_count_);
+    const f32 rng_factor = 1.2f; // RNG diversity constraint
+    for (u32 ci = 0; ci < all_cids.size() && cids.size() < replica_count_; ++ci) {
+        u32 cand = all_cids[ci];
+        f32 cand_dist = all_cdists[ci];
+        bool accepted = true;
+        for (auto &sel : cids) {
+            // Compute distance between candidate centroid and already-selected centroid
+            f32 dd = 0;
+            for (u32 d = 0; d < dim_; ++d) {
+                f32 df = centroids_[static_cast<size_t>(sel) * dim_ + d] - centroids_[static_cast<size_t>(cand) * dim_ + d];
+                dd += df * df;
+            }
+            // RNG constraint: rng_factor * dist(selected, candidate) must be > dist(query, candidate)
+            // Otherwise the candidate is too close to an already-selected centroid to be useful as a replica
+            if (rng_factor * dd <= cand_dist) {
+                accepted = false;
+                break;
+            }
+        }
+        if (accepted) {
+            cids.push_back(cand);
+        }
+    }
+    // Fallback: if RNG produced nothing, take closest
+    if (cids.empty() && !all_cids.empty())
+        cids.push_back(all_cids[0]);
 
     size_t cs = RabitQVecSize(dim_);
     std::vector<char> buf(cs);
@@ -665,19 +679,7 @@ void SPFreshIndexInMem::MarkDeleted(u32 row_id) {
     deleted_set_.insert(row_id);
 }
 
-// ========== LIRE: Start/Stop Maintenance ==========
-
-void SPFreshIndexInMem::StartBackgroundMaintenance() {
-    if (maintenance_thread_.joinable())
-        return;
-    maintenance_thread_ = std::jthread(SpfreshMaintenanceLoop, this);
-}
-void SPFreshIndexInMem::StopBackgroundMaintenance() {
-    if (maintenance_thread_.joinable()) {
-        maintenance_thread_.request_stop();
-        maintenance_thread_.join();
-    }
-}
+// Start/Stop Maintenance removed: OPTIMIZE handles split/rebalance via full rebuild.
 
 // ========== LIRE Compact (per-bucket: merge delta entries into bucket's base codes_) ==========
 
@@ -855,6 +857,53 @@ std::vector<u32> SPFreshIndexInMem::SplitBucket(u32 bucket_id) {
 
     split_count_.fetch_add(1, std::memory_order_relaxed);
     BuildCentroidIndex();
+
+    // ReassignAfterSplit: scan nearby centroids, move vectors that are closer to new centroids
+    for (u32 ncid : {nc1, nc2}) {
+        // Find nearby fine centroids via coarse HNSW
+        const f32 *nc_vec = centroids_.data() + static_cast<size_t>(ncid) * dim_;
+        std::vector<u32> nearby;
+        std::vector<f32> nearby_dists;
+        FindTopKCentroids(nc_vec, 16, nearby, nearby_dists);
+        for (u32 ni = 0; ni < nearby.size(); ++ni) {
+            u32 neighbor = nearby[ni];
+            if (neighbor == ncid || neighbor == bucket_id || neighbor >= buckets_.size() || buckets_[neighbor].count_ == 0)
+                continue;
+            auto &nbkt = buckets_[neighbor];
+            // Scan vectors in neighbor's bucket, check if any are closer to new centroid
+            for (u32 j = 0; j < nbkt.count_; ++j) {
+                u32 rid = nbkt.row_ids_[j];
+                if (rid == static_cast<u32>(-1))
+                    continue;
+                // Decode the vector
+                const auto *code = reinterpret_cast<const RabitQVec *>(nbkt.codes_.data() + static_cast<size_t>(j) * cs);
+                std::vector<f32> decoded(dim_);
+                DecodeWithRotation(code, decoded.data());
+                // Compute distance to new centroid
+                f32 d_new = 0;
+                for (u32 d = 0; d < dim_; ++d) {
+                    f32 df = decoded[d] - nc_vec[d];
+                    d_new += df * df;
+                }
+                // Compute distance to current (neighbor's) centroid
+                const f32 *neighbor_c = centroids_.data() + static_cast<size_t>(neighbor) * dim_;
+                f32 d_cur = 0;
+                for (u32 d = 0; d < dim_; ++d) {
+                    f32 df = decoded[d] - neighbor_c[d];
+                    d_cur += df * df;
+                }
+                // If significantly closer to new centroid (at least 10% closer)
+                if (d_new < d_cur * 0.9f) {
+                    // Reassign: encode and append to new bucket
+                    EncodeWithRotation(reinterpret_cast<f32 *>(tmp.data()), decoded.data());
+                    buckets_[ncid].AppendCode(tmp.data(), cs, rid);
+                    bucket_metas_[ncid].base_count_++;
+                    running_means_[ncid].Update(decoded.data(), dim_);
+                }
+            }
+        }
+    }
+
     PublishSnapshot();
     LOG_INFO(fmt::format("SPFresh SplitBucket: {} → {} (c1={}, c2={})", bucket_id, num_centroids_, nc1, nc2));
     return {nc1, nc2};
@@ -888,7 +937,7 @@ void SPFreshIndexInMem::Rebalance(u32 bucket_size_limit) {
 // ========== LIRE Persistence (v7 with row_ids_) ==========
 
 void SPFreshIndexInMem::Save(LocalFileHandle &fh) const {
-    u32 magic = 0x50504652, version = 7;
+    u32 magic = 0x50504652, version = 8;
     fh.Append(&magic, sizeof(magic));
     fh.Append(&version, sizeof(version));
     fh.Append(&num_vectors_, sizeof(num_vectors_));
@@ -1012,8 +1061,6 @@ void SPFreshIndexInMem::Load(LocalFileHandle &fh, size_t) {
 // ========== LIRE Dump: move index data into BufferObj for persistence ==========
 
 void SPFreshIndexInMem::TransferTo(SPFreshIndexInMem *target) {
-    StopBackgroundMaintenance();
-
     // Move all base data
     target->begin_row_id_ = begin_row_id_;
     target->dim_ = dim_;
