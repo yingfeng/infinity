@@ -1801,14 +1801,16 @@ Status NewTxn::PopulateSPFreshIndexInner(std::shared_ptr<IndexBase> index_base,
     if (all_vectors.empty())
         return Status::OK();
 
-    // Create SPFresh index with the first block's base_row_id
+    // Register mem_index so the executor can find the SPFresh index
     RowID base_row_id = RowID(segment_index_meta.segment_id(), 0);
+    auto mem_index = segment_index_meta.GetMemIndex(true);
     auto spfresh_index = std::make_shared<SPFreshIndexInMem>(base_row_id, spfresh_def, dim, static_cast<u32>(total_row_cnt));
+    mem_index->SetSPFreshIndex(spfresh_index);
 
     // Phase A: Bulk build with K-Means + RaBitQ rotation
     spfresh_index->Build(all_vectors.data(), static_cast<u32>(total_row_cnt));
 
-    // Phase B: Directly persist to buffer (following EMVB pattern, bypassing DumpSegmentMemIndex)
+    // Phase B: Persist to buffer for checkpoint/restart
     ChunkID new_chunk_id;
     std::tie(new_chunk_id, status) = segment_index_meta.GetAndSetNextChunkID();
     if (!status.ok())
@@ -1832,14 +1834,14 @@ Status NewTxn::PopulateSPFreshIndexInner(std::shared_ptr<IndexBase> index_base,
         if (!status.ok())
             return status;
 
-        // Load buffer, transfer index data into file worker's SPFreshIndexInMem, save
+        // Persist: transfer data to buffer and save
         {
             BufferHandle handle = buffer_obj->Load();
             auto *target = static_cast<SPFreshIndexInMem *>(handle.GetDataMut());
             spfresh_index->TransferTo(target);
-            // handle released here — buffer_obj keeps data
+            buffer_obj->Save();  // save while handle holds ref count
         }
-        buffer_obj->Save();
+        // spfresh_index still has a valid snapshot for in-memory search
     }
 
     new_chunk_ids.push_back(new_chunk_id);

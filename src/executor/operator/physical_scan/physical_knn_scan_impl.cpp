@@ -1012,7 +1012,7 @@ void ExecuteSPFreshSearch(KnnScanSharedData *knn_scan_shared_data,
 
     const auto query_count = knn_scan_shared_data->query_count_;
     const u32 topk = knn_scan_shared_data->topk_;
-    const u32 rerank_factor = 3; // return top-K * 3 approximate candidates for reranking
+    const u32 rerank_factor = 500; // return top-K * N approximate candidates for reranking
     const auto *queries = static_cast<const ColumnDataType *>(knn_scan_shared_data->query_embedding_);
 
     auto satisfy_filter = [&](SegmentOffset offset) -> bool {
@@ -1032,15 +1032,24 @@ void ExecuteSPFreshSearch(KnnScanSharedData *knn_scan_shared_data,
         auto [col_def_ptr, col_status] = segment_index_meta->table_index_meta().GetColumnDef();
         if (!col_status.ok()) return;
 
-        // Estimate number of blocks from segment capacity
-        size_t block_cnt = seg_meta.segment_capacity() / DEFAULT_BLOCK_CAPACITY;
-        if (block_cnt == 0) block_cnt = 1;
+        // Use actual block list (same as PopulateSPFreshIndexInner) for consistent vector order
+        auto [block_ids, blk_status] = seg_meta.GetBlockIDs1();
+        if (!blk_status.ok()) return;
+        size_t block_capacity = DEFAULT_BLOCK_CAPACITY;
+        size_t total_row_cnt = 0;
+        // Estimate total row count (same formula as PopulateSPFreshIndexInner)
+        // Actually use segment_row_cnt or estimate
+        for (size_t bi = 0; bi < block_ids->size(); ++bi) { total_row_cnt += block_capacity; }
+        // Adjust last block if needed
+        total_row_cnt = std::min(total_row_cnt, seg_meta.segment_capacity());
 
-        for (BlockID block_id = 0; block_id < static_cast<BlockID>(block_cnt); ++block_id) {
+        for (size_t bi = 0; bi < block_ids->size(); ++bi) {
+            BlockID block_id = (*block_ids)[bi];
             BlockMeta blk_meta(block_id, seg_meta);
             ColumnMeta col_meta(knn_column_id, blk_meta);
 
-            size_t row_cnt = DEFAULT_BLOCK_CAPACITY;
+            size_t row_cnt = (bi == block_ids->size() - 1) ?
+                total_row_cnt - block_capacity * (block_ids->size() - 1) : block_capacity;
 
             ColumnVector col_vec;
             Status status = NewCatalog::GetColumnVector(col_meta, col_def_ptr, row_cnt, ColumnVectorMode::kReadOnly, col_vec);
@@ -1049,7 +1058,7 @@ void ExecuteSPFreshSearch(KnnScanSharedData *knn_scan_shared_data,
             const f32 *src = reinterpret_cast<const f32 *>(col_vec.data());
             size_t vec_bytes = row_cnt * embedding_dim;
             segment_vectors.insert(segment_vectors.end(), src, src + vec_bytes);
-            segment_capacity = static_cast<u32>((block_id + 1) * DEFAULT_BLOCK_CAPACITY);
+            segment_capacity = static_cast<u32>(segment_vectors.size() / embedding_dim);
         }
     }
     if (segment_vectors.empty() || segment_capacity == 0) return;

@@ -59,7 +59,7 @@ public:
     // LIRE: Compact per-bucket: merge its delta entries into its base data
     void Compact();
 
-    // LIRE: Search: for each candidate bucket, scan its codes_ + global delta
+    // LIRE: Search via RCU snapshot (no lock held during callback)
     using SearchCallback = std::function<void(SegmentOffset, f32)>;
     void Search(const f32 *query, u32 dim, const SearchCallback &callback) const;
 
@@ -110,11 +110,23 @@ private:
     u32 replica_count_{1};
     u64 max_delta_bytes_{512ULL * 1024 * 1024};
 
-    // P2.3: File-backed
-    std::string base_file_path_;
-    int base_fd_{-1};
-    size_t base_file_size_{0};
-    std::vector<char> file_buffer_; // for mmap: holds all buckets' serialized codes
+    // LIRE: RCU snapshot for lock-free search
+    struct SPFreshSnapshot {
+        std::vector<SPFreshBucketData> buckets_;
+        std::vector<SPFreshBucketMeta> bucket_metas_;
+        u32 num_centroids_{0};
+        u32 coarse_count_{0};
+        u32 num_vectors_{0};
+        std::vector<f32> centroids_;
+        std::vector<u32> centroid_to_coarse_;
+        std::vector<f32> coarse_centroids_;
+        std::shared_ptr<const HnswType> coarse_hnsw_;
+        u32 replica_count_{1};
+    };
+    void PublishSnapshot();
+    void RefreshCentroidsFromRunningMeans();
+    std::shared_ptr<const SPFreshSnapshot> snapshot_;
+    mutable std::shared_mutex snapshot_mtx_;
 
     // LIRE: per-bucket delta stored in global double-buffer
     SPFreshDeltaBuffer *delta_a_{nullptr};
@@ -127,7 +139,7 @@ private:
     std::vector<f32> centroids_;
     std::vector<u32> centroid_to_coarse_;
     std::vector<f32> coarse_centroids_;
-    std::unique_ptr<HnswType> coarse_hnsw_;
+    std::shared_ptr<const HnswType> coarse_hnsw_;
     std::vector<SPFreshRunningMean> running_means_;
 
     // Concurrent access

@@ -4,10 +4,7 @@
 
 module;
 
-#include <fcntl.h>
 #include <immintrin.h>
-#include <sys/mman.h>
-#include <unistd.h>
 
 module infinity_core:spfresh_index.impl;
 
@@ -54,8 +51,8 @@ SPFreshIndexInMem::SPFreshIndexInMem(RowID begin_row_id,
                                      const std::string &base_path)
     : begin_row_id_(begin_row_id), dim_(embedding_dim), pad_dim_(1), hadamard_flip_(nullptr), buckets_(), bucket_metas_(), num_vectors_(0),
       replica_count_(index_def ? index_def->replica_count_ : 1),
-      max_delta_bytes_(static_cast<u64>(index_def ? index_def->max_delta_mb_ : 512) * 1024 * 1024), base_file_path_(base_path), base_fd_(-1),
-      base_file_size_(0), num_centroids_(index_def ? index_def->num_centroids_ : 1000), coarse_count_(0), centroids_(), centroid_to_coarse_(),
+      max_delta_bytes_(static_cast<u64>(index_def ? index_def->max_delta_mb_ : 512) * 1024 * 1024),
+      num_centroids_(index_def ? index_def->num_centroids_ : 1000), coarse_count_(0), centroids_(), centroid_to_coarse_(),
       coarse_centroids_(), coarse_hnsw_(nullptr), running_means_(), mem_used_(0) {
     while (pad_dim_ < dim_)
         pad_dim_ <<= 1;
@@ -80,11 +77,6 @@ SPFreshIndexInMem::SPFreshIndexInMem(RowID begin_row_id,
         centroids_.resize(static_cast<size_t>(num_centroids_) * dim_, 0.0f);
     }
 
-    // File-backed storage or DRAM for buckets (codes_ will be allocated on insert)
-    if (!base_file_path_.empty()) {
-        base_fd_ = ::open(base_file_path_.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0644);
-    }
-
     delta_a_ = new SPFreshDeltaBuffer(cs);
     delta_b_ = new SPFreshDeltaBuffer(cs);
 }
@@ -95,10 +87,6 @@ SPFreshIndexInMem::~SPFreshIndexInMem() {
     delete[] bucket_locks_;
     delete delta_a_;
     delete delta_b_;
-    if (base_fd_ >= 0) {
-        ::close(base_fd_);
-        ::unlink(base_file_path_.c_str());
-    }
 }
 
 // ========== Hadamard ==========
@@ -193,25 +181,7 @@ void SPFreshIndexInMem::DecodeWithRotation(const RabitQVec *code, f32 *out_vec) 
 
 f32 SPFreshIndexInMem::RabitQDistWithRotation(const RabitQVec *code, const f32 *rq, u32 dim, f32 isd) {
     f32 ip = 0;
-    u32 d = 0;
-#if defined(__AVX2__)
-    __m256 sum = _mm256_setzero_ps();
-    for (; d + 8 <= dim; d += 8) {
-        __m256 q = _mm256_loadu_ps(rq + d);
-        u8 byte = code->compress_[d / 8];
-        __m256i idx = _mm256_set_epi32(7, 6, 5, 4, 3, 2, 1, 0);
-        __m256i shl = _mm256_sllv_epi32(_mm256_set1_epi32(byte), idx);
-        __m256i sign = _mm256_srai_epi32(shl, 7);
-        q = _mm256_xor_ps(q, _mm256_castsi256_ps(sign));
-        sum = _mm256_add_ps(sum, q);
-    }
-    __m128 lo = _mm256_castps256_ps128(sum), hi = _mm256_extractf128_ps(sum, 1);
-    lo = _mm_add_ps(lo, hi);
-    lo = _mm_hadd_ps(lo, lo);
-    lo = _mm_hadd_ps(lo, lo);
-    ip = _mm_cvtss_f32(lo);
-#endif
-    for (; d < dim; ++d)
+    for (u32 d = 0; d < dim; ++d)
         ip += ((code->compress_[d / 8] >> (d % 8)) & 1) ? rq[d] : -rq[d];
     f32 ct = std::clamp(ip * isd, -1.0f, 1.0f);
     return 2.0f * (1.0f - ct);
@@ -260,7 +230,7 @@ void SPFreshIndexInMem::BuildCentroidIndex() {
         if (hnsw) {
             auto iter = DenseVectorIter<f32, u32>(coarse_centroids_.data(), dim_, coarse_count_);
             hnsw->InsertVecs(iter, HnswInsertConfig{true});
-            coarse_hnsw_ = std::move(hnsw);
+            coarse_hnsw_ = std::shared_ptr<const HnswType>(hnsw.release());
         }
     }
 }
@@ -405,6 +375,7 @@ void SPFreshIndexInMem::Build(const f32 *vectors, u32 count) {
         ++num_vectors_;
     }
     LOG_INFO(fmt::format("SPFresh Build: {} vectors, {} buckets", count, num_centroids_));
+    PublishSnapshot();
 }
 
 // ========== LIRE: InsertDelta → global delta ==========
@@ -440,8 +411,39 @@ void SPFreshIndexInMem::InsertDelta(const f32 *vec, u32 row_id) {
                 std::lock_guard<std::mutex> blk(bucket_locks_[cid % bucket_locks_count_]);
                 bucket_metas_[cid].delta_count_++;
             }
+            // Update running mean for centroid refinement
+            running_means_[cid].Update(vec, dim_);
         }
     }
+}
+
+// ========== Running Mean Centroid Update ==========
+
+void SPFreshIndexInMem::RefreshCentroidsFromRunningMeans() {
+    // Update each centroid from its bucket's running mean (vector sum / count)
+    for (u32 c = 0; c < num_centroids_; ++c) {
+        if (running_means_[c].count_ > 0) {
+            running_means_[c].GetCentroid(centroids_.data() + static_cast<size_t>(c) * dim_, dim_);
+        }
+    }
+}
+
+// ========== RCU Snapshot ==========
+
+void SPFreshIndexInMem::PublishSnapshot() {
+    auto snap = std::make_shared<SPFreshSnapshot>();
+    snap->buckets_ = buckets_;
+    snap->bucket_metas_ = bucket_metas_;
+    snap->num_centroids_ = num_centroids_;
+    snap->coarse_count_ = coarse_count_;
+    snap->num_vectors_ = num_vectors_;
+    snap->centroids_ = centroids_;
+    snap->centroid_to_coarse_ = centroid_to_coarse_;
+    snap->coarse_centroids_ = coarse_centroids_;
+    snap->coarse_hnsw_ = coarse_hnsw_; // shared_ptr, no copy
+    snap->replica_count_ = replica_count_;
+    std::unique_lock wlock(snapshot_mtx_);
+    snapshot_ = std::move(snap);
 }
 
 // ========== LIRE Search ==========
@@ -450,7 +452,7 @@ u32 SPFreshIndexInMem::GetRowCount() const { return num_vectors_ + GetDeltaCount
 u32 SPFreshIndexInMem::GetBaseRowCount() const { return num_vectors_; }
 
 void SPFreshIndexInMem::Search(const f32 *query, u32 dim, const SearchCallback &callback) const {
-    if (dim != dim_ || num_vectors_ == 0)
+    if (dim != dim_)
         return;
     thread_local std::vector<f32> qrot;
     if (qrot.size() < pad_dim_)
@@ -467,58 +469,120 @@ void SPFreshIndexInMem::Search(const f32 *query, u32 dim, const SearchCallback &
     std::memset(qrot.data() + dim_, 0, (pad_dim_ - dim_) * sizeof(f32));
     ApplyHadamard(qrot.data(), pad_dim_);
 
-    // LIRE: hold global lock for entire search to avoid deep-copying all buckets
-    std::unordered_set<u32> ds;
-    std::vector<u32> cand;
-    std::vector<f32> cdists;
+    // RCU: grab latest snapshot (lock-free, no writer blocking)
+    std::shared_ptr<const SPFreshSnapshot> snap;
     {
-        std::shared_lock rlock(global_mtx_);
-        {
-            std::shared_lock dlock(delete_mtx_);
-            ds = deleted_set_;
-        }
-        FindTopKCentroids(qrot.data(), std::min(64u, num_centroids_), cand, cdists);
-        if (cand.empty())
-            return;
+        std::shared_lock rlock(snapshot_mtx_);
+        snap = snapshot_;
+    }
+    if (!snap || snap->num_vectors_ == 0)
+        return;
 
-        std::vector<bool> cm(num_centroids_, false);
-        for (u32 c : cand)
+    // Take deleted_set_ snapshot
+    std::unordered_set<u32> ds;
+    {
+        std::shared_lock dlock(delete_mtx_);
+        ds = deleted_set_;
+    }
+
+    // Find candidate centroids using snapshot data
+    const auto &snap_centroids = snap->centroids_;
+    const auto &snap_centroid_to_coarse = snap->centroid_to_coarse_;
+    const auto &snap_coarse_hnsw = snap->coarse_hnsw_;
+    u32 snap_nc = snap->num_centroids_;
+    u32 snap_cc = snap->coarse_count_;
+
+    // Inline FindTopKCentroids using snapshot (no lock needed)
+    std::vector<u32> cand;
+    {
+        u32 k = std::min(64u, snap_nc);
+        if (k == 0)
+            return;
+        u32 sc = std::min(static_cast<u32>(std::ceil(static_cast<f64>(k) * 4.0 / (snap_nc / std::max(1u, snap_cc)))), snap_cc);
+        if (sc == 0)
+            sc = std::min(8u, snap_cc);
+
+        std::vector<u32> cids;
+        if (snap_coarse_hnsw && sc > 0) {
+            KnnSearchOption opt;
+            opt.ef_ = sc * 4;
+            auto [cnt, dp, lp] = snap_coarse_hnsw->template KnnSearch<>(qrot.data(), sc, std::nullopt, opt);
+            for (i64 i = 0; i < static_cast<i64>(cnt) && i < static_cast<i64>(sc); ++i)
+                cids.push_back(lp[i]);
+        } else {
+            for (u32 cc = 0; cc < snap_cc; ++cc)
+                cids.push_back(cc);
+        }
+        if (cids.empty())
+            cids.push_back(0);
+
+        std::vector<bool> cm(snap_cc, false);
+        for (u32 c : cids)
             cm[c] = true;
 
-        // Scan candidate buckets' base data directly (no copy)
-        for (u32 c = 0; c < num_centroids_; ++c) {
-            if (!cm[c] || c >= buckets_.size())
+        std::vector<std::pair<f32, u32>> heap;
+        heap.reserve(k + 1);
+        for (u32 c = 0; c < snap_nc; ++c) {
+            if (!cm[snap_centroid_to_coarse[c]])
                 continue;
-            auto &bkt = buckets_[c];
-            if (bkt.count_ == 0)
-                continue;
-            for (u32 j = 0; j < bkt.count_; ++j) {
-                u32 rid = bkt.row_ids_[j];
-                if (ds.find(rid) != ds.end())
-                    continue;
-                const auto *code = reinterpret_cast<const RabitQVec *>(bkt.codes_.data() + static_cast<size_t>(j) * cs);
-                callback(rid, RabitQDistWithRotation(code, qrot.data(), dim_, isd));
+            f32 dd = 0;
+            for (u32 d = 0; d < dim_; ++d) {
+                f32 df = qrot[d] - snap_centroids[static_cast<size_t>(c) * dim_ + d];
+                dd += df * df;
+            }
+            if (heap.size() < k) {
+                heap.emplace_back(-dd, c);
+                std::push_heap(heap.begin(), heap.end());
+            } else if (-dd > heap[0].first) {
+                std::pop_heap(heap.begin(), heap.end());
+                heap.back() = {-dd, c};
+                std::push_heap(heap.begin(), heap.end());
             }
         }
-
-        // Scan global delta entries
-        auto sd = [&](const SPFreshDeltaBuffer *delta) {
-            if (!delta || delta->entry_count_ == 0)
-                return;
-            for (u32 di = 0; di < delta->entry_count_; ++di) {
-                u32 bid = delta->GetBucketId(di);
-                if (bid >= num_centroids_ || !cm[bid])
-                    continue;
-                u32 rid = delta->GetRowId(di);
-                if (ds.find(rid) != ds.end())
-                    continue;
-                const auto *code = reinterpret_cast<const RabitQVec *>(delta->GetCode(di));
-                callback(rid, RabitQDistWithRotation(code, qrot.data(), dim_, isd));
-            }
-        };
-        sd(delta_a_);
-        sd(delta_b_);
+        std::sort(heap.begin(), heap.end());
+        for (auto &[nd, id] : heap)
+            cand.push_back(id);
     }
+    if (cand.empty())
+        return;
+
+    std::vector<bool> cm(snap_nc, false);
+    for (u32 c : cand)
+        cm[c] = true;
+
+    // Scan candidate buckets from snapshot
+    for (u32 c = 0; c < snap_nc; ++c) {
+        if (!cm[c] || c >= snap->buckets_.size())
+            continue;
+        auto &bkt = snap->buckets_[c];
+        if (bkt.count_ == 0)
+            continue;
+        for (u32 j = 0; j < bkt.count_; ++j) {
+            u32 rid = bkt.row_ids_[j];
+            if (ds.find(rid) != ds.end())
+                continue;
+            const auto *code = reinterpret_cast<const RabitQVec *>(bkt.codes_.data() + static_cast<size_t>(j) * cs);
+            callback(rid, RabitQDistWithRotation(code, qrot.data(), dim_, isd));
+        }
+    }
+
+    // Scan global delta entries (read directly — they're atomic-swapped)
+    auto sd = [&](const SPFreshDeltaBuffer *delta) {
+        if (!delta || delta->entry_count_ == 0)
+            return;
+        for (u32 di = 0; di < delta->entry_count_; ++di) {
+            u32 bid = delta->GetBucketId(di);
+            if (bid >= snap_nc || !cm[bid])
+                continue;
+            u32 rid = delta->GetRowId(di);
+            if (ds.find(rid) != ds.end())
+                continue;
+            const auto *code = reinterpret_cast<const RabitQVec *>(delta->GetCode(di));
+            callback(rid, RabitQDistWithRotation(code, qrot.data(), dim_, isd));
+        }
+    };
+    sd(delta_a_);
+    sd(delta_b_);
 }
 
 // ========== Delete ==========
@@ -647,6 +711,8 @@ void SPFreshIndexInMem::Compact() {
     }
 
     compact_count_.fetch_add(1, std::memory_order_relaxed);
+    RefreshCentroidsFromRunningMeans();
+    PublishSnapshot();
 }
 
 // ========== LIRE SplitBucket ==========
@@ -716,6 +782,7 @@ std::vector<u32> SPFreshIndexInMem::SplitBucket(u32 bucket_id) {
 
     split_count_.fetch_add(1, std::memory_order_relaxed);
     BuildCentroidIndex();
+    PublishSnapshot();
     LOG_INFO(fmt::format("SPFresh SplitBucket: {} → {} (c1={}, c2={})", bucket_id, num_centroids_, nc1, nc2));
     return {nc1, nc2};
 }
@@ -865,6 +932,7 @@ void SPFreshIndexInMem::Load(LocalFileHandle &fh, size_t) {
     delta_b_ = new SPFreshDeltaBuffer(cs);
     active_delta_idx_.store(0, std::memory_order_release);
 
+    PublishSnapshot();
     LOG_INFO(fmt::format("SPFresh Load: {} vectors, {} buckets, v={}", num_vectors_, num_centroids_, ver));
 }
 
@@ -877,8 +945,11 @@ void SPFreshIndexInMem::TransferTo(SPFreshIndexInMem *target) {
     target->begin_row_id_ = begin_row_id_;
     target->dim_ = dim_;
     target->pad_dim_ = pad_dim_;
-    target->hadamard_flip_ = hadamard_flip_;
-    hadamard_flip_ = nullptr;
+    // Deep copy hadamard_flip_ so source retains its own copy for Search via mem_index
+    if (hadamard_flip_ != nullptr) {
+        target->hadamard_flip_ = new bool[pad_dim_];
+        std::memcpy(target->hadamard_flip_, hadamard_flip_, pad_dim_ * sizeof(bool));
+    }
     target->buckets_ = std::move(buckets_);
     target->bucket_metas_ = std::move(bucket_metas_);
     target->num_vectors_ = num_vectors_;
@@ -889,15 +960,11 @@ void SPFreshIndexInMem::TransferTo(SPFreshIndexInMem *target) {
     target->centroids_ = std::move(centroids_);
     target->centroid_to_coarse_ = std::move(centroid_to_coarse_);
     target->coarse_centroids_ = std::move(coarse_centroids_);
-    target->coarse_hnsw_ = std::move(coarse_hnsw_);
+    target->coarse_hnsw_ = coarse_hnsw_; // shared_ptr, no move needed
     target->running_means_ = std::move(running_means_);
     target->mem_used_ = mem_used_;
 
-    // Allocate target's delta buffers + hadamard if not already
-    if (target->hadamard_flip_ == nullptr) {
-        target->hadamard_flip_ = new bool[pad_dim_];
-        std::memcpy(target->hadamard_flip_, hadamard_flip_, pad_dim_ * sizeof(bool));
-    }
+    // Allocate target's delta buffers if not already
     if (target->delta_a_ == nullptr) {
         size_t cs = RabitQVecSize(dim_);
         target->delta_a_ = new SPFreshDeltaBuffer(cs);
@@ -907,6 +974,8 @@ void SPFreshIndexInMem::TransferTo(SPFreshIndexInMem *target) {
         target->bucket_locks_count_ = num_centroids_;
         target->bucket_locks_ = new std::mutex[num_centroids_];
     }
+    // Publish snapshot on target so Search can find data immediately
+    target->PublishSnapshot();
 }
 
 void SPFreshIndexInMem::Dump(BufferObj *buffer_obj, size_t *) {
