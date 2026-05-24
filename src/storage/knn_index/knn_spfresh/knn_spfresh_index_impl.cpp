@@ -470,7 +470,11 @@ void SPFreshIndexInMem::PublishSnapshot() {
 u32 SPFreshIndexInMem::GetRowCount() const { return num_vectors_ + GetDeltaCount() - static_cast<u32>(deleted_set_.size()); }
 u32 SPFreshIndexInMem::GetBaseRowCount() const { return num_vectors_; }
 
-void SPFreshIndexInMem::Search(const f32 *query, u32 dim, const SearchCallback &callback) const {
+void SPFreshIndexInMem::Search(const f32 *query,
+                                u32 dim,
+                                const SearchCallback &callback,
+                                u32 max_candidates,
+                                f32 centroid_score_threshold) const {
     if (dim != dim_)
         return;
     thread_local std::vector<f32> qrot;
@@ -512,7 +516,8 @@ void SPFreshIndexInMem::Search(const f32 *query, u32 dim, const SearchCallback &
     u32 snap_cc = snap->coarse_count_;
 
     // Inline FindTopKCentroids using snapshot (no lock needed)
-    std::vector<u32> cand;
+    std::vector<u32> cand_ids;
+    std::vector<f32> cand_scores;
     {
         u32 k = std::min(64u, snap_nc);
         if (k == 0)
@@ -539,8 +544,8 @@ void SPFreshIndexInMem::Search(const f32 *query, u32 dim, const SearchCallback &
         for (u32 c : cids)
             cm[c] = true;
 
-        std::vector<std::pair<f32, u32>> heap;
-        heap.reserve(k + 1);
+        // Collect all candidate centroids with L2 distances (scores)
+        std::vector<std::tuple<f32, u32>> scored; // (-l2_dist, centroid_id)
         for (u32 c = 0; c < snap_nc; ++c) {
             if (!cm[snap_centroid_to_coarse[c]])
                 continue;
@@ -549,59 +554,108 @@ void SPFreshIndexInMem::Search(const f32 *query, u32 dim, const SearchCallback &
                 f32 df = qrot[d] - snap_centroids[static_cast<size_t>(c) * dim_ + d];
                 dd += df * df;
             }
-            if (heap.size() < k) {
-                heap.emplace_back(-dd, c);
-                std::push_heap(heap.begin(), heap.end());
-            } else if (-dd > heap[0].first) {
-                std::pop_heap(heap.begin(), heap.end());
-                heap.back() = {-dd, c};
-                std::push_heap(heap.begin(), heap.end());
+            scored.emplace_back(-dd, c); // negative: larger = better in max-heap
+        }
+
+        // Apply centroid score threshold: keep centroids with score >= max_score * threshold
+        if (centroid_score_threshold > 0.0f && !scored.empty()) {
+            f32 max_score = 0;
+            for (auto &[ns, id] : scored) {
+                if (-ns > max_score)
+                    max_score = -ns;
+            }
+            f32 cutoff = max_score * centroid_score_threshold;
+            std::vector<std::tuple<f32, u32>> filtered;
+            for (auto &[ns, id] : scored) {
+                if (-ns >= cutoff)
+                    filtered.push_back({ns, id});
+            }
+            if (!filtered.empty()) {
+                // Sort by score descending (ns is -score, so ascending ns = descending score)
+                std::sort(filtered.begin(), filtered.end());
+                u32 ntake = std::min(static_cast<u32>(filtered.size()), k);
+                for (u32 i = 0; i < ntake; ++i) {
+                    cand_ids.push_back(std::get<1>(filtered[i]));
+                    cand_scores.push_back(-std::get<0>(filtered[i]));
+                }
+            } else {
+                // Fallback: no centroid passed threshold, take top-k
+                std::sort(scored.begin(), scored.end());
+                u32 ntake = std::min(static_cast<u32>(scored.size()), k);
+                for (u32 i = 0; i < ntake; ++i) {
+                    cand_ids.push_back(std::get<1>(scored[i]));
+                    cand_scores.push_back(-std::get<0>(scored[i]));
+                }
+            }
+        } else {
+            // No threshold: take top-k
+            std::sort(scored.begin(), scored.end());
+            u32 ntake = std::min(static_cast<u32>(scored.size()), k);
+            for (u32 i = 0; i < ntake; ++i) {
+                cand_ids.push_back(std::get<1>(scored[i]));
+                cand_scores.push_back(-std::get<0>(scored[i]));
             }
         }
-        std::sort(heap.begin(), heap.end());
-        for (auto &[nd, id] : heap)
-            cand.push_back(id);
     }
-    if (cand.empty())
+    if (cand_ids.empty())
         return;
 
+    // Build bitmap for candidate centroids
     std::vector<bool> cm(snap_nc, false);
-    for (u32 c : cand)
+    for (u32 c : cand_ids)
         cm[c] = true;
 
+    // Scan candidate buckets, emit candidates up to max_candidates
+    u32 emitted = 0;
+    bool hit_max = false;
+
     // Scan candidate buckets from snapshot
-    for (u32 c = 0; c < snap_nc; ++c) {
+    for (u32 c = 0; c < snap_nc && !hit_max; ++c) {
         if (!cm[c] || c >= snap->buckets_.size())
             continue;
         auto &bkt = snap->buckets_[c];
         if (bkt.count_ == 0)
             continue;
-        for (u32 j = 0; j < bkt.count_; ++j) {
+        // Within a bucket, prefer scanning candidate centroids with better scores first
+        // But buckets are already sorted by centroid quality, so scan in order
+        for (u32 j = 0; j < bkt.count_ && !hit_max; ++j) {
             u32 rid = bkt.row_ids_[j];
             if (ds.find(rid) != ds.end())
                 continue;
             const auto *code = reinterpret_cast<const RabitQVec *>(bkt.codes_.data() + static_cast<size_t>(j) * cs);
+            if (max_candidates > 0 && emitted >= max_candidates) {
+                hit_max = true;
+                break;
+            }
             callback(rid, RabitQDistWithRotation(code, qrot.data(), dim_, isd));
+            ++emitted;
         }
     }
 
     // Scan global delta entries (read directly — they're atomic-swapped)
-    auto sd = [&](const SPFreshDeltaBuffer *delta) {
-        if (!delta || delta->entry_count_ == 0)
-            return;
-        for (u32 di = 0; di < delta->entry_count_; ++di) {
-            u32 bid = delta->GetBucketId(di);
-            if (bid >= snap_nc || !cm[bid])
-                continue;
-            u32 rid = delta->GetRowId(di);
-            if (ds.find(rid) != ds.end())
-                continue;
-            const auto *code = reinterpret_cast<const RabitQVec *>(delta->GetCode(di));
-            callback(rid, RabitQDistWithRotation(code, qrot.data(), dim_, isd));
-        }
-    };
-    sd(delta_a_);
-    sd(delta_b_);
+    if (!hit_max) {
+        auto sd = [&](const SPFreshDeltaBuffer *delta) {
+            if (!delta || delta->entry_count_ == 0 || hit_max)
+                return;
+            for (u32 di = 0; di < delta->entry_count_ && !hit_max; ++di) {
+                u32 bid = delta->GetBucketId(di);
+                if (bid >= snap_nc || !cm[bid])
+                    continue;
+                u32 rid = delta->GetRowId(di);
+                if (ds.find(rid) != ds.end())
+                    continue;
+                const auto *code = reinterpret_cast<const RabitQVec *>(delta->GetCode(di));
+                if (max_candidates > 0 && emitted >= max_candidates) {
+                    hit_max = true;
+                    break;
+                }
+                callback(rid, RabitQDistWithRotation(code, qrot.data(), dim_, isd));
+                ++emitted;
+            }
+        };
+        sd(delta_a_);
+        sd(delta_b_);
+    }
 }
 
 // ========== Delete ==========

@@ -60,8 +60,18 @@ public:
     void Compact();
 
     // LIRE: Search via RCU snapshot (no lock held during callback)
+    // Parameters:
+    //   query, dim: query vector
+    //   max_candidates: max number of candidates to emit (0 = unlimited)
+    //   centroid_score_threshold: skip centroid if score < max_score * threshold (0.0 = no filter)
+    //   callback: called for each candidate with (segment_offset, approx_dist, raw_f32_vec)
+    //     raw_f32_vec points to the original f32 vector stored in the bucket (or nullptr if unavailable)
     using SearchCallback = std::function<void(SegmentOffset, f32)>;
-    void Search(const f32 *query, u32 dim, const SearchCallback &callback) const;
+    void Search(const f32 *query,
+                u32 dim,
+                const SearchCallback &callback,
+                u32 max_candidates = 0,
+                f32 centroid_score_threshold = 0.0f) const;
 
     void MarkDeleted(u32 row_id);
 

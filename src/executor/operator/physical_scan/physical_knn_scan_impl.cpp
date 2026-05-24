@@ -1036,7 +1036,13 @@ void ExecuteSPFreshSearch(KnnScanSharedData *knn_scan_shared_data,
 
     const auto query_count = knn_scan_shared_data->query_count_;
     const u32 topk = knn_scan_shared_data->topk_;
-    const u32 rerank_factor = 200; // return top-K * N approximate candidates for reranking
+
+    // LIRE-style two-stage rerank
+    const u32 n_doc_to_score = std::max(topk * 8u, 2000u);
+    const u32 n_full_scores = std::max(topk * 4u, 200u);
+    const f32 centroid_score_threshold = 0.6f;
+    const u32 max_search_candidates = n_doc_to_score * 2;
+
     const auto *queries = static_cast<const ColumnDataType *>(knn_scan_shared_data->query_embedding_);
 
     auto satisfy_filter = [&](SegmentOffset offset) -> bool {
@@ -1044,7 +1050,7 @@ void ExecuteSPFreshSearch(KnnScanSharedData *knn_scan_shared_data,
         return !use_bitmask || !bitmask.IsTrue(offset);
     };
 
-    // Pre-read all column vectors for this segment into a flat f32 buffer for reranking
+    // Pre-read all column vectors from column store for reranking
     std::vector<f32> segment_vectors;
     u32 segment_capacity = 0;
     {
@@ -1052,33 +1058,25 @@ void ExecuteSPFreshSearch(KnnScanSharedData *knn_scan_shared_data,
         if (table_meta == nullptr) return;
         SegmentMeta seg_meta(segment_id, *table_meta);
 
-        // Get the column def for this index
         auto [col_def_ptr, col_status] = segment_index_meta->table_index_meta().GetColumnDef();
         if (!col_status.ok()) return;
 
-        // Use actual block list (same as PopulateSPFreshIndexInner) for consistent vector order
         auto [block_ids, blk_status] = seg_meta.GetBlockIDs1();
         if (!blk_status.ok()) return;
         size_t block_capacity = DEFAULT_BLOCK_CAPACITY;
         size_t total_row_cnt = 0;
-        // Estimate total row count (same formula as PopulateSPFreshIndexInner)
-        // Actually use segment_row_cnt or estimate
         for (size_t bi = 0; bi < block_ids->size(); ++bi) { total_row_cnt += block_capacity; }
-        // Adjust last block if needed
         total_row_cnt = std::min(total_row_cnt, seg_meta.segment_capacity());
 
         for (size_t bi = 0; bi < block_ids->size(); ++bi) {
             BlockID block_id = (*block_ids)[bi];
             BlockMeta blk_meta(block_id, seg_meta);
             ColumnMeta col_meta(knn_column_id, blk_meta);
-
             size_t row_cnt = (bi == block_ids->size() - 1) ?
                 total_row_cnt - block_capacity * (block_ids->size() - 1) : block_capacity;
-
             ColumnVector col_vec;
             Status status = NewCatalog::GetColumnVector(col_meta, col_def_ptr, row_cnt, ColumnVectorMode::kReadOnly, col_vec);
             if (!status.ok()) continue;
-
             const f32 *src = reinterpret_cast<const f32 *>(col_vec.data());
             size_t vec_bytes = row_cnt * embedding_dim;
             segment_vectors.insert(segment_vectors.end(), src, src + vec_bytes);
@@ -1087,46 +1085,52 @@ void ExecuteSPFreshSearch(KnnScanSharedData *knn_scan_shared_data,
     }
     if (segment_vectors.empty() || segment_capacity == 0) return;
 
+    // Per-query SPFresh search + two-stage rerank
     for (u64 query_idx = 0; query_idx < query_count; ++query_idx) {
         const auto *query = queries + query_idx * embedding_dim;
         const auto *query_f32 = reinterpret_cast<const f32 *>(query);
 
-        // Collect candidate (segment_offset, approx_dist) from SPFresh RaBitQ search
+        // Stage 1: SPFresh approximate search with centroid threshold + early termination
         struct Candidate { u32 offset; f32 dist; };
         std::vector<Candidate> candidates;
-        candidates.reserve(spfresh_index->GetRowCount());
+        candidates.reserve(n_doc_to_score);
 
-        spfresh_index->Search(query_f32, embedding_dim, [&](SegmentOffset offset, f32 approx_dist) {
-            if (!satisfy_filter(offset))
-                return;
-            candidates.push_back({offset, approx_dist});
-        });
+        spfresh_index->Search(
+            query_f32, embedding_dim,
+            [&](SegmentOffset offset, f32 approx_dist) {
+                if (!satisfy_filter(offset)) return;
+                candidates.push_back({offset, approx_dist});
+            },
+            max_search_candidates,
+            centroid_score_threshold
+        );
+
         if (candidates.empty()) continue;
 
-        // Sort by approximate distance, keep top (topk * rerank_factor) for reranking
-        u32 rerank_n = std::min(static_cast<u32>(candidates.size()), topk * rerank_factor);
-        std::partial_sort(candidates.begin(), candidates.begin() + rerank_n, candidates.end(),
+        // Stage 2: Sort by approximate distance, keep top n_doc_to_score
+        u32 approx_n = std::min(static_cast<u32>(candidates.size()), n_doc_to_score);
+        std::partial_sort(candidates.begin(), candidates.begin() + approx_n, candidates.end(),
                           [](const Candidate &a, const Candidate &b) { return a.dist < b.dist; });
-        candidates.resize(rerank_n);
+        candidates.resize(approx_n);
 
-        // Rerank: compute exact L2 distance from column store vectors
+        // Stage 3: Exact rerank from column store for top n_full_scores candidates
+        u32 rerank_n = std::min(approx_n, n_full_scores);
         std::vector<DistanceDataType> dists;
         std::vector<RowID> row_ids;
         dists.reserve(rerank_n);
         row_ids.reserve(rerank_n);
 
-        for (const auto &cand : candidates) {
+        for (u32 i = 0; i < rerank_n; ++i) {
+            const auto &cand = candidates[i];
             u32 offset = cand.offset;
             if (offset >= segment_capacity) continue;
 
             const f32 *exact_vec = segment_vectors.data() + static_cast<size_t>(offset) * embedding_dim;
-
             DistanceDataType exact_dist = 0;
             for (u32 d = 0; d < embedding_dim; ++d) {
                 f32 diff = query_f32[d] - exact_vec[d];
                 exact_dist += static_cast<DistanceDataType>(diff * diff);
             }
-
             dists.push_back(exact_dist);
             row_ids.emplace_back(segment_id, offset);
         }
