@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+module;
+
 module infinity_core:physical_knn_scan.impl;
 
 import :physical_knn_scan;
@@ -688,22 +690,44 @@ void PhysicalKnnScan::ExecuteInternalByColumnDataTypeAndQueryDataType(QueryConte
                     break;
                 }
                 case IndexType::kSPFresh: {
-                    auto mem_index = segment_index_meta->GetMemIndex();
-                    if (mem_index != nullptr) {
-                        auto spfresh_index = mem_index->GetSPFreshIndex();
-                        if (spfresh_index != nullptr) {
-                            ExecuteSPFreshSearch<t, ColumnDataType, C, DistanceDataType>(
-                                knn_scan_shared_data,
-                                merge_heap_hnsw,
-                                embedding_dim,
-                                segment_id,
-                                spfresh_index.get(),
-                                use_bitmask,
-                                bitmask,
-                                block_index,
-                                knn_column_id,
-                                segment_index_meta);
+                    // Fast path: use in-memory index
+                    SPFreshIndexInMem *spfresh_index = nullptr;
+                    // Keep BufferHandle alive to pin disk data if loaded from chunks
+                    BufferHandle disk_handle;
+                    {
+                        auto mem_index = segment_index_meta->GetMemIndex();
+                        if (mem_index != nullptr) {
+                            auto idx = mem_index->GetSPFreshIndex();
+                            if (idx != nullptr) {
+                                spfresh_index = idx.get();
+                            }
                         }
+                    }
+                    // Fallback: load from disk chunks (e.g. after restart)
+                    if (spfresh_index == nullptr) {
+                        auto [chunk_ids_ptr, _] = get_chunks();
+                        for (ChunkID chunk_id : *chunk_ids_ptr) {
+                            ChunkIndexMeta chunk_index_meta(chunk_id, *segment_index_meta);
+                            BufferObj *index_buffer = nullptr;
+                            status = chunk_index_meta.GetIndexBuffer(index_buffer);
+                            if (!status.ok())
+                                continue;
+                            disk_handle = index_buffer->Load();
+                            spfresh_index = static_cast<SPFreshIndexInMem *>(disk_handle.GetDataMut());
+                            break;
+                        }
+                    }
+                    if (spfresh_index != nullptr) {
+                        ExecuteSPFreshSearch<t, ColumnDataType, C, DistanceDataType>(knn_scan_shared_data,
+                                                                                     merge_heap_hnsw,
+                                                                                     embedding_dim,
+                                                                                     segment_id,
+                                                                                     spfresh_index,
+                                                                                     use_bitmask,
+                                                                                     bitmask,
+                                                                                     block_index,
+                                                                                     knn_column_id,
+                                                                                     segment_index_meta);
                     }
                     break;
                 }
@@ -1012,7 +1036,7 @@ void ExecuteSPFreshSearch(KnnScanSharedData *knn_scan_shared_data,
 
     const auto query_count = knn_scan_shared_data->query_count_;
     const u32 topk = knn_scan_shared_data->topk_;
-    const u32 rerank_factor = 500; // return top-K * N approximate candidates for reranking
+    const u32 rerank_factor = 200; // return top-K * N approximate candidates for reranking
     const auto *queries = static_cast<const ColumnDataType *>(knn_scan_shared_data->query_embedding_);
 
     auto satisfy_filter = [&](SegmentOffset offset) -> bool {
@@ -1072,13 +1096,11 @@ void ExecuteSPFreshSearch(KnnScanSharedData *knn_scan_shared_data,
         std::vector<Candidate> candidates;
         candidates.reserve(spfresh_index->GetRowCount());
 
-        spfresh_index->Search(
-            query_f32, embedding_dim,
-            [&](SegmentOffset offset, f32 approx_dist) {
-                if (!satisfy_filter(offset)) return;
-                candidates.push_back({offset, approx_dist});
-            });
-
+        spfresh_index->Search(query_f32, embedding_dim, [&](SegmentOffset offset, f32 approx_dist) {
+            if (!satisfy_filter(offset))
+                return;
+            candidates.push_back({offset, approx_dist});
+        });
         if (candidates.empty()) continue;
 
         // Sort by approximate distance, keep top (topk * rerank_factor) for reranking

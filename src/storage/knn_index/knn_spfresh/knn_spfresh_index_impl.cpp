@@ -180,8 +180,27 @@ void SPFreshIndexInMem::DecodeWithRotation(const RabitQVec *code, f32 *out_vec) 
 }
 
 f32 SPFreshIndexInMem::RabitQDistWithRotation(const RabitQVec *code, const f32 *rq, u32 dim, f32 isd) {
-    f32 ip = 0;
-    for (u32 d = 0; d < dim; ++d)
+    // AVX2: expand byte sign bits → negate by XOR only sign bit (bit 31)
+    // sign_mask = bit ? 0 : 0x80000000  → negate when bit=0
+    __m256 sum = _mm256_setzero_ps();
+    const __m256i sign_bit = _mm256_set1_epi32(0x80000000);
+    u32 d = 0;
+    for (; d + 8 <= dim; d += 8) {
+        __m256 q = _mm256_loadu_ps(rq + d);
+        u8 byte = code->compress_[d / 8];
+        __m256i bcast = _mm256_set1_epi32(byte);
+        __m256i shl = _mm256_sllv_epi32(bcast, _mm256_set_epi32(24, 25, 26, 27, 28, 29, 30, 31));
+        __m256i extracted = _mm256_srai_epi32(shl, 31);
+        __m256i neg_mask = _mm256_andnot_si256(extracted, sign_bit);
+        q = _mm256_xor_ps(q, _mm256_castsi256_ps(neg_mask));
+        sum = _mm256_add_ps(sum, q);
+    }
+    __m128 lo = _mm256_castps256_ps128(sum), hi = _mm256_extractf128_ps(sum, 1);
+    lo = _mm_add_ps(lo, hi);
+    lo = _mm_hadd_ps(lo, lo);
+    lo = _mm_hadd_ps(lo, lo);
+    f32 ip = _mm_cvtss_f32(lo);
+    for (; d < dim; ++d)
         ip += ((code->compress_[d / 8] >> (d % 8)) & 1) ? rq[d] : -rq[d];
     f32 ct = std::clamp(ip * isd, -1.0f, 1.0f);
     return 2.0f * (1.0f - ct);

@@ -2655,6 +2655,7 @@ Status NewTxn::DumpSegmentMemIndex(SegmentIndexMeta &segment_index_meta, const C
     std::shared_ptr<EMVBIndexInMem> memory_emvb_index;
     std::shared_ptr<PlaidIndexInMem> memory_plaid_index;
     std::shared_ptr<SMVEIndexInMem> memory_smve_index;
+    std::shared_ptr<SPFreshIndexInMem> memory_spfresh_index;
 
     // dump mem index only happens in parallel with read, not write, so no lock is needed.
     switch (index_base->index_type_) {
@@ -2720,6 +2721,13 @@ Status NewTxn::DumpSegmentMemIndex(SegmentIndexMeta &segment_index_meta, const C
             }
             break;
         }
+        case IndexType::kSPFresh: {
+            memory_spfresh_index = mem_index->GetSPFreshIndex();
+            if (memory_spfresh_index == nullptr) {
+                return Status::EmptyMemIndex();
+            }
+            break;
+        }
         default: {
             UnrecoverableError("Not implemented yet");
         }
@@ -2735,6 +2743,8 @@ Status NewTxn::DumpSegmentMemIndex(SegmentIndexMeta &segment_index_meta, const C
         chunk_index_meta_info = mem_index->GetPlaidIndex()->GetChunkIndexMetaInfo();
     } else if (mem_index->GetSMVEIndex() != nullptr) {
         chunk_index_meta_info = mem_index->GetSMVEIndex()->GetChunkIndexMetaInfo();
+    } else if (mem_index->GetSPFreshIndex() != nullptr) {
+        chunk_index_meta_info = mem_index->GetSPFreshIndex()->GetChunkIndexMetaInfo();
     } else {
         UnrecoverableError("Invalid mem index");
     }
@@ -2849,6 +2859,11 @@ Status NewTxn::DumpSegmentMemIndex(SegmentIndexMeta &segment_index_meta, const C
             // For PLAID, BuildIndex now only builds a batch of data (up to threshold)
             // If there's more buffered data, we need to create new chunks and dump them
             // This is handled by the caller checking HasBufferedData() after Dump
+            break;
+        }
+        case IndexType::kSPFresh: {
+            memory_spfresh_index->Dump(buffer_obj);
+            buffer_obj->Save();
             break;
         }
         default: {
