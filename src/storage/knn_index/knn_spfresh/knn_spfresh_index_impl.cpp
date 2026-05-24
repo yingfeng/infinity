@@ -1037,6 +1037,19 @@ void SPFreshIndexInMem::TransferTo(SPFreshIndexInMem *target) {
     target->running_means_ = std::move(running_means_);
     target->mem_used_ = mem_used_;
 
+    // Restore source's centroids & metadata from RCU snapshot for future incremental inserts.
+    // The snapshot_ is a shared_ptr that still holds valid copies of all moved data.
+    if (snapshot_) {
+        centroids_ = snapshot_->centroids_;
+        centroid_to_coarse_ = snapshot_->centroid_to_coarse_;
+        coarse_centroids_ = snapshot_->coarse_centroids_;
+        coarse_hnsw_ = snapshot_->coarse_hnsw_;
+        bucket_metas_ = snapshot_->bucket_metas_;
+        num_centroids_ = snapshot_->num_centroids_;
+        coarse_count_ = snapshot_->coarse_count_;
+        running_means_.resize(num_centroids_);
+    }
+
     // Allocate target's delta buffers if not already
     if (target->delta_a_ == nullptr) {
         size_t cs = RabitQVecSize(dim_);

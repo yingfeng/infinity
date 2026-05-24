@@ -365,7 +365,16 @@ Status NewTxn::OptimizeIndexInner(SegmentIndexMeta &segment_index_meta,
             return status;
         }
     } else if (index_base->index_type_ == IndexType::kSPFresh) {
-        // SPFresh: handled in the type-specific switch below
+        // SPFresh: collect chunk info for merge
+        base_rowid = RowID(segment_id, 0);
+        ChunkIndexMetaInfo *chunk_info_ptr = nullptr;
+        for (ChunkID old_chunk_id : *old_chunk_ids_ptr) {
+            ChunkIndexMeta old_chunk_meta(old_chunk_id, segment_index_meta);
+            status = old_chunk_meta.GetChunkInfo(chunk_info_ptr);
+            if (!status.ok()) return status;
+            row_cnt += chunk_info_ptr->row_cnt_;
+            term_cnt = std::max(term_cnt, static_cast<u32>(chunk_info_ptr->term_cnt_));
+        }
     } else {
         base_rowid = RowID(segment_id, 0);
         RowID last_rowid = base_rowid;
@@ -501,14 +510,60 @@ Status NewTxn::OptimizeIndexInner(SegmentIndexMeta &segment_index_meta,
             break;
         }
         case IndexType::kSPFresh: {
-            // SPFresh optimize: trigger rebalance on in-memory index
-            auto mem_index = segment_index_meta.GetMemIndex();
-            if (mem_index != nullptr) {
-                auto spfresh_idx = mem_index->GetSPFreshIndex();
-                if (spfresh_idx != nullptr) {
-                    spfresh_idx->Rebalance(10000);
-                    LOG_INFO(fmt::format("SPFresh Optimize (Rebalance) on segment {}", segment_id));
+            // SPFresh optimize: full rebuild from column store, merging all old chunks
+            std::shared_ptr<ColumnDef> col_def;
+            {
+                auto [cd, st] = table_index_meta.GetColumnDef();
+                if (!st.ok()) return st;
+                col_def = std::move(cd);
+            }
+            ColumnID col_id = 0;
+            {
+                auto [col_defs, st] = table_meta.GetColumnDefs();
+                if (!st.ok()) return st;
+                for (const auto &col : *col_defs) {
+                    if (col->name() == index_base->column_names_[0]) {
+                        col_id = col->id();
+                        break;
+                    }
                 }
+            }
+            const auto *embedding_info = static_cast<const EmbeddingInfo *>(col_def->type()->type_info().get());
+            u32 dim = static_cast<u32>(embedding_info->Dimension());
+            SegmentMeta seg_meta(segment_id, table_meta);
+            auto [block_ids, blk_st] = seg_meta.GetBlockIDs1();
+            if (!blk_st.ok()) return blk_st;
+            size_t block_capacity = DEFAULT_BLOCK_CAPACITY;
+            u32 total_rows = 0;
+            for (size_t bi = 0; bi < block_ids->size(); ++bi) {
+                total_rows += block_capacity;
+            }
+            total_rows = std::min(total_rows, static_cast<u32>(seg_meta.segment_capacity()));
+            if (total_rows == 0) break;
+            std::vector<f32> all_vectors;
+            all_vectors.reserve(static_cast<size_t>(total_rows) * dim);
+            for (size_t bi = 0; bi < block_ids->size(); ++bi) {
+                BlockID bid = (*block_ids)[bi];
+                BlockMeta bm(bid, seg_meta);
+                ColumnMeta cm(col_id, bm);
+                size_t rc = (bi == block_ids->size() - 1) ?
+                    total_rows - block_capacity * (block_ids->size() - 1) : block_capacity;
+                ColumnVector cv;
+                Status st = NewCatalog::GetColumnVector(cm, col_def, rc, ColumnVectorMode::kReadOnly, cv);
+                if (!st.ok()) continue;
+                const f32 *src = reinterpret_cast<const f32 *>(cv.data());
+                all_vectors.insert(all_vectors.end(), src, src + rc * dim);
+            }
+            if (all_vectors.empty()) break;
+            RowID br(segment_id, 0);
+            const auto *spfresh_def = static_cast<const IndexSPFresh *>(index_base.get());
+            auto temp_idx = std::make_shared<SPFreshIndexInMem>(br, spfresh_def, dim, total_rows);
+            temp_idx->Build(all_vectors.data(), total_rows);
+            {
+                BufferHandle handle = buffer_obj->Load();
+                auto *target = static_cast<SPFreshIndexInMem *>(handle.GetDataMut());
+                temp_idx->TransferTo(target);
+                buffer_obj->Save();
             }
             break;
         }
