@@ -24,7 +24,7 @@ import embedding_info;
 
 namespace infinity {
 
-// Background thread deleted: Split/Rebalance is handled by OPTIMIZE (full rebuild from column store).
+// Split/Rebalance is handled by OPTIMIZE (full rebuild from column store).
 // Delta compaction is triggered inline in InsertDelta when buffer exceeds max_delta_bytes_.
 
 // ========== Construction ==========
@@ -679,21 +679,7 @@ void SPFreshIndexInMem::MarkDeleted(u32 row_id) {
     deleted_set_.insert(row_id);
 }
 
-// Start/Stop Maintenance removed: OPTIMIZE handles split/rebalance via full rebuild.
-
 // ========== LIRE Compact (per-bucket: merge delta entries into bucket's base codes_) ==========
-
-bool SPFreshIndexInMem::TryAutoCompact(u32 threshold) {
-    if (!delta_a_ || !delta_b_)
-        return false;
-    u32 idx = active_delta_idx_.load(std::memory_order_acquire);
-    auto *active = (idx == 0) ? delta_a_ : delta_b_;
-    if (active->entry_count_ >= threshold) {
-        Compact();
-        return true;
-    }
-    return false;
-}
 
 void SPFreshIndexInMem::Compact() {
     if (!delta_a_ || !delta_b_)
@@ -785,153 +771,8 @@ void SPFreshIndexInMem::Compact() {
         deleted_set_.clear();
     }
 
-    compact_count_.fetch_add(1, std::memory_order_relaxed);
     RefreshCentroidsFromRunningMeans();
     PublishSnapshot();
-}
-
-// ========== LIRE SplitBucket ==========
-
-std::vector<u32> SPFreshIndexInMem::SplitBucket(u32 bucket_id) {
-    std::unique_lock wlock(global_mtx_);
-    if (bucket_id >= buckets_.size() || buckets_[bucket_id].count_ < 4)
-        return {};
-
-    size_t cs = RabitQVecSize(dim_);
-    auto &old_bkt = buckets_[bucket_id];
-    u32 n = old_bkt.count_;
-
-    // LIRE: Decode vectors from this bucket
-    std::vector<f32> vecs(static_cast<size_t>(n) * dim_);
-    for (u32 j = 0; j < n; ++j) {
-        const auto *code = reinterpret_cast<const RabitQVec *>(old_bkt.codes_.data() + static_cast<size_t>(j) * cs);
-        DecodeWithRotation(code, vecs.data() + static_cast<size_t>(j) * dim_);
-    }
-
-    std::vector<f32> spc;
-    u32 ak = GetKMeansCentroids<f32, f32>(MetricType::kMetricL2, dim_, n, vecs.data(), spc, 2, 10, 4, 256, 1.0f);
-    if (spc.empty() || ak < 2)
-        return {};
-
-    // LIRE: Mark old bucket retired, create two new buckets
-    bucket_metas_[bucket_id].is_retired_ = true;
-    old_bkt.Clear();
-    old_bkt.count_ = 0; // retired
-
-    u32 nc1 = num_centroids_;
-    u32 nc2 = num_centroids_ + 1;
-    num_centroids_ += 2;
-
-    centroids_.resize(static_cast<size_t>(num_centroids_) * dim_);
-    std::memcpy(centroids_.data() + static_cast<size_t>(nc1) * dim_, spc.data(), dim_ * sizeof(f32));
-    std::memcpy(centroids_.data() + static_cast<size_t>(nc2) * dim_, spc.data() + dim_, dim_ * sizeof(f32));
-
-    buckets_.resize(num_centroids_);
-    bucket_metas_.resize(num_centroids_);
-    centroid_to_coarse_.resize(num_centroids_);
-    centroid_to_coarse_[nc1] = centroid_to_coarse_[bucket_id];
-    centroid_to_coarse_[nc2] = centroid_to_coarse_[bucket_id];
-
-    delete[] bucket_locks_;
-    bucket_locks_count_ = num_centroids_;
-    bucket_locks_ = new std::mutex[bucket_locks_count_];
-    running_means_.resize(num_centroids_);
-
-    // LIRE: Reassign vectors to new buckets (preserve original row_ids)
-    std::vector<char> tmp(cs);
-    for (u32 j = 0; j < n; ++j) {
-        const f32 *v = vecs.data() + static_cast<size_t>(j) * dim_;
-        u32 orig_row_id = old_bkt.row_ids_[j];
-        f32 d1 = 0, d2 = 0;
-        for (u32 d = 0; d < dim_; ++d) {
-            f32 df1 = v[d] - spc[d], df2 = v[d] - spc[dim_ + d];
-            d1 += df1 * df1;
-            d2 += df2 * df2;
-        }
-        u32 nc = (d1 <= d2) ? nc1 : nc2;
-        EncodeWithRotation(reinterpret_cast<f32 *>(tmp.data()), v);
-        buckets_[nc].AppendCode(tmp.data(), cs, orig_row_id);
-        bucket_metas_[nc].base_count_++;
-        running_means_[nc].Update(v, dim_);
-    }
-
-    split_count_.fetch_add(1, std::memory_order_relaxed);
-    BuildCentroidIndex();
-
-    // ReassignAfterSplit: scan nearby centroids, move vectors that are closer to new centroids
-    for (u32 ncid : {nc1, nc2}) {
-        // Find nearby fine centroids via coarse HNSW
-        const f32 *nc_vec = centroids_.data() + static_cast<size_t>(ncid) * dim_;
-        std::vector<u32> nearby;
-        std::vector<f32> nearby_dists;
-        FindTopKCentroids(nc_vec, 16, nearby, nearby_dists);
-        for (u32 ni = 0; ni < nearby.size(); ++ni) {
-            u32 neighbor = nearby[ni];
-            if (neighbor == ncid || neighbor == bucket_id || neighbor >= buckets_.size() || buckets_[neighbor].count_ == 0)
-                continue;
-            auto &nbkt = buckets_[neighbor];
-            // Scan vectors in neighbor's bucket, check if any are closer to new centroid
-            for (u32 j = 0; j < nbkt.count_; ++j) {
-                u32 rid = nbkt.row_ids_[j];
-                if (rid == static_cast<u32>(-1))
-                    continue;
-                // Decode the vector
-                const auto *code = reinterpret_cast<const RabitQVec *>(nbkt.codes_.data() + static_cast<size_t>(j) * cs);
-                std::vector<f32> decoded(dim_);
-                DecodeWithRotation(code, decoded.data());
-                // Compute distance to new centroid
-                f32 d_new = 0;
-                for (u32 d = 0; d < dim_; ++d) {
-                    f32 df = decoded[d] - nc_vec[d];
-                    d_new += df * df;
-                }
-                // Compute distance to current (neighbor's) centroid
-                const f32 *neighbor_c = centroids_.data() + static_cast<size_t>(neighbor) * dim_;
-                f32 d_cur = 0;
-                for (u32 d = 0; d < dim_; ++d) {
-                    f32 df = decoded[d] - neighbor_c[d];
-                    d_cur += df * df;
-                }
-                // If significantly closer to new centroid (at least 10% closer)
-                if (d_new < d_cur * 0.9f) {
-                    // Reassign: encode and append to new bucket
-                    EncodeWithRotation(reinterpret_cast<f32 *>(tmp.data()), decoded.data());
-                    buckets_[ncid].AppendCode(tmp.data(), cs, rid);
-                    bucket_metas_[ncid].base_count_++;
-                    running_means_[ncid].Update(decoded.data(), dim_);
-                }
-            }
-        }
-    }
-
-    PublishSnapshot();
-    LOG_INFO(fmt::format("SPFresh SplitBucket: {} → {} (c1={}, c2={})", bucket_id, num_centroids_, nc1, nc2));
-    return {nc1, nc2};
-}
-
-// ========== LIRE Rebalance ==========
-
-void SPFreshIndexInMem::Rebalance(u32 bucket_size_limit) {
-    if (GetDeltaCount() > 0)
-        Compact();
-    if (num_centroids_ == 0)
-        return;
-    std::shared_lock rlock(global_mtx_);
-
-    bool any = false;
-    for (u32 c = 0; c < num_centroids_; ++c) {
-        if (buckets_[c].count_ > bucket_size_limit && !bucket_metas_[c].is_retired_) {
-            rlock.unlock();
-            auto ids = SplitBucket(c);
-            if (!ids.empty())
-                any = true;
-            rlock.lock();
-        }
-    }
-    if (any) {
-        BuildCentroidIndex();
-        LOG_INFO(fmt::format("SPFresh Rebalance: done, {} buckets", num_centroids_));
-    }
 }
 
 // ========== LIRE Persistence (v7 with row_ids_) ==========
