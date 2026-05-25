@@ -92,7 +92,8 @@ TEST_F(SPFreshTest, test_compact) {
     EXPECT_EQ(idx.GetRowCount(), 3u);
 }
 
-TEST_F(SPFreshTest, test_delete_and_gc) {
+TEST_F(SPFreshTest, test_deletion_is_noop_in_index) {
+    // Deletion is handled at column store level, not in SPFresh index
     auto index_def = std::make_shared<IndexSPFresh>(
         std::make_shared<std::string>("test_idx"), std::make_shared<std::string>(""),
         "test", std::vector<std::string>{"col1"},
@@ -102,21 +103,24 @@ TEST_F(SPFreshTest, test_delete_and_gc) {
     f32 base[] = {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f};
     idx.Build(base, 3);
 
+    // MarkDeleted is a no-op in this design
     idx.MarkDeleted(1);
-    EXPECT_EQ(idx.GetDeletedCount(), 1u);
-    EXPECT_EQ(idx.GetRowCount(), 2u);
+    EXPECT_EQ(idx.GetDeletedCount(), 0u); // no-op
+    EXPECT_EQ(idx.GetRowCount(), 3u);     // all rows still visible
 
+    // All 3 vectors are still found in search
     f32 query[] = {1.0f, 0.0f, 0.0f, 0.0f};
     u32 result_count = 0;
     idx.Search(query, 4, [&](SegmentOffset, f32) { result_count++; });
-    EXPECT_EQ(result_count, 2u);
+    EXPECT_EQ(result_count, 3u);
 
+    // Compact doesn't change row count (no deletion GC)
     idx.Compact();
-    EXPECT_EQ(idx.GetDeletedCount(), 0u);
-    EXPECT_EQ(idx.GetBaseRowCount(), 2u);
+    EXPECT_EQ(idx.GetBaseRowCount(), 3u);
 }
 
-TEST_F(SPFreshTest, test_auto_compact) {
+TEST_F(SPFreshTest, test_compact_with_delta) {
+    // Build 2 vectors, insert delta, compact, verify count
     auto index_def = std::make_shared<IndexSPFresh>(
         std::make_shared<std::string>("test_idx"), std::make_shared<std::string>(""),
         "test", std::vector<std::string>{"col1"},
@@ -129,7 +133,10 @@ TEST_F(SPFreshTest, test_auto_compact) {
     f32 v2[] = {0.0f, 1.0f, 0.0f, 0.0f};
     idx.InsertDelta(v2, 1);
     EXPECT_EQ(idx.GetDeltaCount(), 1u);
+    EXPECT_EQ(idx.GetBaseRowCount(), 2u);
 
+    // Explicit Compact: merge delta into base
+    idx.Compact();
     EXPECT_EQ(idx.GetDeltaCount(), 0u);
     EXPECT_EQ(idx.GetBaseRowCount(), 3u);
 }

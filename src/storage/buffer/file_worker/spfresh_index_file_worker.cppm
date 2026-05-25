@@ -31,11 +31,13 @@ public:
     void AllocateInMemory() override;
     void FreeInMemory() override;
     FileWorkerType Type() const override { return FileWorkerType::kSPFreshIndexFile; }
-    u64 GetMemoryCost() const override { return 0; }
+    size_t GetMemoryCost() const override;
 
 protected:
     bool WriteToFileImpl(bool to_spill, bool &prepare_success, const FileWorkerSaveCtx &ctx) override;
     void ReadFromFileImpl(size_t file_size, bool from_spill) override;
+    bool ReadFromMmapImpl(const void *ptr, size_t size) override;
+    void FreeFromMmapImpl() override;
 };
 
 } // namespace infinity
