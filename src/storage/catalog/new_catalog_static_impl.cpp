@@ -339,6 +339,69 @@ Status NewCatalog::MemIndexRecover(NewTxn *txn) {
             return status;
         }
     }
+
+    // Drain all pending fulltext index commits to ensure they complete before the checkpoint that follows.
+    {
+        auto DrainFulltextMemIndexes = [&](TableIndexMeta &table_index_meta) {
+            auto [index_base, base_status] = table_index_meta.GetIndexBase();
+            if (!base_status.ok() || index_base->index_type_ != IndexType::kFullText) {
+                return;
+            }
+            auto [segment_ids_ptr, seg_status] = table_index_meta.GetSegmentIndexIDs1();
+            if (!seg_status.ok()) {
+                return;
+            }
+            for (SegmentID segment_id : *segment_ids_ptr) {
+                SegmentIndexMeta segment_index_meta(segment_id, table_index_meta);
+                std::shared_ptr<MemIndex> mem_index = segment_index_meta.GetMemIndex();
+                if (mem_index == nullptr) {
+                    continue;
+                }
+                std::shared_ptr<MemoryIndexer> memory_indexer = mem_index->GetFulltextIndex();
+                if (memory_indexer != nullptr) {
+                    memory_indexer->WaitForTaskCompletion();
+                }
+            }
+        };
+
+        auto DrainTable = [&](TableMeta &table_meta) {
+            std::vector<std::string> *index_id_strs_ptr = nullptr;
+            std::vector<std::string> *index_name_strs_ptr = nullptr;
+            Status st = table_meta.GetIndexIDs(index_id_strs_ptr, &index_name_strs_ptr);
+            if (!st.ok()) {
+                return;
+            }
+            for (size_t i = 0; i < index_id_strs_ptr->size(); ++i) {
+                const std::string &index_id_str = (*index_id_strs_ptr)[i];
+                const std::string &index_name_str = (*index_name_strs_ptr)[i];
+                TableIndexMeta table_index_meta(index_id_str, index_name_str, table_meta);
+                DrainFulltextMemIndexes(table_index_meta);
+            }
+        };
+
+        auto DrainDB = [&](DBMeta &db_meta) {
+            std::vector<std::string> *table_id_strs_ptr = nullptr;
+            std::vector<std::string> *table_names_ptr = nullptr;
+            Status st = db_meta.GetTableIDs(table_id_strs_ptr, &table_names_ptr);
+            if (!st.ok()) {
+                return;
+            }
+            for (size_t i = 0; i < table_id_strs_ptr->size(); ++i) {
+                const std::string &table_id_str = (*table_id_strs_ptr)[i];
+                const std::string &table_name = (*table_names_ptr)[i];
+                TableMeta table_meta(db_meta.db_id_str(), table_id_str, table_name, txn);
+                DrainTable(table_meta);
+            }
+        };
+
+        for (size_t idx = 0; idx < db_count; ++idx) {
+            const std::string &db_id_str = db_id_strs_ptr->at(idx);
+            const std::string &db_name = db_names_ptr->at(idx);
+            DBMeta db_meta(db_id_str, db_name, txn);
+            DrainDB(db_meta);
+        }
+    }
+
     return Status::OK();
 }
 

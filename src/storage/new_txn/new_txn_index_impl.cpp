@@ -859,7 +859,11 @@ NewTxn::AppendMemIndex(SegmentIndexMeta &segment_index_meta, BlockID block_id, c
                 std::shared_ptr<std::string> index_dir = segment_index_meta.GetSegmentIndexDir();
                 auto base_name = fmt::format("ft_{:016x}", base_row_id.ToUint64());
                 auto full_path = fmt::format("{}/{}", InfinityContext::instance().config()->DataDir(), *index_dir);
+                auto [db_name, table_name] = segment_index_meta.table_index_meta().table_meta().GetDBTableName();
                 memory_indexer = std::make_unique<MemoryIndexer>(full_path, base_name, base_row_id, index_fulltext->flag_, index_fulltext->analyzer_);
+                memory_indexer->db_name_ = db_name;
+                memory_indexer->table_name_ = table_name;
+                memory_indexer->index_name_ = *index_fulltext->index_name_;
                 need_to_update_ft_segment_ts = true;
                 mem_index->SetFulltextIndex(memory_indexer);
             } else {
@@ -1336,7 +1340,11 @@ Status NewTxn::PopulateFtIndexInner(std::shared_ptr<IndexBase> index_base,
             RowID base_row_id(segment_index_meta.segment_id(), block_id * block_capacity);
             auto base_name = fmt::format("ft_{:016x}", base_row_id.ToUint64());
             auto full_path = fmt::format("{}/{}", InfinityContext::instance().config()->DataDir(), *index_dir);
+            auto [db_name, table_name] = segment_index_meta.table_index_meta().table_meta().GetDBTableName();
             memory_indexer = std::make_shared<MemoryIndexer>(full_path, base_name, base_row_id, index_fulltext->flag_, index_fulltext->analyzer_);
+            memory_indexer->db_name_ = db_name;
+            memory_indexer->table_name_ = table_name;
+            memory_indexer->index_name_ = *index_fulltext->index_name_;
             LOG_INFO(fmt::format("PopulateFtIndexInner created memory_indexer, base_name: {}", base_name));
         }
         BlockMeta block_meta(block_id, segment_meta);
