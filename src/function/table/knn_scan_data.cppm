@@ -67,6 +67,11 @@ public:
 
     std::atomic_uint64_t current_block_idx_{0};
     std::atomic_uint64_t current_index_idx_{0};
+
+    // Set by any task that produces *approximate* distances (HNSW-RaBitQ, SPFresh).
+    // When set, the final merge stage re-scores every candidate with the exact
+    // distance function against the raw vectors in the column store.
+    std::atomic_bool need_exact_rerank_{false};
 };
 
 //-------------------------------------------------------------------

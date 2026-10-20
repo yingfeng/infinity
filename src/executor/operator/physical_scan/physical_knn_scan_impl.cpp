@@ -537,7 +537,6 @@ void PhysicalKnnScan::ExecuteInternalByColumnDataTypeAndQueryDataType(QueryConte
     }
 
     // merge_heap for HNSW scan. For multivector maxsim, query_count could be larger than 1.
-    bool is_rabitq = false;
     auto merge_heap_hnsw = dynamic_cast<MergeKnn<ColumnDataType, C, DistanceDataType> *>(knn_scan_function_data->merge_knn_base_hnsw_.get());
 
     size_t index_task_n = knn_scan_shared_data->segment_index_metas_->size();
@@ -680,7 +679,9 @@ void PhysicalKnnScan::ExecuteInternalByColumnDataTypeAndQueryDataType(QueryConte
                 }
                 case IndexType::kHnsw: {
                     const auto *index_hnsw = static_cast<const IndexHnsw *>(index_base);
-                    is_rabitq = index_hnsw->encode_type_ == HnswEncodeType::kRabitq;
+                    if (index_hnsw->encode_type_ == HnswEncodeType::kRabitq) {
+                        knn_scan_shared_data->need_exact_rerank_ = true;
+                    }
                     ExecuteHnswSearch<t, ColumnDataType, C, DistanceDataType>(query_context,
                                                                               knn_scan_operator_state,
                                                                               merge_heap_hnsw,
@@ -695,11 +696,16 @@ void PhysicalKnnScan::ExecuteInternalByColumnDataTypeAndQueryDataType(QueryConte
                     break;
                 }
                 case IndexType::kSPFresh: {
+                    // SPFresh only stores RaBitQ codes, so every distance it emits is
+                    // an estimate: the final merge stage must re-score the candidates
+                    // against the raw vectors.
+                    knn_scan_shared_data->need_exact_rerank_ = true;
                     ExecuteSPFreshSearch<t, ColumnDataType, C, DistanceDataType>(knn_scan_shared_data,
                                                                                  merge_heap_hnsw,
                                                                                  embedding_dim,
                                                                                  segment_id,
                                                                                  segment_index_meta,
+                                                                                 block_index,
                                                                                  use_bitmask,
                                                                                  bitmask);
                     break;
@@ -718,7 +724,7 @@ void PhysicalKnnScan::ExecuteInternalByColumnDataTypeAndQueryDataType(QueryConte
         std::vector<char *> result_dists_list;
         std::vector<RowID *> row_ids_list;
 
-        if (query_n > 1 || is_rabitq) {
+        if (query_n > 1 || knn_scan_shared_data->need_exact_rerank_) {
             merge_heap_hnsw->EndWithoutSort();
             std::vector<RowID> unique_row_ids = merge_heap_hnsw->GetUniqueIDs();
             for (size_t i = 0; i < unique_row_ids.size(); ++i) {
@@ -1001,20 +1007,28 @@ void ExecuteSPFreshSearch(KnnScanSharedData *knn_scan_shared_data,
                            u32 embedding_dim,
                            SegmentID segment_id,
                            SegmentIndexMeta *segment_index_meta,
+                           BlockIndex *block_index,
                            bool use_bitmask,
                            const Bitmask &bitmask) {
     if constexpr (!(IsAnyOf<ColumnDataType, u8, i8, f32>)) return;
 
     const u32 topk = knn_scan_shared_data->topk_;
-    const f32 centroid_score_threshold = 0.5f;
     const u32 max_search_candidates = std::max(topk * 100u, 10000u);
+    // `merge_knn_base_hnsw_` is sized at 10 * topk (see KnnScanFunctionData), so at most
+    // 10 * topk candidates can survive into the exact rerank stage; over-fetching more
+    // only burns heap updates.
+    const u32 rerank_candidates = topk * 10u;
 
     // Per-index search lambda: search a single SPFreshIndexInMem and push results to merge_heap
     auto search_index = [&](SPFreshIndexInMem *idx) {
         const auto query_count = knn_scan_shared_data->query_count_;
         const auto *queries = static_cast<const ColumnDataType *>(knn_scan_shared_data->query_embedding_);
 
+        // Rows beyond the committed segment offset are uncommitted (AppendFilter
+        // semantics, same as the HNSW path) and must not be returned.
+        const SegmentOffset max_segment_offset = block_index->GetSegmentOffset(segment_id);
         auto satisfy_filter = [&](SegmentOffset offset) -> bool {
+            if (offset >= max_segment_offset) return false;
             if (use_bitmask && offset >= bitmask.count()) return false;
             return !use_bitmask || !bitmask.IsTrue(offset);
         };
@@ -1023,32 +1037,49 @@ void ExecuteSPFreshSearch(KnnScanSharedData *knn_scan_shared_data,
             const auto *query = queries + query_idx * embedding_dim;
             const auto *query_f32 = reinterpret_cast<const f32 *>(query);
 
-            struct Candidate { u32 offset; f32 dist; };
+            // `bound` is the RaBitQ error bound: (dist - bound) is a safe optimistic
+            // lower bound, so it is used to over-fetch candidates before the final
+            // ranking pass.
+            struct Candidate {
+                u32 offset;
+                f32 dist;
+                f32 bound;
+            };
             std::vector<Candidate> candidates;
             candidates.reserve(max_search_candidates);
 
             idx->Search(
                 query_f32, embedding_dim,
-                [&](SegmentOffset offset, f32 approx_dist) {
+                [&](SegmentOffset offset, f32 approx_dist, f32 error_bound) {
                     if (!satisfy_filter(offset)) return;
-                    candidates.push_back({offset, approx_dist});
+                    candidates.push_back({offset, approx_dist, error_bound});
                 },
-                max_search_candidates,
-                centroid_score_threshold
-            );
+                max_search_candidates);
 
             if (candidates.empty()) continue;
 
-            u32 final_n = std::min(static_cast<u32>(candidates.size()), topk);
-            std::partial_sort(candidates.begin(), candidates.begin() + final_n, candidates.end(),
-                              [](const Candidate &a, const Candidate &b) { return a.dist < b.dist; });
+            // 1) Optimistic pruning on `dist - bound`, which is a safe lower bound of the
+            //    true distance and therefore never drops a candidate that could win the
+            //    exact top-k.
+            const u32 keep = std::min<u32>(static_cast<u32>(candidates.size()), rerank_candidates);
+            std::partial_sort(candidates.begin(), candidates.begin() + keep, candidates.end(),
+                              [](const Candidate &a, const Candidate &b) { return (a.dist - a.bound) < (b.dist - b.bound); });
+            candidates.resize(keep);
+
+            // 2) Rank by the estimate and hand the whole over-fetched set to the merge
+            //    heap. The estimate is a squared L2 distance (RaBitQ), so it is only used
+            //    to decide which candidates survive the merge: the completion stage
+            //    re-scores them with the exact distance function against the raw vectors
+            //    (see KnnScanSharedData::need_exact_rerank_).
+            std::sort(candidates.begin(), candidates.end(),
+                      [](const Candidate &a, const Candidate &b) { return a.dist < b.dist; });
 
             std::vector<DistanceDataType> dists;
             std::vector<RowID> row_ids;
-            dists.reserve(final_n);
-            row_ids.reserve(final_n);
+            dists.reserve(keep);
+            row_ids.reserve(keep);
 
-            for (u32 i = 0; i < final_n; ++i) {
+            for (u32 i = 0; i < keep; ++i) {
                 dists.push_back(static_cast<DistanceDataType>(candidates[i].dist));
                 row_ids.emplace_back(segment_id, candidates[i].offset);
             }
@@ -1059,12 +1090,21 @@ void ExecuteSPFreshSearch(KnnScanSharedData *knn_scan_shared_data,
     };
 
     // Search MemIndex (live in-memory index for incremental inserts)
+    bool mem_index_has_base = false;
     auto mem_index = segment_index_meta->GetMemIndex();
     if (mem_index != nullptr) {
         auto idx = mem_index->GetSPFreshIndex();
         if (idx != nullptr) {
+            // The live index may already contain the full tree (right after a bulk
+            // build / OPTIMIZE). In that case the persisted chunks hold the very
+            // same rows and must not be scanned again, otherwise duplicates leak
+            // into the merge heap.
+            mem_index_has_base = idx->GetBaseRowCount() > 0;
             search_index(idx.get());
         }
+    }
+    if (mem_index_has_base) {
+        return;
     }
 
     // Search each disk chunk (persisted snapshots)
@@ -1074,6 +1114,9 @@ void ExecuteSPFreshSearch(KnnScanSharedData *knn_scan_shared_data,
         BufferObj *index_buffer = nullptr;
         Status status = chunk_index_meta.GetIndexBuffer(index_buffer);
         if (!status.ok()) continue;
+        // Map instead of reading the whole file: partition payloads stay in the
+        // OS page cache and only the tree metadata is materialised in DRAM.
+        index_buffer->ToMmap();
         auto disk_handle = index_buffer->Load();
         auto *idx = static_cast<SPFreshIndexInMem *>(disk_handle.GetDataMut());
         if (idx != nullptr) {

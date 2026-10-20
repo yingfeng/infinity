@@ -81,13 +81,11 @@ size_t SPFreshIndexFileWorker::GetMemoryCost() const {
         return 0;
     auto *index = data_ != nullptr ? static_cast<SPFreshIndexInMem *>(data_)
                                    : reinterpret_cast<SPFreshIndexInMem *>(mmap_data_);
-    // In mmap mode, memory cost is minimal (just centroid data in DRAM)
-    // In owned mode, memory cost includes all bucket data
-    size_t cost = index->GetNumCentroids() * index->dim() * sizeof(f32); // centroids
-    cost += index->GetNumCentroids() * sizeof(SPFreshBucketMeta); // metadatas
-    cost += index->GetNumCentroids() * sizeof(SPFreshRunningMean); // running means (rough)
-    // delta buffers
-    cost += index->GetDeltaCount() * (sizeof(u32) * 2 + SPFreshIndexInMem::RabitQVecSize(index->dim()));
+    // Tree metadata (partitions + centroids) is always resident in DRAM.
+    // In mmap mode the vector payloads stay in the OS page cache.
+    size_t cost = static_cast<size_t>(index->GetNumCentroids()) * index->dim() * sizeof(f32);
+    cost += static_cast<size_t>(index->GetNumCentroids()) * sizeof(PartitionMeta);
+    cost += static_cast<size_t>(index->GetDeltaCount()) * SPFreshIndexInMem::QuantizedStride(index->dim());
     return cost;
 }
 
