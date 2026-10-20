@@ -1,11 +1,10 @@
 import time
 
+import pandas as pd
+from infinity.common import ConflictType, InfinityException
+from infinity.errors import ErrorCode
 from infinity_cluster import InfinityCluster
 from numpy import dtype
-import pandas as pd
-from infinity.errors import ErrorCode
-from infinity.common import InfinityException
-from infinity.common import ConflictType
 
 
 def test_tc1(cluster: InfinityCluster):

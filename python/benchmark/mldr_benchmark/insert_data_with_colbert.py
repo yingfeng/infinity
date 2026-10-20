@@ -13,13 +13,20 @@
 # limitations under the License.
 
 import os
+
 import infinity
-from tqdm import tqdm
-from mldr_common_tools import load_corpus, fvecs_read_yield, read_mldr_sparse_embedding_yield, read_colbert_data_yield
-from mldr_common_tools import get_all_part_begin_ends, get_bit_array
-import infinity.index as index
-from infinity.common import ConflictType, LOCAL_HOST, SparseVector
+from infinity import index
+from infinity.common import LOCAL_HOST, ConflictType, SparseVector
 from infinity.errors import ErrorCode
+from mldr_common_tools import (
+    fvecs_read_yield,
+    get_all_part_begin_ends,
+    get_bit_array,
+    load_corpus,
+    read_colbert_data_yield,
+    read_mldr_sparse_embedding_yield,
+)
+from tqdm import tqdm
 
 
 class InfinityClientForInsert:

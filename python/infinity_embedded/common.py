@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Union
-from dataclasses import dataclass, field
+
 import numpy as np
 
 
@@ -105,13 +106,13 @@ LOCAL_INFINITY_PATH = "/var/infinity"
 LOCAL_INFINITY_CONFIG_PATH = "conf/pytest_embedded_infinity_conf.toml"
 
 
-class ConflictType(object):
+class ConflictType:
     Ignore = 0
     Error = 1
     Replace = 2
 
 
-class SortType(object):
+class SortType:
     Asc = 0
     Desc = 1
 

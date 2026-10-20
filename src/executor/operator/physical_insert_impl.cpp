@@ -29,6 +29,10 @@ import :status;
 import :infinity_exception;
 import :logger;
 import :meta_info;
+import :block_index;
+import :new_catalog;
+import :block_meta;
+import :column_meta;
 import :txn_state;
 import :wal_manager;
 import :infinity_context;
@@ -228,11 +232,9 @@ bool PhysicalInsert::Execute(QueryContext *query_context, OperatorState *operato
         // Prepare the output block
         std::vector<std::shared_ptr<DataType>> output_types;
         output_types.reserve(column_count);
-        auto field_list = value_list_[0];
-        size_t field_count = field_list.size();
-        for (size_t i = 0; i < field_count; ++i) {
-            auto data_type = field_list[i]->Type();
-            output_types.emplace_back(std::make_shared<DataType>(data_type));
+        for (size_t i = 0; i < table_collection_column_count; ++i) {
+            const auto &table_column_type = table_info_->GetColumnDefByIdx(i)->column_type_;
+            output_types.emplace_back(std::make_shared<DataType>(*table_column_type));
         }
 
         output_block = DataBlock::Make();

@@ -191,6 +191,10 @@ std::shared_ptr<ConstantExpr> BuildConstantExprFromJson(std::string_view json_st
             }
             return res;
         }
+        case simdjson::json_type::null: {
+            auto res = std::make_shared<ConstantExpr>(LiteralType::kNull);
+            return res;
+        }
         default: {
             const auto error_info = fmt::format("Unrecognized json object type");
             ParserError(error_info);

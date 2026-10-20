@@ -92,6 +92,9 @@ i64 ScalarFunctionSet::MatchFunctionCost(const ScalarFunction &func, const std::
     auto argument_count = arguments.size();
     i64 total_cost = 0;
     for (size_t i = 0; i < argument_count; ++i) {
+        if (arguments[i].get() == nullptr) {
+            return -1; // Invalid argument, cannot match
+        }
         const auto &arg_type = arguments[i]->Type();
         const auto &param_type = func.parameter_types_[i];
 

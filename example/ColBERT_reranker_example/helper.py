@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from typing import Union
+
 # NOTICE: please check which infinity you are using, local or remote
 # this statement is for local infinity
 # enable the following import statement to use remote infinity
@@ -21,8 +22,8 @@ from typing import Union
 
 class InfinityHelperForColBERT:
     def __init__(self):
-        from colbert.modeling.checkpoint import Checkpoint
         from colbert.infra import ColBERTConfig
+        from colbert.modeling.checkpoint import Checkpoint
         self.ckpt = Checkpoint("colbert-ir/colbertv2.0", colbert_config=ColBERTConfig(root="experiments"))
         from langchain.text_splitter import RecursiveCharacterTextSplitter
         self.text_splitter = RecursiveCharacterTextSplitter(chunk_size=512, chunk_overlap=0, length_function=len,

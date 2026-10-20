@@ -1,11 +1,12 @@
 
 
 
+import ast
+import re
+from enum import Enum
+
 from infinity.common import ConflictType
 from numpy import dtype
-import ast
-from enum import Enum
-import re
 
 default_url = "http://localhost:23820/"
 
@@ -167,9 +168,7 @@ def type_to_dtype(type):
 def ExplainType_transfrom(ExplainType):
     if ExplainType == ExplainType.Ast:
         return "ast"
-    elif ExplainType == ExplainType.UnOpt:
-        return "unopt"
-    elif ExplainType == ExplainType.UnOpt:
+    elif ExplainType == ExplainType.UnOpt or ExplainType == ExplainType.UnOpt:
         return "unopt"
     elif ExplainType == ExplainType.Opt:
         return "opt"

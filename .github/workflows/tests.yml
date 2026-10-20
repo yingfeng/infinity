@@ -33,6 +33,12 @@ jobs:
     name: code_static_check
     if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.draft == false && contains(github.event.pull_request.labels.*.name, 'ci')) }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
+      checks: write
+      statuses: write
+      pull-requests: read
     steps:
       - name: Free disk space
         run: |
@@ -47,6 +53,35 @@ jobs:
           fetch-tags: false
           submodules: recursive
 
+      - name: Check workflow duplication
+        # When a pushed commit on main is byte-for-byte identical to the merged PR's
+        # content, cancel the whole run to skip the redundant post-merge CI.
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          HEAD=$(git rev-parse HEAD)
+          PR_NUMBER=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${HEAD}/pulls" --jq '.[0].number' 2>/dev/null || true)
+          echo "HEAD=${HEAD}"
+          echo "PR_NUMBER=${PR_NUMBER}"
+          if [[ -n "${PR_NUMBER}" && "${PR_NUMBER}" != "null" ]]; then
+            MERGE_COMMIT=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" -q .merge_commit_sha 2>/dev/null || true)
+            PR_SHA=$(gh api "repos/${GITHUB_REPOSITORY}/git/commits/${MERGE_COMMIT}" -q .tree.sha 2>/dev/null || true)
+            HEAD_SHA=$(git rev-parse HEAD^{tree})
+            echo "PR #${PR_NUMBER} merge commit content hash: ${PR_SHA}"
+            echo "Pushed workspace content hash: ${HEAD_SHA}"
+            if [[ -n "${MERGE_COMMIT}" && -n "${PR_SHA}" && "${HEAD_SHA}" == "${PR_SHA}" ]]; then
+              echo "Cancel myself since the workspace content hash is the same with PR #${PR_NUMBER} merged. See ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID} for details."
+              if gh run cancel "${GITHUB_RUN_ID}"; then
+                echo "Cancellation requested; this run will be terminated by GitHub."
+                exit 0
+              else
+                echo "gh run cancel denied (need actions: write); running main CI."
+              fi
+            fi
+          fi
+          echo "No duplicate detected; running main CI."
+
       - name: Static check with Ruff
         uses: astral-sh/ruff-action@v3
         with:
@@ -55,7 +90,7 @@ jobs:
 
       - name: Start builder container
         run: |
-          docker run --privileged --cap-add=NET_ADMIN -d --name infinity_builder -v ${PWD}:/infinity -v ${PWD}/resource:/usr/share/infinity/resource infiniflow/infinity-x64-x64-v2-builder:latest
+          docker run --cap-add=NET_ADMIN -d --name infinity_builder -v ${PWD}:/infinity -v ${PWD}/resource:/usr/share/infinity/resource infiniflow/infinity-x64-x64-v2-builder:latest
 
       - name: Check format of changed C/C++ files
         run: |
@@ -115,15 +150,42 @@ jobs:
           fetch-tags: false
           submodules: recursive
 
+      - name: Install sccache
+        uses: mozilla-actions/sccache-action@v0.0.9
+
+      - name: Restore sccache cache
+        id: sccache-cache
+        uses: actions/cache@v4
+        with:
+          path: .sccache-cache
+          key: sccache-debug-amd64-${{ github.sha }}
+          restore-keys: |
+            sccache-debug-amd64-
+
       - name: Start builder container
         run: |
-          docker run --privileged -d --name infinity_builder -v ${PWD}:/infinity -v ${PWD}/resource:/usr/share/infinity/resource infiniflow/infinity-x64-x64-v2-builder:latest
+          docker run -d --name infinity_builder \
+            -v ${PWD}:/infinity \
+            -v ${PWD}/resource:/usr/share/infinity/resource \
+            -v ${PWD}/.sccache-cache:/sccache-cache \
+            infiniflow/infinity-x64-x64-v2-builder:latest
+
+      # Will be fixed
+      - name: Copy sccache binary into container
+        run: |
+          docker cp $(which sccache) infinity_builder:/usr/local/bin/sccache
+          docker exec infinity_builder chmod +x /usr/local/bin/sccache
+          docker exec infinity_builder sccache --version
 
       - name: Create libstdc++ modules JSON for cross-compilation
         run: docker exec infinity_builder bash -c "cp /infinity/.github/workflows/x64-x64-libstdc++.modules.json /x86_64-linux-gnu/lib/gcc/x86_64-linux-gnu/15.2.0/libstdc++.modules.json"
 
       - name: Build debug version
-        run: docker exec infinity_builder bash -c "git config --global safe.directory \"*\" && cd /infinity && rm -rf cmake-build-debug && mkdir -p cmake-build-debug && SYS_ROOT=/x86_64-linux-gnu/x86_64-linux-gnu/sysroot/ GCC_TOOLCHAIN=/x86_64-linux-gnu cmake -G Ninja -DCMAKE_C_COMPILER=clang-20 -DCMAKE_CXX_COMPILER=clang++-20 -DCMAKE_TOOLCHAIN_FILE=\$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=\$PWD/cmake/toolchains/x86_64-linux-v2.cmake -DVCPKG_OVERLAY_TRIPLETS=\$PWD/cmake/triplets -DVCPKG_TARGET_TRIPLET=x64-linux-v2 -DCMAKE_CXX_STDLIB_MODULES_JSON=/x86_64-linux-gnu/lib/gcc/x86_64-linux-gnu/15.2.0/libstdc++.modules.json -DCMAKE_BUILD_TYPE=Debug -DCODE_COVERAGE=ON -S /infinity -B /infinity/cmake-build-debug && cmake --build /infinity/cmake-build-debug -j --target infinity test_main"
+        run: docker exec -e SCCACHE_DIR=/sccache-cache infinity_builder bash -c "git config --global safe.directory \"*\" && cd /infinity && rm -rf cmake-build-debug && mkdir -p cmake-build-debug && SYS_ROOT=/x86_64-linux-gnu/x86_64-linux-gnu/sysroot/ GCC_TOOLCHAIN=/x86_64-linux-gnu cmake -G Ninja -DCMAKE_C_COMPILER=clang-20 -DCMAKE_CXX_COMPILER=clang++-20 -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -DCMAKE_TOOLCHAIN_FILE=\$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=\$PWD/cmake/toolchains/x86_64-linux-v2.cmake -DVCPKG_OVERLAY_TRIPLETS=\$PWD/cmake/triplets -DVCPKG_TARGET_TRIPLET=x64-linux-v2 -DCMAKE_CXX_STDLIB_MODULES_JSON=/x86_64-linux-gnu/lib/gcc/x86_64-linux-gnu/15.2.0/libstdc++.modules.json -DCMAKE_BUILD_TYPE=Debug -DCODE_COVERAGE=ON -S /infinity -B /infinity/cmake-build-debug && cmake --build /infinity/cmake-build-debug -j --target infinity test_main"
+
+      - name: Show sccache stats
+        if: always()
+        run: docker exec -e SCCACHE_DIR=/sccache-cache infinity_builder sccache --show-stats || true
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
@@ -135,9 +197,11 @@ jobs:
           retention-days: 1
           if-no-files-found: warn
 
-      - name: Remove build container
+      - name: Fix sccache cache permissions and remove container
         if: always()
-        run: docker rm -f infinity_builder || true
+        run: |
+          sudo chown -R $(id -u):$(id -g) .sccache-cache || true
+          docker rm -f infinity_builder || true
 
   debug_amd64_unit_test:
     name: debug_amd64_unit_test
@@ -164,7 +228,7 @@ jobs:
 
       - name: Start minio container
         run: |
-          docker run -d --name minio --network host -e "MINIO_ROOT_PASSWORD=minioadmin" -e "MINIO_ROOT_USER=minioadmin" -v /tmp/minio-data:/data quay.io/minio/minio server /data --console-address ":9006" --address ":9005"
+          docker run -d --name minio --network host -e "MINIO_ROOT_PASSWORD=minioadmin" -e "MINIO_ROOT_USER=minioadmin" -v /tmp/minio-data:/data pgsty/silo:RELEASE.2026-08-06T00-00-00Z server /data --console-address ":9006" --address ":9005"
 
       - name: Download debug unit test build artifacts
         uses: actions/download-artifact@v8
@@ -842,15 +906,42 @@ jobs:
           fetch-tags: false
           submodules: recursive
 
+      - name: Install sccache
+        uses: mozilla-actions/sccache-action@v0.0.9
+
+      - name: Restore sccache cache
+        id: sccache-cache
+        uses: actions/cache@v4
+        with:
+          path: .sccache-cache
+          key: sccache-release-amd64-${{ github.sha }}
+          restore-keys: |
+            sccache-release-amd64-
+
       - name: Start builder container
         run: |
-          docker run --privileged -d --name infinity_builder -v ${PWD}:/infinity -v ${PWD}/resource:/usr/share/infinity/resource infiniflow/infinity-x64-x64-v2-builder:latest
+          docker run -d --name infinity_builder \
+          -v ${PWD}:/infinity \
+          -v ${PWD}/resource:/usr/share/infinity/resource \
+          -v ${PWD}/.sccache-cache:/sccache-cache \
+          infiniflow/infinity-x64-x64-v2-builder:latest
+
+      - name: Copy sccache binary into container
+        run: |
+          docker cp $(which sccache) infinity_builder:/usr/local/bin/sccache
+          docker exec infinity_builder chmod +x /usr/local/bin/sccache
+          docker exec infinity_builder sccache --version
 
       - name: Create libstdc++ modules JSON for cross-compilation
         run: docker exec infinity_builder bash -c "cp /infinity/.github/workflows/x64-x64-libstdc++.modules.json /x86_64-linux-gnu/lib/gcc/x86_64-linux-gnu/15.2.0/libstdc++.modules.json"
 
       - name: Build release version
-        run: docker exec infinity_builder bash -c "git config --global safe.directory \"*\" && cd /infinity && rm -rf cmake-build-reldeb && mkdir -p cmake-build-reldeb && SYS_ROOT=/x86_64-linux-gnu/x86_64-linux-gnu/sysroot/ GCC_TOOLCHAIN=/x86_64-linux-gnu cmake -G Ninja -DCMAKE_C_COMPILER=clang-20 -DCMAKE_CXX_COMPILER=clang++-20 -DCMAKE_TOOLCHAIN_FILE=\$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=\$PWD/cmake/toolchains/x86_64-linux-v2.cmake -DVCPKG_OVERLAY_TRIPLETS=\$PWD/cmake/triplets -DVCPKG_TARGET_TRIPLET=x64-linux-v2 -DCMAKE_CXX_STDLIB_MODULES_JSON=/x86_64-linux-gnu/lib/gcc/x86_64-linux-gnu/15.2.0/libstdc++.modules.json -DCMAKE_BUILD_TYPE=RelWithDebInfo -S /infinity -B /infinity/cmake-build-reldeb && cmake --build /infinity/cmake-build-reldeb -j --target infinity test_main"
+        run: | 
+          docker exec -e SCCACHE_DIR=/sccache-cache infinity_builder bash -c "git config --global safe.directory \"*\" && cd /infinity && rm -rf cmake-build-reldeb && mkdir -p cmake-build-reldeb && SYS_ROOT=/x86_64-linux-gnu/x86_64-linux-gnu/sysroot/ GCC_TOOLCHAIN=/x86_64-linux-gnu cmake -G Ninja -DCMAKE_C_COMPILER=clang-20 -DCMAKE_CXX_COMPILER=clang++-20 -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -DCMAKE_TOOLCHAIN_FILE=\$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=\$PWD/cmake/toolchains/x86_64-linux-v2.cmake -DVCPKG_OVERLAY_TRIPLETS=\$PWD/cmake/triplets -DVCPKG_TARGET_TRIPLET=x64-linux-v2 -DCMAKE_CXX_STDLIB_MODULES_JSON=/x86_64-linux-gnu/lib/gcc/x86_64-linux-gnu/15.2.0/libstdc++.modules.json -DCMAKE_BUILD_TYPE=RelWithDebInfo -S /infinity -B /infinity/cmake-build-reldeb && cmake --build /infinity/cmake-build-reldeb -j --target infinity test_main"
+
+      - name: Show sccache stats
+        if: always()
+        run: docker exec -e SCCACHE_DIR=/sccache-cache infinity_builder sccache --show-stats || true
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
@@ -862,9 +953,11 @@ jobs:
           retention-days: 1
           if-no-files-found: warn
 
-      - name: Remove build container
+      - name: Fix sccache cache permissions and remove container
         if: always()
-        run: docker rm -f infinity_builder || true
+        run: |
+          sudo chown -R $(id -u):$(id -g) .sccache-cache || true
+          docker rm -f infinity_builder || true
 
   release_amd64_unit_test:
     name: release_amd64_unit_test
@@ -891,7 +984,7 @@ jobs:
 
       - name: Start minio container
         run: |
-          docker run -d --name minio --network host -e "MINIO_ROOT_PASSWORD=minioadmin" -e "MINIO_ROOT_USER=minioadmin" -v /tmp/minio-data:/data quay.io/minio/minio server /data --console-address ":9006" --address ":9005"
+          docker run -d --name minio --network host -e "MINIO_ROOT_PASSWORD=minioadmin" -e "MINIO_ROOT_USER=minioadmin" -v /tmp/minio-data:/data pgsty/silo:RELEASE.2026-08-06T00-00-00Z server /data --console-address ":9006" --address ":9005"
 
       - name: Download release build artifacts
         uses: actions/download-artifact@v8
@@ -1302,7 +1395,7 @@ jobs:
 
       - name: Start minio container
         run: |
-          docker run -d --name minio --network host -e "MINIO_ROOT_PASSWORD=minioadmin" -e "MINIO_ROOT_USER=minioadmin" -v /tmp/minio-data:/data quay.io/minio/minio server /data --console-address ":9006" --address ":9005"
+          docker run -d --name minio --network host -e "MINIO_ROOT_PASSWORD=minioadmin" -e "MINIO_ROOT_USER=minioadmin" -v /tmp/minio-data:/data pgsty/silo:RELEASE.2026-08-06T00-00-00Z server /data --console-address ":9006" --address ":9005"
 
       - name: Download release build artifacts
         uses: actions/download-artifact@v8
@@ -1363,7 +1456,7 @@ jobs:
 
       - name: Start minio container
         run: |
-          docker run -d --name minio --network host -e "MINIO_ROOT_PASSWORD=minioadmin" -e "MINIO_ROOT_USER=minioadmin" -v /tmp/minio-data:/data quay.io/minio/minio server /data --console-address ":9006" --address ":9005"
+          docker run -d --name minio --network host -e "MINIO_ROOT_PASSWORD=minioadmin" -e "MINIO_ROOT_USER=minioadmin" -v /tmp/minio-data:/data pgsty/silo:RELEASE.2026-08-06T00-00-00Z server /data --console-address ":9006" --address ":9005"
 
       - name: Download release build artifacts
         uses: actions/download-artifact@v8
@@ -1423,16 +1516,42 @@ jobs:
           fetch-tags: false
           submodules: recursive
 
+      - name: Install sccache
+        uses: mozilla-actions/sccache-action@v0.0.9
+
+      - name: Restore sccache cache
+        id: sccache-cache
+        uses: actions/cache@v4
+        with:
+          path: .sccache-cache
+          key: sccache-debug-arm64-${{ github.sha }}
+          restore-keys: |
+            sccache-debug-arm64-
+
       - name: Start builder container
         run: |
-          docker run --privileged -d --name infinity_builder -v ${PWD}:/infinity -v ${PWD}/resource:/usr/share/infinity/resource infiniflow/infinity-x64-arm64-builder:latest
+          docker run -d --name infinity_builder \
+          -v ${PWD}:/infinity \
+          -v ${PWD}/resource:/usr/share/infinity/resource \
+          -v ${PWD}/.sccache-cache:/sccache-cache \
+          infiniflow/infinity-x64-arm64-builder:latest
+
+      - name: Copy sccache binary into container
+        run: |
+          docker cp $(which sccache) infinity_builder:/usr/local/bin/sccache
+          docker exec infinity_builder chmod +x /usr/local/bin/sccache
+          docker exec infinity_builder sccache --version
 
       - name: Create libstdc++ modules JSON for cross-compilation
         run: docker exec infinity_builder bash -c "cp /infinity/.github/workflows/x64-arm64-libstdc++.modules.json /x86_64-aarch64-none-linux-gnu-15.2.1/lib/gcc/aarch64-none-linux-gnu/15.2.1/libstdc++.modules.json"
 
       - name: Build debug version
         run: |
-          docker exec infinity_builder bash -c "git config --global safe.directory \"*\" && cd /infinity && rm -rf cmake-build-debug && mkdir -p cmake-build-debug && SYS_ROOT=/x86_64-aarch64-none-linux-gnu-15.2.1/aarch64-none-linux-gnu/libc/ GCC_TOOLCHAIN=/x86_64-aarch64-none-linux-gnu-15.2.1/ cmake -G Ninja -DCMAKE_C_COMPILER=clang-20 -DCMAKE_CXX_COMPILER=clang++-20  -DCMAKE_TOOLCHAIN_FILE=\$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=\$PWD/cmake/toolchains/arm64-linux.cmake -DVCPKG_OVERLAY_TRIPLETS=\$PWD/cmake/triplets -DVCPKG_TARGET_TRIPLET=arm64-linux -DCMAKE_CXX_STDLIB_MODULES_JSON=/x86_64-aarch64-none-linux-gnu-15.2.1/lib/gcc/aarch64-none-linux-gnu/15.2.1/libstdc++.modules.json -DCMAKE_BUILD_TYPE=Debug -S /infinity -B /infinity/cmake-build-debug && cmake --build /infinity/cmake-build-debug -j --target infinity test_main"
+          docker exec -e SCCACHE_DIR=/sccache-cache infinity_builder bash -c "git config --global safe.directory \"*\" && cd /infinity && rm -rf cmake-build-debug && mkdir -p cmake-build-debug && SYS_ROOT=/x86_64-aarch64-none-linux-gnu-15.2.1/aarch64-none-linux-gnu/libc/ GCC_TOOLCHAIN=/x86_64-aarch64-none-linux-gnu-15.2.1/ cmake -G Ninja -DCMAKE_C_COMPILER=clang-20 -DCMAKE_CXX_COMPILER=clang++-20 -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -DCMAKE_TOOLCHAIN_FILE=\$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=\$PWD/cmake/toolchains/arm64-linux.cmake -DVCPKG_OVERLAY_TRIPLETS=\$PWD/cmake/triplets -DVCPKG_TARGET_TRIPLET=arm64-linux -DCMAKE_CXX_STDLIB_MODULES_JSON=/x86_64-aarch64-none-linux-gnu-15.2.1/lib/gcc/aarch64-none-linux-gnu/15.2.1/libstdc++.modules.json -DCMAKE_BUILD_TYPE=Debug -S /infinity -B /infinity/cmake-build-debug && cmake --build /infinity/cmake-build-debug -j --target infinity test_main"
+
+      - name: Show sccache stats
+        if: always()
+        run: docker exec -e SCCACHE_DIR=/sccache-cache infinity_builder sccache --show-stats || true
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
@@ -1444,9 +1563,11 @@ jobs:
           retention-days: 1
           if-no-files-found: warn
 
-      - name: Remove build container
+      - name: Fix sccache cache permissions and remove container
         if: always()
-        run: docker rm -f infinity_builder || true
+        run: |
+          sudo chown -R $(id -u):$(id -g) .sccache-cache || true
+          docker rm -f infinity_builder || true
 
   debug_arm64_unit_test:
     name: debug_arm64_unit_test
@@ -1473,7 +1594,7 @@ jobs:
 
       - name: Start minio container
         run: |
-          docker run -d --name minio --network host -e "MINIO_ROOT_PASSWORD=minioadmin" -e "MINIO_ROOT_USER=minioadmin" -v /tmp/minio-data:/data quay.io/minio/minio server /data --console-address ":9006" --address ":9005"
+          docker run -d --name minio --network host -e "MINIO_ROOT_PASSWORD=minioadmin" -e "MINIO_ROOT_USER=minioadmin" -v /tmp/minio-data:/data pgsty/silo:RELEASE.2026-08-06T00-00-00Z server /data --console-address ":9006" --address ":9005"
 
       - name: Download debug build artifacts
         uses: actions/download-artifact@v8
@@ -1891,15 +2012,42 @@ jobs:
           fetch-tags: false
           submodules: recursive
 
+      - name: Install sccache
+        uses: mozilla-actions/sccache-action@v0.0.9
+
+      - name: Restore sccache cache
+        id: sccache-cache
+        uses: actions/cache@v4
+        with:
+          path: .sccache-cache
+          key: sccache-release-arm64-${{ github.sha }}
+          restore-keys: |
+            sccache-release-arm64-
+
       - name: Start builder container
         run: |
-          docker run --privileged -d --name infinity_builder -v ${PWD}:/infinity -v ${PWD}/resource:/usr/share/infinity/resource infiniflow/infinity-x64-arm64-builder:latest
+          docker run -d --name infinity_builder \
+          -v ${PWD}:/infinity \
+          -v ${PWD}/resource:/usr/share/infinity/resource \
+          -v ${PWD}/.sccache-cache:/sccache-cache \
+          infiniflow/infinity-x64-arm64-builder:latest
+
+      - name: Copy sccache binary into container
+        run: |
+          docker cp $(which sccache) infinity_builder:/usr/local/bin/sccache
+          docker exec infinity_builder chmod +x /usr/local/bin/sccache
+          docker exec infinity_builder sccache --version
 
       - name: Create libstdc++ modules JSON for cross-compilation
         run: docker exec infinity_builder bash -c "cp /infinity/.github/workflows/x64-arm64-libstdc++.modules.json /x86_64-aarch64-none-linux-gnu-15.2.1/lib/gcc/aarch64-none-linux-gnu/15.2.1/libstdc++.modules.json"
 
       - name: Build release version
-        run: docker exec infinity_builder bash -c "git config --global safe.directory \"*\" && cd /infinity && rm -rf cmake-build-reldeb && mkdir -p cmake-build-reldeb && SYS_ROOT=/x86_64-aarch64-none-linux-gnu-15.2.1/aarch64-none-linux-gnu/libc/ GCC_TOOLCHAIN=/x86_64-aarch64-none-linux-gnu-15.2.1/ cmake -G Ninja -DCMAKE_C_COMPILER=clang-20 -DCMAKE_CXX_COMPILER=clang++-20  -DCMAKE_TOOLCHAIN_FILE=\$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=\$PWD/cmake/toolchains/arm64-linux.cmake -DVCPKG_OVERLAY_TRIPLETS=\$PWD/cmake/triplets -DVCPKG_TARGET_TRIPLET=arm64-linux -DCMAKE_CXX_STDLIB_MODULES_JSON=/x86_64-aarch64-none-linux-gnu-15.2.1/lib/gcc/aarch64-none-linux-gnu/15.2.1/libstdc++.modules.json -DCMAKE_BUILD_TYPE=RelWithDebInfo -S /infinity -B /infinity/cmake-build-reldeb && cmake --build /infinity/cmake-build-reldeb -j --target infinity test_main"
+        run: |
+          docker exec -e SCCACHE_DIR=/sccache-cache infinity_builder bash -c "git config --global safe.directory \"*\" && cd /infinity && rm -rf cmake-build-reldeb && mkdir -p cmake-build-reldeb && SYS_ROOT=/x86_64-aarch64-none-linux-gnu-15.2.1/aarch64-none-linux-gnu/libc/ GCC_TOOLCHAIN=/x86_64-aarch64-none-linux-gnu-15.2.1/ cmake -G Ninja -DCMAKE_C_COMPILER=clang-20 -DCMAKE_CXX_COMPILER=clang++-20 -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -DCMAKE_TOOLCHAIN_FILE=\$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=\$PWD/cmake/toolchains/arm64-linux.cmake -DVCPKG_OVERLAY_TRIPLETS=\$PWD/cmake/triplets -DVCPKG_TARGET_TRIPLET=arm64-linux -DCMAKE_CXX_STDLIB_MODULES_JSON=/x86_64-aarch64-none-linux-gnu-15.2.1/lib/gcc/aarch64-none-linux-gnu/15.2.1/libstdc++.modules.json -DCMAKE_BUILD_TYPE=RelWithDebInfo -S /infinity -B /infinity/cmake-build-reldeb && cmake --build /infinity/cmake-build-reldeb -j --target infinity test_main"
+
+      - name: Show sccache stats
+        if: always()
+        run: docker exec -e SCCACHE_DIR=/sccache-cache infinity_builder sccache --show-stats || true
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
@@ -1911,9 +2059,11 @@ jobs:
           retention-days: 1
           if-no-files-found: warn
 
-      - name: Remove build container
+      - name: Fix sccache cache permissions and remove container
         if: always()
-        run: docker rm -f infinity_builder || true
+        run: |
+          sudo chown -R $(id -u):$(id -g) .sccache-cache || true
+          docker rm -f infinity_builder || true
 
   release_arm64_unit_test:
     name: release_arm64_unit_test
@@ -1940,7 +2090,7 @@ jobs:
 
       - name: Start minio container
         run: |
-          docker run -d --name minio --network host -e "MINIO_ROOT_PASSWORD=minioadmin" -e "MINIO_ROOT_USER=minioadmin" -v /tmp/minio-data:/data quay.io/minio/minio server /data --console-address ":9006" --address ":9005"
+          docker run -d --name minio --network host -e "MINIO_ROOT_PASSWORD=minioadmin" -e "MINIO_ROOT_USER=minioadmin" -v /tmp/minio-data:/data pgsty/silo:RELEASE.2026-08-06T00-00-00Z server /data --console-address ":9006" --address ":9005"
 
       - name: Download release build artifacts
         uses: actions/download-artifact@v8
@@ -2341,7 +2491,7 @@ jobs:
 
       - name: Start minio container
         run: |
-          docker run -d --name minio --network host -e "MINIO_ROOT_PASSWORD=minioadmin" -e "MINIO_ROOT_USER=minioadmin" -v /tmp/minio-data:/data quay.io/minio/minio server /data --console-address ":9006" --address ":9005"
+          docker run -d --name minio --network host -e "MINIO_ROOT_PASSWORD=minioadmin" -e "MINIO_ROOT_USER=minioadmin" -v /tmp/minio-data:/data pgsty/silo:RELEASE.2026-08-06T00-00-00Z server /data --console-address ":9006" --address ":9005"
 
       - name: Download release build artifacts
         uses: actions/download-artifact@v8
@@ -2402,7 +2552,7 @@ jobs:
 
       - name: Start minio container
         run: |
-          docker run -d --name minio --network host -e "MINIO_ROOT_PASSWORD=minioadmin" -e "MINIO_ROOT_USER=minioadmin" -v /tmp/minio-data:/data quay.io/minio/minio server /data --console-address ":9006" --address ":9005"
+          docker run -d --name minio --network host -e "MINIO_ROOT_PASSWORD=minioadmin" -e "MINIO_ROOT_USER=minioadmin" -v /tmp/minio-data:/data pgsty/silo:RELEASE.2026-08-06T00-00-00Z server /data --console-address ":9006" --address ":9005"
 
       - name: Download release build artifacts
         uses: actions/download-artifact@v8

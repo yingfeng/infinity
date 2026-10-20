@@ -14,13 +14,20 @@
 
 import os
 import time
-from tqdm import tqdm
-from mldr_common_tools import QueryArgs, check_languages
-from mldr_common_tools import FakeJScoredDoc, get_queries_and_qids, save_result
-from mldr_common_tools import query_yields, apply_funcs
-from transformers import HfArgumentParser
+
 import infinity
 from infinity.common import LOCAL_HOST
+from mldr_common_tools import (
+    FakeJScoredDoc,
+    QueryArgs,
+    apply_funcs,
+    check_languages,
+    get_queries_and_qids,
+    query_yields,
+    save_result,
+)
+from tqdm import tqdm
+from transformers import HfArgumentParser
 
 
 class InfinityClientForSearch:

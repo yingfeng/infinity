@@ -1,10 +1,11 @@
 import time
-from numpy import dtype
+
 import pandas as pd
-from infinity_cluster import InfinityCluster
-from infinity.common import ConflictType
-from infinity.common import InfinityException
+from infinity.common import ConflictType, InfinityException
 from infinity.errors import ErrorCode
+from infinity_cluster import InfinityCluster
+from numpy import dtype
+
 
 class TestUpdate:
     def test_update(self, cluster: InfinityCluster):

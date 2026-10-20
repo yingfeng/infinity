@@ -201,14 +201,33 @@ void DataBlock::Finalize() {
             have_flat_column_vector = true;
             row_count = current_row_count;
         } else if (!have_flat_column_vector) {
-            row_count = 1;
+            // All columns seen so far are kConstant.  A kConstant vector
+            // logically represents the same value for every output row;
+            // its Size() (tail_index_) tells us how many rows it stands for.
+            const size_t constant_row_count = column_vectors_[idx]->Size();
+            if (constant_row_count > row_count) {
+                row_count = constant_row_count;
+            }
         }
+    }
+    if (!have_flat_column_vector && row_count == 0) {
+        // No columns at all — fall back to 1.
+        row_count = 1;
     }
     row_count_ = row_count;
     finalized = true;
     initialized = true;
     if (capacity_ == 0) {
         capacity_ = row_count;
+    }
+}
+
+void DataBlock::Finalize(size_t explicit_row_count) {
+    row_count_ = explicit_row_count;
+    finalized = true;
+    initialized = true;
+    if (capacity_ == 0) {
+        capacity_ = explicit_row_count;
     }
 }
 

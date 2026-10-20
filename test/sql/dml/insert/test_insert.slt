@@ -69,3 +69,33 @@ SELECT * FROM date1;
 
 statement ok
 DROP TABLE date1;
+
+# Test INSERT with NOT NULL constraint violation
+
+statement ok
+DROP TABLE IF EXISTS t_not_null;
+
+statement ok
+CREATE TABLE t_not_null (c1 INTEGER NOT NULL, c2 INTEGER);
+
+statement ok
+INSERT INTO t_not_null VALUES (1, 10);
+
+statement error
+INSERT INTO t_not_null VALUES (null, 20);
+
+statement ok
+INSERT INTO t_not_null VALUES (2, 20);
+
+statement ok
+INSERT INTO t_not_null VALUES (3, null);
+
+query I
+SELECT * FROM t_not_null;
+----
+1 10
+2 20
+3 null
+
+statement ok
+DROP TABLE t_not_null;

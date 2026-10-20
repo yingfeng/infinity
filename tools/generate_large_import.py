@@ -1,8 +1,8 @@
 # generate 'test/sql/dml/import/test_slt_import_more_than_one_segment.slt'
 # generate 'test/data/csv/test_slt_import_more_than_one_segment.csv'
 
-import os
 import argparse
+import os
 
 
 def generate1(generate_if_exists: bool, copy_dir: str):
@@ -11,8 +11,8 @@ def generate1(generate_if_exists: bool, copy_dir: str):
 
     csv_dir = "./test/data/csv"
     slt_dir = "./test/sql/dml/import"
-    csv_name = "/{}.csv".format(table_name)
-    slt_name = "/{}.slt".format(table_name)
+    csv_name = f"/{table_name}.csv"
+    slt_name = f"/{table_name}.slt"
 
     csv_path = csv_dir + csv_name
     slt_path = slt_dir + slt_name
@@ -21,54 +21,48 @@ def generate1(generate_if_exists: bool, copy_dir: str):
     os.makedirs(slt_dir, exist_ok=True)
     if os.path.exists(csv_path) and os.path.exists(slt_path) and not generate_if_exists:
         print(
-            "File {} and {} already existed exists. Skip Generating.".format(
-                slt_path, csv_path
-            )
+            f"File {slt_path} and {csv_path} already existed exists. Skip Generating."
         )
         return
 
     with open(csv_path, "w") as csv_file:
-        for row in range(row_n):
-            csv_file.write(f"{row}\n")
+        csv_file.writelines(f"{row}\n" for row in range(row_n))
 
     with open(slt_path, "w") as slt_file:
         slt_file.write("statement ok\n")
-        slt_file.write("DROP TABLE IF EXISTS {};\n".format(table_name))
+        slt_file.write(f"DROP TABLE IF EXISTS {table_name};\n")
         slt_file.write("\n")
 
         slt_file.write("statement ok\n")
         slt_file.write(
-            "CREATE TABLE {} (c1 INTEGER);\n".format(table_name))
+            f"CREATE TABLE {table_name} (c1 INTEGER);\n")
         slt_file.write("\n")
 
         slt_file.write("query I\n")
         slt_file.write(
-            "COPY {} FROM '{}/{}' WITH ( DELIMITER ',', FORMAT CSV );\n".format(
-                table_name, copy_dir, csv_name
-            )
+            f"COPY {table_name} FROM '{copy_dir}/{csv_name}' WITH ( DELIMITER ',', FORMAT CSV );\n"
         )
         slt_file.write("----\n")
         slt_file.write("\n")
 
         slt_file.write("query I\n")
-        slt_file.write("SELECT COUNT(*) FROM {};\n".format(table_name))
+        slt_file.write(f"SELECT COUNT(*) FROM {table_name};\n")
         slt_file.write("----\n")
-        slt_file.write("{}\n".format(row_n))
+        slt_file.write(f"{row_n}\n")
         slt_file.write("\n")
 
         slt_file.write("statement ok\n")
-        slt_file.write("SHOW TABLE {} SEGMENT 0;\n".format(table_name))
+        slt_file.write(f"SHOW TABLE {table_name} SEGMENT 0;\n")
         slt_file.write("\n")
 
         slt_file.write("statement ok\n")
-        slt_file.write("SHOW TABLE {} SEGMENT 1;\n".format(table_name))
+        slt_file.write(f"SHOW TABLE {table_name} SEGMENT 1;\n")
         slt_file.write("\n")
 
         slt_file.write("statement ok\n")
-        slt_file.write("DROP TABLE {};\n".format(table_name))
+        slt_file.write(f"DROP TABLE {table_name};\n")
         slt_file.write("\n")
 
-    pass
 
 def generate_big_columns_csv(num, filename):
     with open(os.getcwd() + "/test/data/csv/" + filename, "w") as f:
@@ -79,14 +73,12 @@ def generate_big_columns_csv(num, filename):
 
 def generate_big_int_csv(num, filename):
     with open(os.getcwd() + "/test/data/csv/" + filename, "w") as f:
-        for i in range(num):
-            f.write(str(i) + "," + str(i) + "\n")
+        f.writelines(str(i) + "," + str(i) + "\n" for i in range(num))
     f.close()
 
 def generate_big_rows_csv(num, filename):
     with open(os.getcwd() + "/test/data/csv/" + filename, "w") as f:
-        for i in range(num):
-            f.write(str(i) + ",asdasdlk中fjio@!#!@asd #$%$23\n")
+        f.writelines(str(i) + ",asdasdlk中fjio@!#!@asd #$%$23\n" for i in range(num))
     f.close()
 
 def generate(generate_if_exists: bool, copy_dir: str):

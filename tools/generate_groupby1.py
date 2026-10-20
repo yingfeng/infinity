@@ -1,6 +1,6 @@
 import argparse
-import os
 import csv
+import os
 import random
 from collections import defaultdict
 
@@ -24,9 +24,7 @@ def generate(generate_if_exists: bool, copy_dir: str):
         and not generate_if_exists
     ):
         print(
-            "File {} and {} already existed exists. Skip Generating.".format(
-                slt_path, data_path
-            )
+            f"File {slt_path} and {data_path} already existed exists. Skip Generating."
         )
         return
 
@@ -47,50 +45,46 @@ def generate(generate_if_exists: bool, copy_dir: str):
 
     with open(slt_path, "w") as slt_file:
         slt_file.write("statement ok\n")
-        slt_file.write("DROP TABLE IF EXISTS {};\n".format(table_name))
+        slt_file.write(f"DROP TABLE IF EXISTS {table_name};\n")
         slt_file.write("\n")
 
         slt_file.write("statement ok\n")
-        slt_file.write("CREATE TABLE {} (c1 int, c2 int);\n".format(table_name))
+        slt_file.write(f"CREATE TABLE {table_name} (c1 int, c2 int);\n")
         slt_file.write("\n")
 
         for c_path in [copy_path, copy_path2]:
             slt_file.write("statement ok\n")
             slt_file.write(
-                "COPY {} FROM '{}' WITH ( DELIMITER ',', FORMAT CSV );\n".format(
-                    table_name, c_path
-                )
+                f"COPY {table_name} FROM '{c_path}' WITH ( DELIMITER ',', FORMAT CSV );\n"
             )
             slt_file.write("\n")
 
         slt_file.write("query III rowsort\n")
         slt_file.write(
-            "SELECT c2, COUNT(*), SUM(c1) FROM {} GROUP BY c2;\n".format(table_name)
+            f"SELECT c2, COUNT(*), SUM(c1) FROM {table_name} GROUP BY c2;\n"
         )
         slt_file.write("----\n")
         select_res = []
         for c2, c1_list in groupby_c2.items():
             select_res.append(f"{c2} {len(c1_list)} {sum(c1_list)}\n")
         select_res.sort()
-        for res in select_res:
-            slt_file.write(res)
+        slt_file.writelines(select_res)
         slt_file.write("\n")
 
         slt_file.write("query III rowsort\n")
         slt_file.write(
-            "SELECT c1, COUNT(*), SUM(c2) FROM {} GROUP BY c1;\n".format(table_name)
+            f"SELECT c1, COUNT(*), SUM(c2) FROM {table_name} GROUP BY c1;\n"
         )
         slt_file.write("----\n")
         select_res = []
         for c1, c2_list in groupby_c1.items():
             select_res.append(f"{c1} {len(c2_list)} {sum(c2_list)}\n")
         select_res.sort()
-        for res in select_res:
-            slt_file.write(res)
+        slt_file.writelines(select_res)
         slt_file.write("\n")
 
         slt_file.write("statement ok\n")
-        slt_file.write("DROP TABLE IF EXISTS {};\n".format(table_name))
+        slt_file.write(f"DROP TABLE IF EXISTS {table_name};\n")
         slt_file.write("\n")
 
 

@@ -14,9 +14,9 @@
 
 from enum import Enum
 
-import infinity.remote_thrift.infinity_thrift_rpc.ttypes as ttypes
 from infinity.common import InfinityException
 from infinity.errors import ErrorCode
+from infinity.remote_thrift.infinity_thrift_rpc import ttypes
 
 
 class ExplainType(Enum):

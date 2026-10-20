@@ -3,8 +3,8 @@
 # set input parameter 1 as test type, 2 as test result file path
 # if the benchmark result is better than the standard, return 0, else return 1
 
-import sys
 import re
+import sys
 
 
 def get_results(fname):

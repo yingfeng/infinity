@@ -66,6 +66,8 @@ public:
 
     void SetToCatalog(BufferObj *buffer_obj, BufferObj *outline_buffer_obj);
 
+    void ExpandForNullBitmap(size_t null_size);
+
     void ResetToInit(VectorBufferType type);
 
     void Copy(char *input, size_t size);
@@ -100,6 +102,7 @@ public:
 
 private:
     bool initialized_{false};
+    bool null_bitmap_appended_{false};
 
     std::variant<std::unique_ptr<char[]>, BufferHandle> ptr_;
 

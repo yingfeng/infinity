@@ -4,7 +4,6 @@ import os
 import sys
 import time
 
-
 # TEST_SEC = 3600 # 1 hour
 TEST_SEC = 10 # run once
 

@@ -995,7 +995,7 @@ func TestInsertMultiColumn(t *testing.T) {
 		t.Fatalf("Failed to create table: %v", err)
 	}
 
-	// Insert data without query_color column (should fail with "No default value found")
+	// Insert data without query_color column (missing nullable column fills with NULL)
 	_, err = table.Insert([]map[string]interface{}{
 		{
 			"variant_id":         "123",
@@ -1006,16 +1006,12 @@ func TestInsertMultiColumn(t *testing.T) {
 			"other_vector":       []float32{5.0, 5.0, 5.0, 5.0},
 			"query_is_recommend": "ok",
 			"query_gender":       "male",
-			// "query_color": "red", // Missing required column
+			// "query_color": "red", // Missing nullable column, filled with NULL
 			"query_price": 1.0,
 		},
 	})
-
-	// Expect error for missing required column
-	if err == nil {
-		t.Error("Expected error for missing required column 'query_color', but got none")
-	} else {
-		t.Logf("Got expected error for missing column: %v", err)
+	if err != nil {
+		t.Errorf("Expected insert to succeed by filling NULL for missing nullable column, got error: %v", err)
 	}
 
 	// Cleanup

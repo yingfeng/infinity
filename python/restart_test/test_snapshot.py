@@ -1,11 +1,13 @@
-import infinity
-from common import common_values
-from infinity_runner import InfinityRunner, infinity_runner_decorator_factory
-from infinity import index
 import time
-from infinity.common import ConflictType, SparseVector
-from util import RtnThread
+
+import infinity
 import pytest
+from infinity import index
+from infinity.common import ConflictType, SparseVector
+from infinity_runner import InfinityRunner, infinity_runner_decorator_factory
+from util import RtnThread
+
+from common import common_values
 
 
 def infinity_runner_decorator_factory_interrupted(

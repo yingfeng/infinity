@@ -12,29 +12,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import struct
 import json
+import struct
+from collections import defaultdict
+from datetime import date, datetime, time, timedelta
+from typing import Any
+
 import numpy as np
 import pandas as pd
-from infinity.common import VEC, SparseVector, InfinityException
+
+from infinity.common import VEC, InfinityException, SparseVector
+from infinity.errors import ErrorCode
+from infinity.remote_thrift.infinity_thrift_rpc import ttypes
 from infinity.remote_thrift.infinity_thrift_rpc.ttypes import (
     ColumnExpr,
     ConstantExpr,
-    EmbeddingData,
     ElementType,
+    EmbeddingData,
     InitParameter,
     LiteralType,
     MatchSparseExpr,
     MatchTensorExpr,
     ParsedExpr,
 )
-from collections import defaultdict
-from typing import Any, Optional
-from datetime import date, time, datetime, timedelta
-
-from infinity.errors import ErrorCode
-
-import infinity.remote_thrift.infinity_thrift_rpc.ttypes as ttypes
 
 
 def logic_type_to_dtype(ttype: ttypes.DataType):
@@ -101,33 +101,33 @@ def column_vector_to_list(column_type: ttypes.ColumnType, column_data_type: ttyp
     match column_type:
         case ttypes.ColumnType.ColumnInt32:
             if null_bitmap and len(null_bitmap) == len(column_vector) // 4:
-                data = [value if is_valid else pd.NA for value, is_valid in zip(struct.unpack('<{}i'.format(len(column_vector) // 4), column_vector), null_bitmap)]
+                data = [value if is_valid else pd.NA for value, is_valid in zip(struct.unpack(f'<{len(column_vector) // 4}i', column_vector), null_bitmap)]
             else:
-                data = list(struct.unpack('<{}i'.format(len(column_vector) // 4), column_vector))
+                data = list(struct.unpack(f'<{len(column_vector) // 4}i', column_vector))
             return data
         case ttypes.ColumnType.ColumnInt64:
             if null_bitmap and len(null_bitmap) == len(column_vector) // 8:
-                data = [value if is_valid else pd.NA for value, is_valid in zip(struct.unpack('<{}q'.format(len(column_vector) // 8), column_vector), null_bitmap)]
+                data = [value if is_valid else pd.NA for value, is_valid in zip(struct.unpack(f'<{len(column_vector) // 8}q', column_vector), null_bitmap)]
             else:
-                data = list(struct.unpack('<{}q'.format(len(column_vector) // 8), column_vector))
+                data = list(struct.unpack(f'<{len(column_vector) // 8}q', column_vector))
             return data
         case ttypes.ColumnType.ColumnFloat32:
             if null_bitmap and len(null_bitmap) == len(column_vector) // 4:
-                data = [value if is_valid else pd.NA for value, is_valid in zip(struct.unpack('<{}f'.format(len(column_vector) // 4), column_vector), null_bitmap)]
+                data = [value if is_valid else pd.NA for value, is_valid in zip(struct.unpack(f'<{len(column_vector) // 4}f', column_vector), null_bitmap)]
             else:
-                data = list(struct.unpack('<{}f'.format(len(column_vector) // 4), column_vector))
+                data = list(struct.unpack(f'<{len(column_vector) // 4}f', column_vector))
             return data
         case ttypes.ColumnType.ColumnFloat64:
             if null_bitmap and len(null_bitmap) == len(column_vector) // 8:
-                data = [value if is_valid else pd.NA for value, is_valid in zip(struct.unpack('<{}d'.format(len(column_vector) // 8), column_vector), null_bitmap)]
+                data = [value if is_valid else pd.NA for value, is_valid in zip(struct.unpack(f'<{len(column_vector) // 8}d', column_vector), null_bitmap)]
             else:
-                data = list(struct.unpack('<{}d'.format(len(column_vector) // 8), column_vector))
+                data = list(struct.unpack(f'<{len(column_vector) // 8}d', column_vector))
             return data
         case ttypes.ColumnType.ColumnFloat16:
             if null_bitmap and len(null_bitmap) == len(column_vector) // 2:
-                data = [value if is_valid else pd.NA for value, is_valid in zip(struct.unpack('<{}e'.format(len(column_vector) // 2), column_vector), null_bitmap)]
+                data = [value if is_valid else pd.NA for value, is_valid in zip(struct.unpack(f'<{len(column_vector) // 2}e', column_vector), null_bitmap)]
             else:
-                data = list(struct.unpack('<{}e'.format(len(column_vector) // 2), column_vector))
+                data = list(struct.unpack(f'<{len(column_vector) // 2}e', column_vector))
             return data
         case ttypes.ColumnType.ColumnBFloat16:
             data = bf16_bytes_to_float32_list(column_vector)
@@ -146,55 +146,55 @@ def column_vector_to_list(column_type: ttypes.ColumnType, column_data_type: ttyp
             return data
         case ttypes.ColumnType.ColumnBool:
             if null_bitmap and len(null_bitmap) == len(column_vector):
-                data = [value if is_valid else pd.NA for value, is_valid in zip(struct.unpack('<{}?'.format(len(column_vector)), column_vector), null_bitmap)]
+                data = [value if is_valid else pd.NA for value, is_valid in zip(struct.unpack(f'<{len(column_vector)}?', column_vector), null_bitmap)]
             else:
-                data = list(struct.unpack('<{}?'.format(len(column_vector)), column_vector))
+                data = list(struct.unpack(f'<{len(column_vector)}?', column_vector))
             return data
         case ttypes.ColumnType.ColumnInt8:
             if null_bitmap and len(null_bitmap) == len(column_vector):
-                data = [value if is_valid else pd.NA for value, is_valid in zip(struct.unpack('<{}b'.format(len(column_vector)), column_vector), null_bitmap)]
+                data = [value if is_valid else pd.NA for value, is_valid in zip(struct.unpack(f'<{len(column_vector)}b', column_vector), null_bitmap)]
             else:
-                data = list(struct.unpack('<{}b'.format(len(column_vector)), column_vector))
+                data = list(struct.unpack(f'<{len(column_vector)}b', column_vector))
             return data
         case ttypes.ColumnType.ColumnInt16:
             if null_bitmap and len(null_bitmap) == len(column_vector) // 2:
-                data = [value if is_valid else pd.NA for value, is_valid in zip(struct.unpack('<{}h'.format(len(column_vector) // 2), column_vector), null_bitmap)]
+                data = [value if is_valid else pd.NA for value, is_valid in zip(struct.unpack(f'<{len(column_vector) // 2}h', column_vector), null_bitmap)]
             else:
-                data = list(struct.unpack('<{}h'.format(len(column_vector) // 2), column_vector))
+                data = list(struct.unpack(f'<{len(column_vector) // 2}h', column_vector))
             return data
         case ttypes.ColumnType.ColumnRowID:
-            return list(struct.unpack('<{}q'.format(len(column_vector) // 8), column_vector))
+            return list(struct.unpack(f'<{len(column_vector) // 8}q', column_vector))
         case ttypes.ColumnType.ColumnEmbedding:
             dimension = column_data_type.physical_type.embedding_type.dimension
             if column_data_type.physical_type.embedding_type.element_type == ttypes.ElementType.ElementUInt8:
-                all_list = list(struct.unpack('<{}B'.format(len(column_vector)), column_vector))
+                all_list = list(struct.unpack(f'<{len(column_vector)}B', column_vector))
                 return [all_list[i:i + dimension] for i in range(0, len(all_list), dimension)]
             elif column_data_type.physical_type.embedding_type.element_type == ttypes.ElementType.ElementInt8:
-                all_list = list(struct.unpack('<{}b'.format(len(column_vector)), column_vector))
+                all_list = list(struct.unpack(f'<{len(column_vector)}b', column_vector))
                 return [all_list[i:i + dimension] for i in range(0, len(all_list), dimension)]
             elif column_data_type.physical_type.embedding_type.element_type == ttypes.ElementType.ElementInt16:
-                all_list = list(struct.unpack('<{}h'.format(len(column_vector) // 2), column_vector))
+                all_list = list(struct.unpack(f'<{len(column_vector) // 2}h', column_vector))
                 return [all_list[i:i + dimension] for i in range(0, len(all_list), dimension)]
             elif column_data_type.physical_type.embedding_type.element_type == ttypes.ElementType.ElementInt32:
-                all_list = list(struct.unpack('<{}i'.format(len(column_vector) // 4), column_vector))
+                all_list = list(struct.unpack(f'<{len(column_vector) // 4}i', column_vector))
                 return [all_list[i:i + dimension] for i in range(0, len(all_list), dimension)]
             elif column_data_type.physical_type.embedding_type.element_type == ttypes.ElementType.ElementInt64:
-                all_list = list(struct.unpack('<{}q'.format(len(column_vector) // 8), column_vector))
+                all_list = list(struct.unpack(f'<{len(column_vector) // 8}q', column_vector))
                 return [all_list[i:i + dimension] for i in range(0, len(all_list), dimension)]
             elif column_data_type.physical_type.embedding_type.element_type == ttypes.ElementType.ElementFloat32:
-                all_list = list(struct.unpack('<{}f'.format(len(column_vector) // 4), column_vector))
+                all_list = list(struct.unpack(f'<{len(column_vector) // 4}f', column_vector))
                 return [all_list[i:i + dimension] for i in range(0, len(all_list), dimension)]
             elif column_data_type.physical_type.embedding_type.element_type == ttypes.ElementType.ElementFloat64:
-                all_list = list(struct.unpack('<{}d'.format(len(column_vector) // 8), column_vector))
+                all_list = list(struct.unpack(f'<{len(column_vector) // 8}d', column_vector))
                 return [all_list[i:i + dimension] for i in range(0, len(all_list), dimension)]
             elif column_data_type.physical_type.embedding_type.element_type == ttypes.ElementType.ElementFloat16:
-                all_list = list(struct.unpack('<{}e'.format(len(column_vector) // 2), column_vector))
+                all_list = list(struct.unpack(f'<{len(column_vector) // 2}e', column_vector))
                 return [all_list[i:i + dimension] for i in range(0, len(all_list), dimension)]
             elif column_data_type.physical_type.embedding_type.element_type == ttypes.ElementType.ElementBFloat16:
                 all_list = bf16_bytes_to_float32_list(column_vector)
                 return [all_list[i:i + dimension] for i in range(0, len(all_list), dimension)]
             elif column_data_type.physical_type.embedding_type.element_type == ttypes.ElementType.ElementBit:
-                all_list = list(struct.unpack('<{}B'.format(len(column_vector)), column_vector))
+                all_list = list(struct.unpack(f'<{len(column_vector)}B', column_vector))
                 result = []
                 if dimension % 8 != 0:
                     raise ValueError(f"Unsupported dimension {dimension}")
@@ -234,7 +234,7 @@ def column_vector_to_list(column_type: ttypes.ColumnType, column_data_type: ttyp
 
 
 def parse_date_bytes(column_vector):
-    parsed_list = list(struct.unpack('<{}i'.format(len(column_vector) // 4), column_vector))
+    parsed_list = list(struct.unpack(f'<{len(column_vector) // 4}i', column_vector))
     date_list = []
     epoch = date(1970, 1, 1)
     for value in parsed_list:
@@ -243,7 +243,7 @@ def parse_date_bytes(column_vector):
 
 
 def parse_time_bytes(column_vector):
-    parsed_list = list(struct.unpack('<{}i'.format(len(column_vector) // 4), column_vector))
+    parsed_list = list(struct.unpack(f'<{len(column_vector) // 4}i', column_vector))
     time_list = []
     for value in parsed_list:
         hours = (value // 3600) % 24
@@ -254,7 +254,7 @@ def parse_time_bytes(column_vector):
 
 
 def parse_datetime_bytes(column_vector):
-    parsed_list = list(struct.unpack('<{}i'.format(len(column_vector) // 4), column_vector))
+    parsed_list = list(struct.unpack(f'<{len(column_vector) // 4}i', column_vector))
     datetime_list = []
     epoch = datetime(1970, 1, 1)
     for i in range(0, len(parsed_list), 2):
@@ -265,7 +265,7 @@ def parse_datetime_bytes(column_vector):
 
 
 def parse_interval_bytes(column_vector):
-    parsed_list = list(struct.unpack('<{}i'.format(len(column_vector) // 4), column_vector))
+    parsed_list = list(struct.unpack(f'<{len(column_vector) // 4}i', column_vector))
     interval_list = []
     for value in parsed_list:
         interval_list.append(str(timedelta(seconds=value).total_seconds()) + 's')
@@ -444,7 +444,7 @@ def parse_single_tensorarray_bytes(column_data_type: ttypes.DataType, bytes_data
 def tensor_to_list(column_data_type: ttypes.DataType, binary_data) -> list[list[Any]]:
     dimension = column_data_type.physical_type.embedding_type.dimension
     if column_data_type.physical_type.embedding_type.element_type == ttypes.ElementType.ElementBit:
-        all_list = list(struct.unpack('<{}B'.format(len(binary_data)), binary_data))
+        all_list = list(struct.unpack(f'<{len(binary_data)}B', binary_data))
         result = []
         if dimension % 8 != 0:
             raise ValueError(f"Unsupported dimension {dimension}")
@@ -457,28 +457,28 @@ def tensor_to_list(column_data_type: ttypes.DataType, binary_data) -> list[list[
             result.append([f"\u007b0:0{dimension}b\u007d".format(mid_res_int)[::-1]])
         return result
     elif column_data_type.physical_type.embedding_type.element_type == ttypes.ElementType.ElementUInt8:
-        all_list = list(struct.unpack('<{}B'.format(len(binary_data)), binary_data))
+        all_list = list(struct.unpack(f'<{len(binary_data)}B', binary_data))
         return [all_list[i:i + dimension] for i in range(0, len(all_list), dimension)]
     elif column_data_type.physical_type.embedding_type.element_type == ttypes.ElementType.ElementInt8:
-        all_list = list(struct.unpack('<{}b'.format(len(binary_data)), binary_data))
+        all_list = list(struct.unpack(f'<{len(binary_data)}b', binary_data))
         return [all_list[i:i + dimension] for i in range(0, len(all_list), dimension)]
     elif column_data_type.physical_type.embedding_type.element_type == ttypes.ElementType.ElementInt16:
-        all_list = list(struct.unpack('<{}h'.format(len(binary_data) // 2), binary_data))
+        all_list = list(struct.unpack(f'<{len(binary_data) // 2}h', binary_data))
         return [all_list[i:i + dimension] for i in range(0, len(all_list), dimension)]
     elif column_data_type.physical_type.embedding_type.element_type == ttypes.ElementType.ElementInt32:
-        all_list = list(struct.unpack('<{}i'.format(len(binary_data) // 4), binary_data))
+        all_list = list(struct.unpack(f'<{len(binary_data) // 4}i', binary_data))
         return [all_list[i:i + dimension] for i in range(0, len(all_list), dimension)]
     elif column_data_type.physical_type.embedding_type.element_type == ttypes.ElementType.ElementInt64:
-        all_list = list(struct.unpack('<{}q'.format(len(binary_data) // 8), binary_data))
+        all_list = list(struct.unpack(f'<{len(binary_data) // 8}q', binary_data))
         return [all_list[i:i + dimension] for i in range(0, len(all_list), dimension)]
     elif column_data_type.physical_type.embedding_type.element_type == ttypes.ElementType.ElementFloat32:
-        all_list = list(struct.unpack('<{}f'.format(len(binary_data) // 4), binary_data))
+        all_list = list(struct.unpack(f'<{len(binary_data) // 4}f', binary_data))
         return [all_list[i:i + dimension] for i in range(0, len(all_list), dimension)]
     elif column_data_type.physical_type.embedding_type.element_type == ttypes.ElementType.ElementFloat64:
-        all_list = list(struct.unpack('<{}d'.format(len(binary_data) // 8), binary_data))
+        all_list = list(struct.unpack(f'<{len(binary_data) // 8}d', binary_data))
         return [all_list[i:i + dimension] for i in range(0, len(all_list), dimension)]
     elif column_data_type.physical_type.embedding_type.element_type == ttypes.ElementType.ElementFloat16:
-        all_list = list(struct.unpack('<{}e'.format(len(binary_data) // 2), binary_data))
+        all_list = list(struct.unpack(f'<{len(binary_data) // 2}e', binary_data))
         return [all_list[i:i + dimension] for i in range(0, len(all_list), dimension)]
     elif column_data_type.physical_type.embedding_type.element_type == ttypes.ElementType.ElementBFloat16:
         all_list = bf16_bytes_to_float32_list(binary_data)
@@ -506,43 +506,43 @@ def parse_single_sparse_bytes(column_data_type: ttypes.DataType, column_vector, 
     # print(nnz)
     match index_type:
         case ttypes.ElementType.ElementInt8:
-            indices = struct.unpack('<{}b'.format(nnz), column_vector[offset:offset + nnz])
+            indices = struct.unpack(f'<{nnz}b', column_vector[offset:offset + nnz])
             offset += nnz
         case ttypes.ElementType.ElementInt16:
-            indices = struct.unpack('<{}h'.format(nnz), column_vector[offset:offset + nnz * 2])
+            indices = struct.unpack(f'<{nnz}h', column_vector[offset:offset + nnz * 2])
             offset += nnz * 2
         case ttypes.ElementType.ElementInt32:
-            indices = struct.unpack('<{}i'.format(nnz), column_vector[offset:offset + nnz * 4])
+            indices = struct.unpack(f'<{nnz}i', column_vector[offset:offset + nnz * 4])
             offset += nnz * 4
         case ttypes.ElementType.ElementInt64:
-            indices = struct.unpack('<{}q'.format(nnz), column_vector[offset:offset + nnz * 8])
+            indices = struct.unpack(f'<{nnz}q', column_vector[offset:offset + nnz * 8])
             offset += nnz * 8
         case _:
             raise NotImplementedError(f"Unsupported type {index_type}")
     match element_type:
         case ttypes.ElementType.ElementUInt8:
-            values = struct.unpack('<{}B'.format(nnz), column_vector[offset:offset + nnz])
+            values = struct.unpack(f'<{nnz}B', column_vector[offset:offset + nnz])
             offset += nnz
         case ttypes.ElementType.ElementInt8:
-            values = struct.unpack('<{}b'.format(nnz), column_vector[offset:offset + nnz])
+            values = struct.unpack(f'<{nnz}b', column_vector[offset:offset + nnz])
             offset += nnz
         case ttypes.ElementType.ElementInt16:
-            values = struct.unpack('<{}h'.format(nnz), column_vector[offset:offset + nnz * 2])
+            values = struct.unpack(f'<{nnz}h', column_vector[offset:offset + nnz * 2])
             offset += nnz * 2
         case ttypes.ElementType.ElementInt32:
-            values = struct.unpack('<{}i'.format(nnz), column_vector[offset:offset + nnz * 4])
+            values = struct.unpack(f'<{nnz}i', column_vector[offset:offset + nnz * 4])
             offset += nnz * 4
         case ttypes.ElementType.ElementInt64:
-            values = struct.unpack('<{}q'.format(nnz), column_vector[offset:offset + nnz * 8])
+            values = struct.unpack(f'<{nnz}q', column_vector[offset:offset + nnz * 8])
             offset += nnz * 8
         case ttypes.ElementType.ElementFloat32:
-            values = struct.unpack('<{}f'.format(nnz), column_vector[offset:offset + nnz * 4])
+            values = struct.unpack(f'<{nnz}f', column_vector[offset:offset + nnz * 4])
             offset += nnz * 4
         case ttypes.ElementType.ElementFloat64:
-            values = struct.unpack('<{}d'.format(nnz), column_vector[offset:offset + nnz * 8])
+            values = struct.unpack(f'<{nnz}d', column_vector[offset:offset + nnz * 8])
             offset += nnz * 8
         case ttypes.ElementType.ElementFloat16:
-            values = struct.unpack('<{}e'.format(nnz), column_vector[offset:offset + nnz * 2])
+            values = struct.unpack(f'<{nnz}e', column_vector[offset:offset + nnz * 2])
             offset += nnz * 2
         case ttypes.ElementType.ElementBFloat16:
             values = bf16_bytes_to_float32_list(column_vector[offset:offset + nnz * 2])
@@ -594,7 +594,7 @@ def build_result(res: ttypes.SelectResponse) -> tuple[dict[str | Any, list[Any, 
 
 
 def make_match_tensor_expr(vector_column_name: str, embedding_data: VEC, embedding_data_type: str, method_type: str,
-                           extra_option: str = None, filter_expr: Optional[ParsedExpr] = None) -> MatchTensorExpr:
+                           extra_option: str = None, filter_expr: ParsedExpr | None = None) -> MatchTensorExpr:
     match_tensor_expr = MatchTensorExpr()
     match_tensor_expr.column_expr = ColumnExpr(column_name=[vector_column_name], star=False)
     match_tensor_expr.search_method = method_type
@@ -639,7 +639,7 @@ def make_match_tensor_expr(vector_column_name: str, embedding_data: VEC, embeddi
 
 
 def make_match_sparse_expr(vector_column_name: str, sparse_data: SparseVector | dict, metric_type: str, topn: int,
-                           opt_params: Optional[dict] = None, filter_expr: Optional[ParsedExpr] = None):
+                           opt_params: dict | None = None, filter_expr: ParsedExpr | None = None):
     column_expr = ColumnExpr(column_name=[vector_column_name], star=False)
 
     query_sparse_expr = ConstantExpr()

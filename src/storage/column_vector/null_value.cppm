@@ -36,60 +36,60 @@ inline BooleanT NullValue() {
 
 template <>
 inline u8 NullValue() {
-    return std::numeric_limits<u8>::infinity();
+    return 0;
 }
 
 template <>
 inline TinyIntT NullValue() {
-    return std::numeric_limits<i8>::infinity();
+    return std::numeric_limits<i8>::lowest();
 }
 
 template <>
 inline SmallIntT NullValue() {
-    return std::numeric_limits<i16>::infinity();
+    return std::numeric_limits<i16>::lowest();
 }
 
 template <>
 inline IntegerT NullValue() {
-    return std::numeric_limits<i32>::infinity();
+    return std::numeric_limits<i32>::lowest();
 }
 
 template <>
 inline BigIntT NullValue() {
-    return std::numeric_limits<i64>::infinity();
+    return std::numeric_limits<i64>::lowest();
 }
 
 template <>
 inline HugeIntT NullValue() {
     HugeIntT value;
-    value.lower = std::numeric_limits<i64>::infinity();
-    value.upper = std::numeric_limits<i64>::infinity();
+    value.lower = std::numeric_limits<i64>::lowest();
+    value.upper = std::numeric_limits<i64>::lowest();
     return value;
 }
 
 template <>
 inline Float16T NullValue() {
-    return std::numeric_limits<Float16T>::infinity();
+    return -std::numeric_limits<Float16T>::infinity();
 }
 
 template <>
 inline BFloat16T NullValue() {
-    return std::numeric_limits<BFloat16T>::infinity();
+    return -std::numeric_limits<BFloat16T>::infinity();
 }
 
 template <>
 inline FloatT NullValue() {
-    return std::numeric_limits<f32>::infinity();
+    return -std::numeric_limits<f32>::infinity();
 }
 
 template <>
 inline DoubleT NullValue() {
-    return std::numeric_limits<f64>::infinity();
+    return -std::numeric_limits<f64>::infinity();
 }
 
 template <>
 inline DecimalT NullValue() {
-    return DecimalT(std::numeric_limits<i64>::infinity(), std::numeric_limits<i64>::infinity());
+    return DecimalT(std::numeric_limits<i64>::lowest(), std::numeric_limits<i64>::lowest());
 }
 
 template <>
@@ -99,53 +99,53 @@ inline VarcharT NullValue() {
 
 template <>
 inline DateT NullValue() {
-    return DateT(std::numeric_limits<i32>::infinity());
+    return DateT(std::numeric_limits<i32>::lowest());
 }
 
 template <>
 inline TimeT NullValue() {
-    return TimeT(std::numeric_limits<i32>::infinity());
+    return TimeT(std::numeric_limits<i32>::lowest());
 }
 
 template <>
 inline DateTimeT NullValue() {
-    return DateTimeT(std::numeric_limits<i32>::infinity(), std::numeric_limits<i32>::infinity());
+    return DateTimeT(std::numeric_limits<i32>::lowest(), std::numeric_limits<i32>::lowest());
 }
 
 template <>
 inline TimestampT NullValue() {
-    return TimestampT(std::numeric_limits<i32>::infinity(), std::numeric_limits<i32>::infinity());
+    return TimestampT(std::numeric_limits<i32>::lowest(), std::numeric_limits<i32>::lowest());
 }
 
 template <>
 inline IntervalT NullValue() {
     IntervalT interval;
-    interval.value = std::numeric_limits<i32>::infinity();
+    interval.value = std::numeric_limits<i32>::lowest();
     interval.unit = TimeUnit::kInvalidUnit;
     return interval;
 }
 
 template <>
 inline PointT NullValue() {
-    return PointT(std::numeric_limits<f64>::infinity(), std::numeric_limits<f64>::infinity());
+    return PointT(-std::numeric_limits<f64>::infinity(), -std::numeric_limits<f64>::infinity());
 }
 
 template <>
 inline LineT NullValue() {
-    return LineT(std::numeric_limits<f64>::infinity(), std::numeric_limits<f64>::infinity(), std::numeric_limits<f64>::infinity());
+    return LineT(-std::numeric_limits<f64>::infinity(), -std::numeric_limits<f64>::infinity(), -std::numeric_limits<f64>::infinity());
 }
 
 template <>
 inline LineSegT NullValue() {
-    PointT p1(std::numeric_limits<f64>::infinity(), std::numeric_limits<f64>::infinity());
-    PointT p2(std::numeric_limits<f64>::infinity(), std::numeric_limits<f64>::infinity());
+    PointT p1(-std::numeric_limits<f64>::infinity(), -std::numeric_limits<f64>::infinity());
+    PointT p2(-std::numeric_limits<f64>::infinity(), -std::numeric_limits<f64>::infinity());
     return LineSegT(p1, p2);
 }
 
 template <>
 inline BoxT NullValue() {
-    PointT p1(std::numeric_limits<f64>::infinity(), std::numeric_limits<f64>::infinity());
-    PointT p2(std::numeric_limits<f64>::infinity(), std::numeric_limits<f64>::infinity());
+    PointT p1(-std::numeric_limits<f64>::infinity(), -std::numeric_limits<f64>::infinity());
+    PointT p2(-std::numeric_limits<f64>::infinity(), -std::numeric_limits<f64>::infinity());
     return BoxT(p1, p2);
 }
 
@@ -171,7 +171,7 @@ inline BoxT NullValue() {
 
 template <>
 inline CircleT NullValue() {
-    return CircleT(PointT(std::numeric_limits<f64>::infinity(), std::numeric_limits<f64>::infinity()), std::numeric_limits<f64>::infinity());
+    return CircleT(PointT(-std::numeric_limits<f64>::infinity(), -std::numeric_limits<f64>::infinity()), -std::numeric_limits<f64>::infinity());
 }
 
 // template <>
@@ -198,16 +198,15 @@ inline UuidT NullValue() {
 
 template <>
 inline EmbeddingT NullValue() {
-    char *ptr = std::numeric_limits<char *>::infinity();
-    EmbeddingT embedding(std::move(ptr), false);
+    EmbeddingT embedding(nullptr, false);
     return embedding;
 }
 
 template <>
 inline RowID NullValue() {
     RowID row_id;
-    row_id.segment_id_ = std::numeric_limits<u32>::infinity();
-    row_id.segment_offset_ = std::numeric_limits<u32>::infinity();
+    row_id.segment_id_ = 0;
+    row_id.segment_offset_ = 0;
     return row_id;
 }
 

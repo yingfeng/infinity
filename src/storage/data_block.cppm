@@ -68,6 +68,9 @@ public:
 
     void Finalize();
 
+    // Finalize with an explicit row count (e.g. when all column vectors are kConstant with tail_index_ == 1 as broadcast signal).
+    void Finalize(size_t row_count);
+
     [[nodiscard]] std::string ToString() const;
 
     [[nodiscard]] std::string ToBriefString() const;

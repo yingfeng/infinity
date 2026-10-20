@@ -20,6 +20,9 @@ import :status;
 import :infinity_exception;
 import :scalar_function;
 import :scalar_function_set;
+import :column_vector;
+import :data_block;
+import :null_value;
 
 import std;
 
@@ -29,27 +32,61 @@ import data_type;
 
 namespace infinity {
 
-struct AndFunction {
-    template <typename TA, typename TB, typename TC>
-    static inline void Run(TA left, TB right, TC &result) {
-        if constexpr (std::is_same_v<std::remove_cv_t<TA>, u8> && std::is_same_v<std::remove_cv_t<TB>, u8> &&
-                      std::is_same_v<std::remove_cv_t<TC>, u8>) {
-            result = left & right;
-        } else if constexpr (std::is_same_v<std::remove_cv_t<TA>, BooleanT> && std::is_same_v<std::remove_cv_t<TB>, BooleanT> &&
-                             std::is_same_v<std::remove_cv_t<TC>, BooleanT>) {
-            result = left and right;
+// Three-valued AND logic:
+//   NULL AND false  → false  (not null)
+//   false AND NULL  → false  (not null)
+//   NULL AND true   → NULL
+//   true  AND NULL  → NULL
+//   NULL AND NULL   → NULL
+static void AndFunctionNullAware(const DataBlock &input, std::shared_ptr<ColumnVector> &output) {
+    if (input.column_count() != 2) {
+        UnrecoverableError("AND function requires exactly 2 arguments.");
+    }
+    size_t row_count = input.row_count();
+    const auto &left = input.column_vectors_[0];
+    const auto &right = input.column_vectors_[1];
+
+    if (output.get() == left.get() || output.get() == right.get()) {
+        UnrecoverableError("AND function: output should not be same as input.");
+    }
+
+    auto is_null = [](const auto &cv, size_t i) -> bool {
+        if (cv->vector_type() == ColumnVectorType::kConstant) {
+            return !cv->nulls_ptr_->IsTrue(0);
+        }
+        return !cv->nulls_ptr_->IsTrue(i);
+    };
+
+    auto get_bool = [](const auto &cv, size_t i) -> BooleanT {
+        size_t idx = (cv->vector_type() == ColumnVectorType::kConstant) ? 0 : i;
+        return cv->buffer_->GetCompactBit(idx);
+    };
+
+    auto &result_null = output->nulls_ptr_;
+    result_null->SetAllTrue();
+    for (size_t i = 0; i < row_count; ++i) {
+        bool ln = is_null(left, i);
+        bool rn = is_null(right, i);
+        if (!ln && !rn) {
+            output->buffer_->SetCompactBit(i, get_bool(left, i) && get_bool(right, i));
+        } else if (ln && !rn && !get_bool(right, i)) {
+            output->buffer_->SetCompactBit(i, false);
+        } else if (!ln && rn && !get_bool(left, i)) {
+            output->buffer_->SetCompactBit(i, false);
         } else {
-            UnrecoverableError("AND function accepts only u8 and BooleanT.");
+            result_null->SetFalse(i);
+            output->buffer_->SetCompactBit(i, NullValue<BooleanT>());
         }
     }
-};
+    output->Finalize(row_count);
+}
 
 static void GenerateAndFunction(std::shared_ptr<ScalarFunctionSet> &function_set_ptr) {
     std::string func_name = "AND";
     ScalarFunction and_function(func_name,
                                 {DataType(LogicalType::kBoolean), DataType(LogicalType::kBoolean)},
                                 {DataType(LogicalType::kBoolean)},
-                                &ScalarFunction::BinaryFunction<BooleanT, BooleanT, BooleanT, AndFunction>);
+                                AndFunctionNullAware);
     function_set_ptr->AddFunction(and_function);
 }
 

@@ -132,19 +132,14 @@ template <typename RawValueType>
 struct SecondaryIndexChunkMerger<RawValueType, HighCardinalityTag> {
     using OrderedKeyType = ConvertToOrderedType<RawValueType>;
     std::vector<SecondaryIndexChunkDataReader<RawValueType, HighCardinalityTag>> readers_;
-    std::vector<u32> reader_offsets_;
     std::priority_queue<std::tuple<OrderedKeyType, u32, u32>,
                         std::vector<std::tuple<OrderedKeyType, u32, u32>>,
                         std::greater<std::tuple<OrderedKeyType, u32, u32>>>
         pq_;
     explicit SecondaryIndexChunkMerger(const std::vector<std::pair<u32, BufferObj *>> &buffer_objs) {
         readers_.reserve(buffer_objs.size());
-        reader_offsets_.reserve(buffer_objs.size());
-        u32 offset_shift = 0;
         for (const auto &[row_count, buffer_obj] : buffer_objs) {
             readers_.emplace_back(buffer_obj, row_count);
-            reader_offsets_.push_back(offset_shift);
-            offset_shift += row_count;
         }
         OrderedKeyType key = {};
         u32 offset = 0;
@@ -160,7 +155,7 @@ struct SecondaryIndexChunkMerger<RawValueType, HighCardinalityTag> {
         }
         const auto [key, offset, reader_id] = pq_.top();
         out_key = key;
-        out_offset = offset + reader_offsets_[reader_id];
+        out_offset = offset;
         pq_.pop();
         OrderedKeyType next_key = {};
         u32 next_offset = 0;
@@ -176,19 +171,14 @@ template <typename RawValueType>
 struct SecondaryIndexChunkMerger<RawValueType, LowCardinalityTag> {
     using OrderedKeyType = ConvertToOrderedType<RawValueType>;
     std::vector<SecondaryIndexChunkDataReader<RawValueType, LowCardinalityTag>> readers_;
-    std::vector<u32> reader_offsets_;
     std::priority_queue<std::tuple<OrderedKeyType, u32, u32>,
                         std::vector<std::tuple<OrderedKeyType, u32, u32>>,
                         std::greater<std::tuple<OrderedKeyType, u32, u32>>>
         pq_;
     explicit SecondaryIndexChunkMerger(const std::vector<std::pair<u32, BufferObj *>> &file_workers) {
         readers_.reserve(file_workers.size());
-        reader_offsets_.reserve(file_workers.size());
-        u32 offset_shift = 0;
         for (const auto &[row_count, file_worker] : file_workers) {
             readers_.emplace_back(file_worker, row_count);
-            reader_offsets_.push_back(offset_shift);
-            offset_shift += row_count;
         }
         OrderedKeyType key = {};
         u32 offset = 0;
@@ -204,7 +194,7 @@ struct SecondaryIndexChunkMerger<RawValueType, LowCardinalityTag> {
         }
         const auto [key, offset, reader_id] = pq_.top();
         out_key = key;
-        out_offset = offset + reader_offsets_[reader_id];
+        out_offset = offset;
         pq_.pop();
         OrderedKeyType next_key = {};
         u32 next_offset = 0;
@@ -311,7 +301,17 @@ public:
 
         // Save unique keys
         if (unique_key_count_ > 0) {
-            file_handle.Append(unique_keys_.data(), unique_key_count_ * sizeof(OrderedKeyType));
+            if constexpr (std::is_same_v<RawValueType, JsonTermT>) {
+                for (const auto &key : unique_keys_) {
+                    u32 len = key.size();
+                    file_handle.Append(&len, sizeof(len));
+                    if (len > 0) {
+                        file_handle.Append(key.ToString().data(), len);
+                    }
+                }
+            } else {
+                file_handle.Append(unique_keys_.data(), unique_key_count_ * sizeof(OrderedKeyType));
+            }
 
             // Save RoaringBitmaps
             for (const auto &bitmap : offset_bitmaps_) {
@@ -333,8 +333,22 @@ public:
 
         if (unique_key_count_ > 0) {
             // Read unique keys
-            unique_keys_.resize(unique_key_count_);
-            file_handle.Read(unique_keys_.data(), unique_key_count_ * sizeof(OrderedKeyType));
+            if constexpr (std::is_same_v<RawValueType, JsonTermT>) {
+                unique_keys_.clear();
+                unique_keys_.reserve(unique_key_count_);
+                for (u32 i = 0; i < unique_key_count_; ++i) {
+                    u32 len = 0;
+                    file_handle.Read(&len, sizeof(len));
+                    std::string key_data(len, '\0');
+                    if (len > 0) {
+                        file_handle.Read(key_data.data(), len);
+                    }
+                    unique_keys_.emplace_back(std::move(key_data));
+                }
+            } else {
+                unique_keys_.resize(unique_key_count_);
+                file_handle.Read(unique_keys_.data(), unique_key_count_ * sizeof(OrderedKeyType));
+            }
 
             // Read RoaringBitmaps
             offset_bitmaps_.clear();
@@ -364,9 +378,20 @@ public:
 
         if (unique_key_count_ > 0) {
             // Read unique keys
-            unique_keys_.resize(unique_key_count_);
-            std::memcpy(unique_keys_.data(), ptr, unique_key_count_ * sizeof(OrderedKeyType));
-            ptr += unique_key_count_ * sizeof(OrderedKeyType);
+            if constexpr (std::is_same_v<RawValueType, JsonTermT>) {
+                unique_keys_.clear();
+                unique_keys_.reserve(unique_key_count_);
+                for (u32 i = 0; i < unique_key_count_; ++i) {
+                    u32 len = *reinterpret_cast<const u32 *>(ptr);
+                    ptr += sizeof(u32);
+                    unique_keys_.emplace_back(std::string_view(ptr, len));
+                    ptr += len;
+                }
+            } else {
+                unique_keys_.resize(unique_key_count_);
+                std::memcpy(unique_keys_.data(), ptr, unique_key_count_ * sizeof(OrderedKeyType));
+                ptr += unique_key_count_ * sizeof(OrderedKeyType);
+            }
 
             // Read RoaringBitmaps
             offset_bitmaps_.clear();
@@ -389,8 +414,10 @@ public:
         if (!map_ptr) {
             UnrecoverableError("InsertData(): error: map_ptr type error.");
         }
-        if (map_ptr->size() != chunk_row_count_) {
-            UnrecoverableError(fmt::format("InsertData(): error: map size: {} != chunk_row_count_: {}", map_ptr->size(), chunk_row_count_));
+        if constexpr (!std::is_same_v<RawValueType, JsonTermT>) {
+            if (map_ptr->size() != chunk_row_count_) {
+                UnrecoverableError(fmt::format("InsertData(): error: map size: {} != chunk_row_count_: {}", map_ptr->size(), chunk_row_count_));
+            }
         }
 
         // Build unique keys and corresponding bitmaps
@@ -441,16 +468,18 @@ public:
             max_offset = std::max(max_offset, offset);
         }
 
-        if (total_count != chunk_row_count_) {
+        if constexpr (!std::is_same_v<RawValueType, JsonTermT>) {
             // Debug: print more information about the mismatch
-            LOG_ERROR(fmt::format("InsertMergeData(): total_count: {} != chunk_row_count_: {}", total_count, chunk_row_count_));
-            LOG_ERROR(fmt::format("InsertMergeData(): old_chunks.size(): {}", old_chunks.size()));
-            for (size_t i = 0; i < old_chunks.size(); ++i) {
-                LOG_ERROR(fmt::format("InsertMergeData(): old_chunks[{}].first (row_count): {}", i, old_chunks[i].first));
+            if (total_count != chunk_row_count_) {
+                LOG_ERROR(fmt::format("InsertMergeData(): total_count: {} != chunk_row_count_: {}", total_count, chunk_row_count_));
+                LOG_ERROR(fmt::format("InsertMergeData(): old_chunks.size(): {}", old_chunks.size()));
+                for (size_t i = 0; i < old_chunks.size(); ++i) {
+                    LOG_ERROR(fmt::format("InsertMergeData(): old_chunks[{}].first (row_count): {}", i, old_chunks[i].first));
+                }
+                LOG_ERROR(fmt::format("InsertMergeData(): unique_key_count_: {}", unique_key_count_));
+                LOG_ERROR(fmt::format("InsertMergeData(): key_to_offsets.size(): {}", key_to_offsets.size()));
+                UnrecoverableError(fmt::format("InsertMergeData(): error: total_count: {} != chunk_row_count_: {}", total_count, chunk_row_count_));
             }
-            LOG_ERROR(fmt::format("InsertMergeData(): unique_key_count_: {}", unique_key_count_));
-            LOG_ERROR(fmt::format("InsertMergeData(): key_to_offsets.size(): {}", key_to_offsets.size()));
-            UnrecoverableError(fmt::format("InsertMergeData(): error: total_count: {} != chunk_row_count_: {}", total_count, chunk_row_count_));
         }
 
         // Bitmap size should be max_offset + 1, not chunk_row_count_

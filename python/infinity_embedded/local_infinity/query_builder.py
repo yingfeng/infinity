@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 from abc import ABC
-from typing import List, Optional, Any
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -24,28 +24,34 @@ import pyarrow as pa
 from pyarrow import Table
 from sqlglot import condition, maybe_parse
 
-from infinity_embedded.common import VEC, SparseVector, InfinityException, SortType
+from infinity_embedded.common import VEC, InfinityException, SortType, SparseVector
 from infinity_embedded.embedded_infinity_ext import *
-from infinity_embedded.local_infinity.types import logic_type_to_dtype, make_match_tensor_expr
-from infinity_embedded.local_infinity.utils import traverse_conditions, parse_expr
-from infinity_embedded.local_infinity.utils import get_search_optional_filter_from_opt_params
-from infinity_embedded.table import ExplainType as BaseExplainType
 from infinity_embedded.errors import ErrorCode
+from infinity_embedded.local_infinity.types import (
+    logic_type_to_dtype,
+    make_match_tensor_expr,
+)
+from infinity_embedded.local_infinity.utils import (
+    get_search_optional_filter_from_opt_params,
+    parse_expr,
+    traverse_conditions,
+)
+from infinity_embedded.table import ExplainType as BaseExplainType
 
 
 class Query(ABC):
     def __init__(
             self,
-            columns: Optional[List[WrapParsedExpr]],
-            highlight: Optional[List[WrapParsedExpr]],
-            search: Optional[WrapSearchExpr],
-            filter: Optional[WrapParsedExpr],
-            group_by: Optional[List[WrapParsedExpr]],
-            having: Optional[WrapParsedExpr],
-            limit: Optional[WrapParsedExpr],
-            offset: Optional[WrapParsedExpr],
-            sort: Optional[List[WrapOrderByExpr]],
-            total_hits_count: Optional[bool]
+            columns: list[WrapParsedExpr] | None,
+            highlight: list[WrapParsedExpr] | None,
+            search: WrapSearchExpr | None,
+            filter: WrapParsedExpr | None,
+            group_by: list[WrapParsedExpr] | None,
+            having: WrapParsedExpr | None,
+            limit: WrapParsedExpr | None,
+            offset: WrapParsedExpr | None,
+            sort: list[WrapOrderByExpr] | None,
+            total_hits_count: bool | None
     ):
         self.columns = columns
         self.highlight = highlight
@@ -62,16 +68,16 @@ class Query(ABC):
 class ExplainQuery(Query):
     def __init__(
             self,
-            columns: Optional[List[WrapParsedExpr]],
-            highlight: Optional[List[WrapParsedExpr]],
-            search: Optional[WrapSearchExpr],
-            filter: Optional[WrapParsedExpr],
-            group_by: Optional[List[WrapParsedExpr]],
-            having: Optional[WrapParsedExpr],
-            limit: Optional[WrapParsedExpr],
-            offset: Optional[WrapParsedExpr],
-            sort: Optional[List[WrapOrderByExpr]],
-            explain_type: Optional[BaseExplainType],
+            columns: list[WrapParsedExpr] | None,
+            highlight: list[WrapParsedExpr] | None,
+            search: WrapSearchExpr | None,
+            filter: WrapParsedExpr | None,
+            group_by: list[WrapParsedExpr] | None,
+            having: WrapParsedExpr | None,
+            limit: WrapParsedExpr | None,
+            offset: WrapParsedExpr | None,
+            sort: list[WrapOrderByExpr] | None,
+            explain_type: BaseExplainType | None,
     ):
         super().__init__(columns, highlight, search, filter, group_by, having, limit, offset, sort, None)
         self.explain_type = explain_type
@@ -143,9 +149,7 @@ class InfinityLocalQueryBuilder(ABC):
                 embedding_data = new_embedding_data
 
         # type casting
-        if isinstance(embedding_data, list):
-            embedding_data = embedding_data
-        elif isinstance(embedding_data, tuple):
+        if isinstance(embedding_data, list) or isinstance(embedding_data, tuple):
             embedding_data = embedding_data
         elif isinstance(embedding_data, np.ndarray):
             embedding_data = embedding_data.tolist()
@@ -320,7 +324,7 @@ class InfinityLocalQueryBuilder(ABC):
         return self
 
     def match_text(
-            self, fields: str, matching_text: str, topn: int, extra_options: Optional[dict]
+            self, fields: str, matching_text: str, topn: int, extra_options: dict | None
     ) -> InfinityLocalQueryBuilder:
         if self._search is None:
             self._search = WrapSearchExpr()
@@ -351,7 +355,7 @@ class InfinityLocalQueryBuilder(ABC):
             query_data: VEC,
             query_data_type: str,
             topn: int,
-            extra_option: Optional[dict] = None,
+            extra_option: dict | None = None,
     ) -> InfinityLocalQueryBuilder:
         if self._search is None:
             self._search = WrapSearchExpr()
@@ -376,7 +380,7 @@ class InfinityLocalQueryBuilder(ABC):
         self._search.match_exprs += [match_tensor_expr]
         return self
 
-    def fusion(self, method: str, topn: int, fusion_params: Optional[dict]) -> InfinityLocalQueryBuilder:
+    def fusion(self, method: str, topn: int, fusion_params: dict | None) -> InfinityLocalQueryBuilder:
         if self._search is None:
             self._search = WrapSearchExpr()
         fusion_expr = WrapFusionExpr()
@@ -403,12 +407,12 @@ class InfinityLocalQueryBuilder(ABC):
         assert len(self._search.fusion_exprs) > 0
         return self
 
-    def filter(self, where: Optional[str]) -> InfinityLocalQueryBuilder:
+    def filter(self, where: str | None) -> InfinityLocalQueryBuilder:
         where_expr = traverse_conditions(condition(where))
         self._filter = where_expr
         return self
 
-    def limit(self, limit: Optional[int]) -> InfinityLocalQueryBuilder:
+    def limit(self, limit: int | None) -> InfinityLocalQueryBuilder:
         constant_exp = WrapConstantExpr()
         constant_exp.literal_type = LiteralType.kInteger
         constant_exp.i64_value = limit
@@ -417,7 +421,7 @@ class InfinityLocalQueryBuilder(ABC):
         self._limit = limit_expr
         return self
 
-    def offset(self, offset: Optional[int]) -> InfinityLocalQueryBuilder:
+    def offset(self, offset: int | None) -> InfinityLocalQueryBuilder:
         constant_exp = WrapConstantExpr()
         constant_exp.literal_type = LiteralType.kInteger
         constant_exp.i64_value = offset
@@ -426,7 +430,7 @@ class InfinityLocalQueryBuilder(ABC):
         self._offset = offset_expr
         return self
 
-    def group_by(self, columns: List[str] | str) -> InfinityLocalQueryBuilder:
+    def group_by(self, columns: list[str] | str) -> InfinityLocalQueryBuilder:
         group_by_list = []
         if isinstance(columns, list):
             for column in columns:
@@ -438,14 +442,14 @@ class InfinityLocalQueryBuilder(ABC):
         self._group_by = group_by_list
         return self
 
-    def having(self, having: Optional[str]) -> InfinityLocalQueryBuilder:
+    def having(self, having: str | None) -> InfinityLocalQueryBuilder:
         having_expr = traverse_conditions(condition(having))
         self._having = having_expr
         return self
 
-    def output(self, columns: Optional[list]) -> InfinityLocalQueryBuilder:
+    def output(self, columns: list | None) -> InfinityLocalQueryBuilder:
         self._columns = columns
-        select_list: List[WrapParsedExpr] = []
+        select_list: list[WrapParsedExpr] = []
         for column in columns:
             if isinstance(column, str):
                 column = column.lower()
@@ -559,8 +563,8 @@ class InfinityLocalQueryBuilder(ABC):
         self._columns = select_list
         return self
 
-    def highlight(self, columns: Optional[list]) -> InfinityLocalQueryBuilder:
-        highlight_list: List[WrapParsedExpr] = []
+    def highlight(self, columns: list | None) -> InfinityLocalQueryBuilder:
+        highlight_list: list[WrapParsedExpr] = []
         for column in columns:
             if isinstance(column, str):
                 column = column.lower()
@@ -577,8 +581,8 @@ class InfinityLocalQueryBuilder(ABC):
                 self._total_hits_count = option_kv['total_hits_count']
         return self
 
-    def sort(self, order_by_expr_list: Optional[List[list[str, SortType]]]) -> InfinityLocalQueryBuilder:
-        sort_list: List[WrapOrderByExpr] = []
+    def sort(self, order_by_expr_list: list[list[str, SortType]] | None) -> InfinityLocalQueryBuilder:
+        sort_list: list[WrapOrderByExpr] = []
 
         order_by_expr_str = str
         for order_by_expr in order_by_expr_list:

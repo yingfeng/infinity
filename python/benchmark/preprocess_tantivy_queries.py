@@ -3,8 +3,8 @@
 # This script extracts queries from the tantivy queries file:
 # https://github.com/quickwit-oss/search-benchmark-game/blob/master/queries.txt
 
-import sys
 import json
+import sys
 
 
 def process_queries(tantivy_queries_file, output_queries_file):
@@ -15,8 +15,7 @@ def process_queries(tantivy_queries_file, output_queries_file):
             queries.append(obj["query"])
     sorted_queries = sorted(queries)
     with open(output_queries_file, "w") as file:
-        for query in sorted_queries:
-            file.write(query + "\n")
+        file.writelines(query + "\n" for query in sorted_queries)
 
 
 if __name__ == "__main__":

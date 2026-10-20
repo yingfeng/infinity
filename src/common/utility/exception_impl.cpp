@@ -44,6 +44,7 @@ void PrintTransactionHistory() {
 
 void PrintStacktrace(const std::string &err_msg) {
     LOG_CRITICAL(fmt::format("Error: {}", err_msg));
+
     LOG_CRITICAL(to_string(std::stacktrace::current()));
 }
 
@@ -61,6 +62,9 @@ void RecoverableError(Status status, const char *file_name, u32 line) {
 
 std::string_view GetErrorMsg(const std::string &message) {
     auto pos = message.find_first_of('@', 0);
+    if (pos == std::string::npos) {
+        return message;
+    }
     return {message.data(), pos};
 }
 

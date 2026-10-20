@@ -1,7 +1,8 @@
-import numpy as np
-import random
-import os
 import argparse
+import os
+import random
+
+import numpy as np
 
 
 def generate(generate_if_exists: bool, copy_dir: str):
@@ -18,31 +19,27 @@ def generate(generate_if_exists: bool, copy_dir: str):
     os.makedirs(slt_dir, exist_ok=True)
     if os.path.exists(sort_path) and os.path.exists(slt_path) and not generate_if_exists:
         print(
-            "File {} and {} already existed exists. Skip Generating.".format(
-                slt_path, sort_path
-            )
+            f"File {slt_path} and {sort_path} already existed exists. Skip Generating."
         )
         return
     with open(sort_path, "w") as sort_file, open(slt_path, "w") as slt_file:
         slt_file.write("statement ok\n")
-        slt_file.write("DROP TABLE IF EXISTS {};\n".format(table_name))
+        slt_file.write(f"DROP TABLE IF EXISTS {table_name};\n")
         slt_file.write("\n")
         slt_file.write("statement ok\n")
         slt_file.write(
-            "CREATE TABLE {} (c1 int, c2 int);\n".format(table_name)
+            f"CREATE TABLE {table_name} (c1 int, c2 int);\n"
         )
         slt_file.write("\n")
         slt_file.write("query I\n")
         slt_file.write(
-            "COPY {} FROM '{}' WITH ( DELIMITER ',', FORMAT CSV );\n".format(
-                table_name, copy_path
-            )
+            f"COPY {table_name} FROM '{copy_path}' WITH ( DELIMITER ',', FORMAT CSV );\n"
         )
         slt_file.write("----\n")
         slt_file.write("\n")
         slt_file.write("query I\n")
         slt_file.write(
-            "SELECT * FROM {} order by c1, c2;\n".format(table_name))
+            f"SELECT * FROM {table_name} order by c1, c2;\n")
         slt_file.write("----\n")
 
         random_integers = np.random.randint(low=1, high=row_n, size=row_n)
@@ -56,7 +53,7 @@ def generate(generate_if_exists: bool, copy_dir: str):
 
         slt_file.write("\n")
         slt_file.write("statement ok\n")
-        slt_file.write("DROP TABLE {};\n".format(table_name))
+        slt_file.write(f"DROP TABLE {table_name};\n")
     random.random()
 
 

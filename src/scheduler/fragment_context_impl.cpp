@@ -1295,7 +1295,9 @@ std::shared_ptr<DataTable> SerialMaterializedFragmentCtx::GetResultInternal() {
         return result_table;
     }
     if (tasks_[0]->sink_state_->Error()) {
-        RecoverableError(tasks_[0]->sink_state_->status_);
+        const char *raw_msg = tasks_[0]->sink_state_->status_.message();
+        Status clean_status(tasks_[0]->sink_state_->status_.code(), std::make_unique<std::string>(GetErrorMsg(raw_msg ? raw_msg : "Unknown error")));
+        RecoverableError(clean_status);
     }
 
     switch (tasks_[0]->sink_state_->state_type()) {
@@ -1364,7 +1366,9 @@ std::shared_ptr<DataTable> ParallelMaterializedFragmentCtx::GetResultInternal() 
     std::shared_ptr<DataTable> result_table = nullptr;
     for (const auto &task : tasks_) {
         if (!task->sink_state_->status_.ok()) {
-            RecoverableError(task->sink_state_->status_);
+            const char *raw_msg = task->sink_state_->status_.message();
+            Status clean_status(task->sink_state_->status_.code(), std::make_unique<std::string>(GetErrorMsg(raw_msg ? raw_msg : "Unknown error")));
+            RecoverableError(clean_status);
         }
     }
     if (tasks_[0]->sink_state_->state_type() == SinkStateType::kSummary) {
@@ -1425,7 +1429,9 @@ std::shared_ptr<DataTable> ParallelStreamFragmentCtx::GetResultInternal() {
     std::shared_ptr<DataTable> result_table = nullptr;
     for (const auto &task : tasks_) {
         if (!task->sink_state_->status_.ok()) {
-            RecoverableError(task->sink_state_->status_);
+            const char *raw_msg = task->sink_state_->status_.message();
+            Status clean_status(task->sink_state_->status_.code(), std::make_unique<std::string>(GetErrorMsg(raw_msg ? raw_msg : "Unknown error")));
+            RecoverableError(clean_status);
         }
     }
     if (tasks_[0]->sink_state_->state_type() == SinkStateType::kSummary) {

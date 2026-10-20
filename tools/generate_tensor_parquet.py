@@ -1,8 +1,9 @@
 import argparse
 import os
+
+import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
-import numpy as np
 
 
 def generate(generate_if_exists: bool, copy_dir: str):
@@ -27,9 +28,7 @@ def generate(generate_if_exists: bool, copy_dir: str):
         and not generate_if_exists
     ):
         print(
-            "File {} and {} already existed. Skip Generating.".format(
-                parquet_path, import_slt_path
-            )
+            f"File {parquet_path} and {import_slt_path} already existed. Skip Generating."
         )
         return
 
@@ -60,11 +59,11 @@ def generate(generate_if_exists: bool, copy_dir: str):
 
         def write_query():
             for row_id in range(row_n):
-                slt_file.write("{} [".format(row_id))
+                slt_file.write(f"{row_id} [")
                 for i in range(len(data[row_id])):
                     slt_file.write("[")
                     for j in range(dim):
-                        slt_file.write("{}".format(data[row_id][i][j]))
+                        slt_file.write(f"{data[row_id][i][j]}")
                         if j != dim - 1:
                             slt_file.write(",")
                     slt_file.write("]")
@@ -74,84 +73,80 @@ def generate(generate_if_exists: bool, copy_dir: str):
             slt_file.write("\n")
 
         slt_file.write("statement ok\n")
-        slt_file.write("DROP TABLE IF EXISTS {};\n".format(table_name))
+        slt_file.write(f"DROP TABLE IF EXISTS {table_name};\n")
         slt_file.write("\n")
 
         slt_file.write("statement ok\n")
         slt_file.write(
-            "CREATE TABLE {} (c1 INT, c2 TENSOR(INT, {}));\n".format(table_name, dim)
+            f"CREATE TABLE {table_name} (c1 INT, c2 TENSOR(INT, {dim}));\n"
         )
         slt_file.write("\n")
 
         slt_file.write("statement ok\n")
         slt_file.write(
-            "COPY {} FROM '{}' WITH (FORMAT PARQUET);\n".format(table_name, copy_path)
+            f"COPY {table_name} FROM '{copy_path}' WITH (FORMAT PARQUET);\n"
         )
         slt_file.write("\n")
 
         slt_file.write("query I\n")
-        slt_file.write("SELECT * FROM {};\n".format(table_name))
+        slt_file.write(f"SELECT * FROM {table_name};\n")
         slt_file.write("----\n")
         write_query()
 
         slt_file.write("statement ok\n")
         slt_file.write(
-            "COPY {} TO '{}' WITH (FORMAT PARQUET);\n".format(table_name, copy_path1)
+            f"COPY {table_name} TO '{copy_path1}' WITH (FORMAT PARQUET);\n"
         )
         slt_file.write("\n")
 
         slt_file.write("statement ok\n")
-        slt_file.write("DROP TABLE IF EXISTS {};\n".format(table_name1))
+        slt_file.write(f"DROP TABLE IF EXISTS {table_name1};\n")
         slt_file.write("\n")
 
         slt_file.write("statement ok\n")
         slt_file.write(
-            "CREATE TABLE {} (c1 INT, c2 TENSOR(INT, {}));\n".format(table_name1, dim)
+            f"CREATE TABLE {table_name1} (c1 INT, c2 TENSOR(INT, {dim}));\n"
         )
         slt_file.write("\n")
 
         slt_file.write("statement ok\n")
         slt_file.write(
-            "COPY {} FROM '{}' WITH (FORMAT PARQUET);\n".format(table_name1, copy_path1)
+            f"COPY {table_name1} FROM '{copy_path1}' WITH (FORMAT PARQUET);\n"
         )
         slt_file.write("\n")
 
         slt_file.write("query II\n")
-        slt_file.write("SELECT * FROM {};\n".format(table_name1))
+        slt_file.write(f"SELECT * FROM {table_name1};\n")
         slt_file.write("----\n")
         write_query()
 
         slt_file.write("statement ok\n")
-        slt_file.write("DROP TABLE {};\n".format(table_name1))
+        slt_file.write(f"DROP TABLE {table_name1};\n")
         slt_file.write("\n")
 
         slt_file.write("statement ok\n")
-        slt_file.write("DROP TABLE {};\n".format(table_name))
+        slt_file.write(f"DROP TABLE {table_name};\n")
         slt_file.write("\n")
 
         # import with incompactible schema
         slt_file.write("statement ok\n")
-        slt_file.write("DROP TABLE IF EXISTS {};\n".format(table_name_err))
+        slt_file.write(f"DROP TABLE IF EXISTS {table_name_err};\n")
         slt_file.write("\n")
 
         slt_file.write("statement ok\n")
         slt_file.write(
-            "CREATE TABLE {} (c1 INT, c2 TENSOR(INT, {}));\n".format(
-                table_name_err, dim + 1
-            )
+            f"CREATE TABLE {table_name_err} (c1 INT, c2 TENSOR(INT, {dim + 1}));\n"
         )
         slt_file.write("\n")
 
         slt_file.write("statement error\n")
         slt_file.write(
-            "COPY {} FROM '{}' WITH (FORMAT PARQUET);\n".format(
-                table_name_err, copy_path
-            )
+            f"COPY {table_name_err} FROM '{copy_path}' WITH (FORMAT PARQUET);\n"
         )
         slt_file.write("\n")
 
         slt_file.write("statement ok\n")
-        slt_file.write("DROP TABLE {};\n".format(table_name_err))
+        slt_file.write(f"DROP TABLE {table_name_err};\n")
         slt_file.write("\n")
 
 

@@ -7,7 +7,7 @@ import time
 python_executable = sys.executable
 
 def python_sdk_test(python_test_dir: str, pytest_mark: str, test_case: str = ""):
-    print("python test path is {}".format(python_test_dir))
+    print(f"python test path is {python_test_dir}")
     # run test
     print(f"start pysdk test with {pytest_mark}")
     args = [
@@ -72,4 +72,4 @@ if __name__ == "__main__":
         sys.exit(-1)
     end = time.time()
     print("Test finished.")
-    print("Time cost: {}s".format(end - start))
+    print(f"Time cost: {end - start}s")

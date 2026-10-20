@@ -130,7 +130,7 @@ SELECT id FROM test_json_index WHERE json_extract_string(meta, '$.author') == 'B
 query T
 SELECT json_extract_string(meta, '$.time') FROM test_json_index WHERE id = 5;
 ----
-"2026-05-27T23:59:59"
+2026-05-27T23:59:59
 
 query I
 SELECT id FROM test_json_index WHERE json_extract_string(meta, '$.author') > 'Bob';
@@ -183,6 +183,13 @@ SELECT id FROM test_json_index WHERE json_exists_path(meta, '$.name');
 ----
 4
 
+query I
+SELECT id FROM test_json_index WHERE json_exists_path(meta, '$.character');
+----
+1
+2
+3
+
 statement ok
 DROP TABLE test_json_index;
 
@@ -234,3 +241,30 @@ DROP INDEX idx_data ON test_json_root_array;
 
 statement ok
 DROP TABLE test_json_root_array;
+
+
+# Test JSON index with long terms
+# Term format: $.key.key...key:i:0000000000000000
+
+statement ok
+DROP TABLE IF EXISTS test_json_long_term;
+
+statement ok
+CREATE TABLE test_json_long_term (
+    id integer,
+    meta json
+);
+
+statement ok
+INSERT INTO test_json_long_term (id, meta) VALUES (1, '{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":{"key":1}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}');
+
+statement ok
+CREATE INDEX idx_meta ON test_json_long_term (meta) USING SECONDARY;
+
+query I
+SELECT id FROM test_json_long_term WHERE json_extract_int(meta, '$.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key.key') = 1;
+----
+1
+
+statement ok
+DROP TABLE test_json_long_term;

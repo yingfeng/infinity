@@ -1,14 +1,13 @@
 import os
-import time
-
-import infinity.index as index
-import pandas
 import random
-from threading import Thread
+import time
+from threading import Lock, Thread
+
+import pandas
+from infinity import index
 from infinity.common import ConflictType
-from infinity.errors import ErrorCode
 from infinity.connection_pool import ConnectionPool
-from threading import Lock
+from infinity.errors import ErrorCode
 
 TEST_DATA_DIR = "/test/data/"
 fulltext_file_path = os.getcwd() + TEST_DATA_DIR + "csv/enwiki_99.csv"

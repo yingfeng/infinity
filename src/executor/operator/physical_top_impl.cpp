@@ -233,6 +233,26 @@ template <OrderType compare_order, BinaryGenerateBoolean T>
 struct PhysicalTopCompareSingleValue {
     static std::strong_ordering
     Compare(const std::shared_ptr<ColumnVector> &left_col, u32 left_id, const std::shared_ptr<ColumnVector> &right_col, u32 right_id) {
+        bool left_null = !left_col->nulls_ptr_->IsTrue(left_id);
+        bool right_null = !right_col->nulls_ptr_->IsTrue(right_id);
+        if (left_null && right_null) {
+            return std::strong_ordering::equal;
+        }
+        if (left_null) {
+            // NULL is treated as the smallest value: ASC first, DESC last
+            if constexpr (compare_order == OrderType::kAsc) {
+                return std::strong_ordering::less;
+            } else {
+                return std::strong_ordering::greater;
+            }
+        }
+        if (right_null) {
+            if constexpr (compare_order == OrderType::kAsc) {
+                return std::strong_ordering::greater;
+            } else {
+                return std::strong_ordering::less;
+            }
+        }
         auto compare_prefer_left = [](const T &x, const T &y) -> bool {
             if constexpr (compare_order == OrderType::kAsc) {
                 return x < y;
@@ -263,6 +283,26 @@ template <OrderType compare_order, BinaryGenerateBoolean T>
 struct PhysicalTopCompareSingleValue<compare_order, T> {
     static std::strong_ordering
     Compare(const std::shared_ptr<ColumnVector> &left_col, u32 left_id, const std::shared_ptr<ColumnVector> &right_col, u32 right_id) {
+        bool left_null = !left_col->nulls_ptr_->IsTrue(left_id);
+        bool right_null = !right_col->nulls_ptr_->IsTrue(right_id);
+        if (left_null && right_null) {
+            return std::strong_ordering::equal;
+        }
+        if (left_null) {
+            // NULL is treated as the smallest value: ASC first, DESC last
+            if constexpr (compare_order == OrderType::kAsc) {
+                return std::strong_ordering::less;
+            } else {
+                return std::strong_ordering::greater;
+            }
+        }
+        if (right_null) {
+            if constexpr (compare_order == OrderType::kAsc) {
+                return std::strong_ordering::greater;
+            } else {
+                return std::strong_ordering::less;
+            }
+        }
         auto left = (reinterpret_cast<T *>(left_col->data()))[left_id];
         auto right = (reinterpret_cast<T *>(right_col->data()))[right_id];
         if constexpr (compare_order == OrderType::kAsc) {
@@ -279,6 +319,26 @@ template <OrderType compare_order, BinaryGenerateBoolean T>
 struct PhysicalTopCompareSingleValue<compare_order, T> {
     static std::strong_ordering
     Compare(const std::shared_ptr<ColumnVector> &left_col, u32 left_id, const std::shared_ptr<ColumnVector> &right_col, u32 right_id) {
+        bool left_null = !left_col->nulls_ptr_->IsTrue(left_id);
+        bool right_null = !right_col->nulls_ptr_->IsTrue(right_id);
+        if (left_null && right_null) {
+            return std::strong_ordering::equal;
+        }
+        if (left_null) {
+            // NULL is treated as the smallest value: ASC first, DESC last
+            if constexpr (compare_order == OrderType::kAsc) {
+                return std::strong_ordering::less;
+            } else {
+                return std::strong_ordering::greater;
+            }
+        }
+        if (right_null) {
+            if constexpr (compare_order == OrderType::kAsc) {
+                return std::strong_ordering::greater;
+            } else {
+                return std::strong_ordering::less;
+            }
+        }
         ColumnValueReader<T> left(left_col);
         ColumnValueReader<T> right(right_col);
         if constexpr (compare_order == OrderType::kAsc) {

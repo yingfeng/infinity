@@ -1,18 +1,20 @@
+import json
+import logging
+import multiprocessing
+import os
+import random
+import subprocess
 import sys
+import threading
+import time
 from abc import abstractmethod
 from typing import Any
-import subprocess
-import os
-import time
-import logging
-import random
-import json
+
 import h5py
 import numpy as np
-import threading
-import multiprocessing
 
-from .utils import csr_read_all, gt_read_all, calculate_recall
+from .utils import calculate_recall, csr_read_all, gt_read_all
+
 
 class BaseClient:
     """
@@ -49,7 +51,6 @@ class BaseClient:
         """
         Upload data and build indexes (parameters are parsed by __init__).
         """
-        pass
 
     @abstractmethod
     def setup_clients(self, num_workers=1):
@@ -209,8 +210,7 @@ class BaseClient:
                     self.mt_done_queries += end - begin
                     begin = self.mt_next_begin
                     end = begin + self.mt_query_batch
-                    if end > num_queries:
-                        end = num_queries
+                    end = min(end, num_queries)
                     self.mt_next_begin = end
                 for query_id in range(begin, end):
                     start = time.time()
@@ -345,8 +345,7 @@ class BaseClient:
                     self.mp_done_queries.value += end - begin
                     begin = self.mp_next_begin.value
                     end = begin + self.mp_query_batch.value
-                    if end > num_queries:
-                        end = num_queries
+                    end = min(end, num_queries)
                     self.mp_next_begin.value = end
                 for query_id in range(begin, end):
                     start = time.time()
@@ -371,7 +370,7 @@ class BaseClient:
                 for result in results:
                     line = json.dumps(result)
                     f.write(line + "\n")
-            logging.info("query_result_path: {0}".format(result_path))
+            logging.info(f"query_result_path: {result_path}")
         latencies = []
         for result in results:
             latencies.append(result[0][1])

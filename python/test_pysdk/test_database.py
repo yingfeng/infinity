@@ -1,11 +1,12 @@
 import threading
+
+import infinity
 import pytest
 from infinity.common import ConflictType, InfinityException
-from common import common_values
-import infinity
 from infinity.errors import ErrorCode
-
 from infinity.infinity_http import infinity_http
+
+from common import common_values
 
 
 @pytest.fixture(scope="class")

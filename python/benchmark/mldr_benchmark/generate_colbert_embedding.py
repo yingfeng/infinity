@@ -9,10 +9,17 @@ python generate_colbert_embedding.py \
 --fp16 True \
 """
 import os
-import datasets
 from dataclasses import dataclass, field
+
+import datasets
+from mldr_common_tools import (
+    EvalArgs,
+    check_languages,
+    get_colbert_model,
+    load_corpus,
+    save_colbert_list,
+)
 from transformers import HfArgumentParser
-from mldr_common_tools import EvalArgs, check_languages, load_corpus, get_colbert_model, save_colbert_list
 
 
 @dataclass

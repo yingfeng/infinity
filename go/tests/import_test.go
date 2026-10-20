@@ -998,11 +998,18 @@ func TestTableWithNotMatchedColumns(t *testing.T) {
 				t.Fatalf("Test data file does not exist: %s", filePath)
 			}
 
+			// CSV has 2 columns. When the table has fewer columns than the CSV
+			// (extra CSV columns), the import raises. When the table has more
+			// columns than the CSV, the missing columns fill with NULL (no error).
 			_, err = table.ImportData(filePath, infinity.NewImportOption())
-			if err == nil {
-				t.Error("Expected error for column count mismatch, but got nil")
-			} else {
-				t.Logf("Got expected error: %v", err)
+			if len(schema) < 2 {
+				if err == nil {
+					t.Error("Expected error for column count mismatch, but got nil")
+				} else {
+					t.Logf("Got expected error: %v", err)
+				}
+			} else if err != nil {
+				t.Errorf("Expected import to succeed by filling NULL for missing columns, got error: %v", err)
 			}
 
 			result, err := table.Output([]string{"*"}).ToResult()

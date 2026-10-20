@@ -1,12 +1,14 @@
 import os
-import pytest
-from common import common_values
-import infinity
-from infinity.errors import ErrorCode
-from infinity.common import ConflictType
 
+import infinity
+import pytest
 from common.utils import copy_data, read_fvecs_file
+from infinity.common import ConflictType
+from infinity.errors import ErrorCode
 from infinity.infinity_http import infinity_http
+
+from common import common_values
+
 
 @pytest.fixture(scope="class")
 def http(request):

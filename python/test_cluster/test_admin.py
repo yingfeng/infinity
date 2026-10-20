@@ -1,6 +1,6 @@
 import pytest
-from infinity_cluster import InfinityCluster
 from infinity.common import InfinityException
+from infinity_cluster import InfinityCluster
 
 
 def test_admin(cluster: InfinityCluster):

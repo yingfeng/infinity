@@ -8,13 +8,14 @@ import traceback
 
 from pymilvus import MilvusClient
 
+
 def fvecs_read_all(filename):
     vectors = []
     with open(filename, 'rb') as f:
         while True:
             try:
                 dims = struct.unpack('i', f.read(4))[0]
-                vec = struct.unpack('{}f'.format(dims), f.read(4 * dims))
+                vec = struct.unpack(f'{dims}f', f.read(4 * dims))
                 assert dims == len(vec)
                 vectors.append(list(vec))
             except struct.error:
@@ -28,7 +29,7 @@ def read_groundtruth(filename):
         while True:
             try:
                 dims = struct.unpack('i', f.read(4))[0]
-                vec = struct.unpack('{}i'.format(dims), f.read(4 * dims))
+                vec = struct.unpack(f'{dims}i', f.read(4 * dims))
                 assert dims == len(vec)
                 vectors.append(list(vec))
             except struct.error:
@@ -115,7 +116,7 @@ def fvecs_read(filename):
         while True:
             try:
                 dims = struct.unpack('i', f.read(4))[0]
-                vec = struct.unpack('{}f'.format(dims), f.read(4 * dims))
+                vec = struct.unpack(f'{dims}f', f.read(4 * dims))
                 assert dims == len(vec)
                 yield list(vec)
             except struct.error:

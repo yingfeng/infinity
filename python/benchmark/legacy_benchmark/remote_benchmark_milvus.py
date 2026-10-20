@@ -1,10 +1,9 @@
 import argparse
+import multiprocessing
 import os
 import time
-import multiprocessing
 
 from pymilvus import MilvusClient
-
 from utils import csr_read_all, gt_read_all
 
 

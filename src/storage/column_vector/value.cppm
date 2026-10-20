@@ -368,6 +368,10 @@ public:
 
     [[nodiscard]] const DataType &type() const { return type_; }
 
+    // A value is NULL when it carries the kNull/kMissing logical type, or when a
+    // value-carrying type (e.g. kVarchar/json) has no backing ExtraValueInfo.
+    [[nodiscard]] bool IsNull() const;
+
     [[nodiscard]] std::string ToString() const;
     [[nodiscard]] uint64_t Hash() const;
 

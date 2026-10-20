@@ -24,7 +24,7 @@ def fix_python_import_path(filename: str):
     with open(filename, "r") as file:
         lines = file.readlines()
 
-    for i in range(7 if len(lines) >= 7 else len(lines)):
+    for i in range(min(7, len(lines))):
         line = lines[i]
         words = line.split()
         if len(words) == 4 and words[0] == "import":

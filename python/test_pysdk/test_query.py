@@ -1,14 +1,16 @@
-import pytest
-from common import common_values
 import infinity
-import infinity.index as index
+import pytest
+from infinity import index
+from infinity.common import ConflictType
 from infinity.errors import ErrorCode
+from infinity.infinity_http import infinity_http
 from infinity.remote_thrift.client import ThriftInfinityClient
 from infinity.remote_thrift.db import RemoteDatabase
 from infinity.remote_thrift.query_builder import InfinityThriftQueryBuilder
 from infinity.remote_thrift.table import RemoteTable
-from infinity.common import ConflictType
-from infinity.infinity_http import infinity_http
+
+from common import common_values
+
 
 @pytest.fixture(scope="class")
 def http(request):

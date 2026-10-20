@@ -1,21 +1,20 @@
 import json
 import logging
+import os
 import platform
 import shutil
 import subprocess
 
 import tomli
 import tomli_w
+from infinity.common import InfinityException
+from infinity.errors import ErrorCode
+from infinity.infinity_http import http_network_util, infinity_http
 from infinity_cluster import (
-    InfinityRunner,
     InfinityCluster,
+    InfinityRunner,
     convert_request_to_curl,
 )
-import os
-from infinity.errors import ErrorCode
-from infinity.common import InfinityException
-
-from infinity.infinity_http import http_network_util, infinity_http
 
 
 class http_result:

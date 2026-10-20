@@ -25,13 +25,13 @@ Usage:
     python benchmark_plaid_index.py [--docs N] [--dim D] [--tokens T] [--query Q]
 """
 
+import argparse
+import time
+
 import infinity
 import infinity.common
 import infinity.index
 import numpy as np
-import time
-import argparse
-from typing import Tuple
 
 
 class PlaidBenchmark:
@@ -169,7 +169,7 @@ class PlaidBenchmark:
         
         return elapsed
         
-    def benchmark_queries(self, n_queries: int, n_tokens_per_query: int, topn: int = 10) -> Tuple[float, float]:
+    def benchmark_queries(self, n_queries: int, n_tokens_per_query: int, topn: int = 10) -> tuple[float, float]:
         """
         Benchmark query performance.
         

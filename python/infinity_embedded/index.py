@@ -15,9 +15,9 @@
 from enum import Enum
 
 from infinity_embedded.common import InfinityException
-
-from infinity_embedded.embedded_infinity_ext import IndexType as LocalIndexType, WrapIndexInfo
+from infinity_embedded.embedded_infinity_ext import IndexType as LocalIndexType
 from infinity_embedded.embedded_infinity_ext import InitParameter as LocalInitParameter
+from infinity_embedded.embedded_infinity_ext import WrapIndexInfo
 from infinity_embedded.errors import ErrorCode
 
 

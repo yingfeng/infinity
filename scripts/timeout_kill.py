@@ -1,9 +1,9 @@
 import logging
-from subprocess import Popen, TimeoutExpired
-import sys
-import time
 import os
 import signal
+import sys
+import time
+from subprocess import Popen, TimeoutExpired
 
 
 def timeout_kill_pids(duration: int, pids: list[int]):
@@ -62,7 +62,7 @@ def timeout_kill(timeout: int, process: Popen[bytes], logger: logging.Logger = N
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: {} <duration_in_seconds> [pids]".format(sys.argv[0]))
+        print(f"Usage: {sys.argv[0]} <duration_in_seconds> [pids]")
         sys.exit(1)
     duration = int(sys.argv[1])
     pids = [int(pid) for pid in sys.argv[2:]]

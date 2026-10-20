@@ -1,9 +1,10 @@
 import pytest
-from infinity_runner import InfinityRunner, infinity_runner_decorator_factory
-from common import common_values
-from restart_util import LChYDataGenerato
 from infinity import index
 from infinity.common import ConflictType
+from infinity_runner import InfinityRunner, infinity_runner_decorator_factory
+from restart_util import LChYDataGenerato
+
+from common import common_values
 
 
 class TestCompact:

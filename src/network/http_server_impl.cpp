@@ -964,6 +964,12 @@ public:
                             insert_one_row->values_.emplace_back(std::move(const_expr));
                             break;
                         }
+                        case simdjson::json_type::null: {
+                            // Generate constant expression for NULL
+                            auto const_expr = std::make_unique<ConstantExpr>(LiteralType::kNull);
+                            insert_one_row->values_.emplace_back(std::move(const_expr));
+                            break;
+                        }
                         case simdjson::json_type::number: {
                             switch (value.get_number_type()) {
                                 case simdjson::number_type::signed_integer: {
@@ -1523,6 +1529,12 @@ public:
                         infinity::ConstantExpr *const_expr = new ConstantExpr(LiteralType::kString);
                         std::string str_value(value.get<std::string_view>().value());
                         const_expr->str_value_ = strdup(str_value.c_str());
+                        update_expr->value = const_expr;
+                        const_expr = nullptr;
+                        break;
+                    }
+                    case simdjson::json_type::null: {
+                        infinity::ConstantExpr *const_expr = new ConstantExpr(LiteralType::kNull);
                         update_expr->value = const_expr;
                         const_expr = nullptr;
                         break;

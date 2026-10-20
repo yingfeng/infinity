@@ -1,11 +1,13 @@
+import pathlib
+import time
+
 import infinity
 import pytest
-from common import common_values
-from infinity_runner import InfinityRunner, infinity_runner_decorator_factory
 from infinity import index
-import time
-import pathlib
 from infinity.common import ConflictType, SparseVector
+from infinity_runner import InfinityRunner, infinity_runner_decorator_factory
+
+from common import common_values
 
 
 class TestMemIdx:

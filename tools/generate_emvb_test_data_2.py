@@ -1,5 +1,5 @@
-import os
 import argparse
+import os
 import random
 
 
@@ -23,7 +23,7 @@ def generate(generate_if_exists: bool, copy_dir: str):
     os.makedirs(csv_dir, exist_ok=True)
     os.makedirs(slt_dir, exist_ok=True)
     if os.path.exists(csv_path) and os.path.exists(slt_path) and not generate_if_exists:
-        print("File {} and {} already existed exists. Skip Generating.".format(slt_path, csv_path))
+        print(f"File {slt_path} and {csv_path} already existed exists. Skip Generating.")
         return
     with (open(csv_path, "w") as top_csv_file, open(slt_path, "w") as top_slt_file):
         for i in range(row_n):
@@ -36,29 +36,26 @@ def generate(generate_if_exists: bool, copy_dir: str):
                 ttt[0] = i
                 ttt[1] = i
                 t.append(ttt)
-            top_csv_file.write('{},"{}"\n'.format(i, t))
+            top_csv_file.write(f'{i},"{t}"\n')
 
         top_slt_file.write("statement ok\n")
-        top_slt_file.write("DROP TABLE IF EXISTS {};\n".format(table_name))
+        top_slt_file.write(f"DROP TABLE IF EXISTS {table_name};\n")
         top_slt_file.write("\n")
         top_slt_file.write("statement ok\n")
-        top_slt_file.write("CREATE TABLE {} (c1 integer, c2 TENSOR(FLOAT, {}));\n".format(table_name, fix_dim))
+        top_slt_file.write(f"CREATE TABLE {table_name} (c1 integer, c2 TENSOR(FLOAT, {fix_dim}));\n")
         top_slt_file.write("\n")
         top_slt_file.write("statement ok\n")
-        top_slt_file.write("COPY {} FROM '{}' WITH ( DELIMITER ',', FORMAT CSV );\n".format(table_name, copy_path))
+        top_slt_file.write(f"COPY {table_name} FROM '{copy_path}' WITH ( DELIMITER ',', FORMAT CSV );\n")
         top_slt_file.write("\nstatement ok\n")
         top_slt_file.write(
-            "CREATE INDEX idx1 ON {} (c2) USING EMVB WITH (pq_subspace_num = {}, pq_subspace_bits = {});\n".format(
-                table_name, pq_subspace_num, pq_subspace_bits))
+            f"CREATE INDEX idx1 ON {table_name} (c2) USING EMVB WITH (pq_subspace_num = {pq_subspace_num}, pq_subspace_bits = {pq_subspace_bits});\n")
         query_vec = [0] * fix_dim
         query_vec[0] = 1
         query_vec[1] = 1
         top_slt_file.write("\n# test index search")
         top_slt_file.write("\nstatement ok\n")
         top_slt_file.write(
-            "SELECT c1 FROM {} SEARCH MATCH TENSOR (c2, {}, 'float', 'maxsim', 'topn={}');\n".format(table_name,
-                                                                                                     query_vec,
-                                                                                                     len(expect_find_row)))
+            f"SELECT c1 FROM {table_name} SEARCH MATCH TENSOR (c2, {query_vec}, 'float', 'maxsim', 'topn={len(expect_find_row)}');\n")
         # top_slt_file.write("----\n")
         # for i in sorted(expect_find_row, reverse=True):
         #     top_slt_file.write("{}\n".format(i))
@@ -68,17 +65,15 @@ def generate(generate_if_exists: bool, copy_dir: str):
         insert_vec[0] = row_n
         insert_vec[1] = row_n
         top_slt_file.write("\nstatement ok\n")
-        top_slt_file.write("INSERT INTO {} VALUES ({}, {});\n".format(table_name, row_n, insert_vec))
+        top_slt_file.write(f"INSERT INTO {table_name} VALUES ({row_n}, {insert_vec});\n")
         top_slt_file.write("\nquery I\n")
         top_slt_file.write(
-            "SELECT c1 FROM {} SEARCH MATCH TENSOR (c2, {}, 'float', 'maxsim', 'topn={}');\n".format(table_name,
-                                                                                                     query_vec,
-                                                                                                     1))
+            f"SELECT c1 FROM {table_name} SEARCH MATCH TENSOR (c2, {query_vec}, 'float', 'maxsim', 'topn={1}');\n")
         top_slt_file.write("----\n")
-        top_slt_file.write("{}\n".format(row_n))
+        top_slt_file.write(f"{row_n}\n")
 
         top_slt_file.write("\nstatement ok\n")
-        top_slt_file.write("DROP TABLE {};\n".format(table_name))
+        top_slt_file.write(f"DROP TABLE {table_name};\n")
 
 
 if __name__ == "__main__":

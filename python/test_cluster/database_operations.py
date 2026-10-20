@@ -1,18 +1,17 @@
 import time
 
 import infinity_http
-from numpy import dtype
 import pandas as pd
 from infinity.common import ConflictType, InfinityException
 from infinity.errors import ErrorCode
-from typing import Dict, Set, Tuple
+from numpy import dtype
 
 
 class instance_state:
     def __init__(self, client: infinity_http.infinity_http = None):
-        self.db2tables: Dict[str, Set[str]] = {"default_db": set()}
-        self.dbtable2index: Dict[Tuple[str, str], Set[str]] = {}
-        self.dbtable2df: Dict[Tuple[str, str], pd.DataFrame] = {}
+        self.db2tables: dict[str, set[str]] = {"default_db": set()}
+        self.dbtable2index: dict[tuple[str, str], set[str]] = {}
+        self.dbtable2df: dict[tuple[str, str], pd.DataFrame] = {}
 
         if client is not None:
             databases = client.list_databases().db_names
@@ -191,7 +190,6 @@ def do_some_operations_cluster(leader_client: infinity_http.infinity_http, other
     time.sleep(1)
     for client in other_clients:
         table_create_insert_delete_modify_verify(client, leader_state)
-    return
 
 
 def table_create_insert_delete_modify_verify(client: infinity_http.infinity_http, leader_state: instance_state):
@@ -206,7 +204,7 @@ def table_create_insert_delete_modify(client: infinity_http.infinity_http, leade
     # print("got the exsiting table_df")
     # print(table_df)
 
-    for i in range(0, 10):
+    for i in range(10):
         table.insert([{"c1": i, "c2": [1.0, 2.0, 3.0, 4.0]}])
         df_to_insert = pd.DataFrame(
             {

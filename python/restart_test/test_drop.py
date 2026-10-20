@@ -1,8 +1,10 @@
-import pytest
-from common import common_values
-from infinity_runner import InfinityRunner, infinity_runner_decorator_factory
 import time
+
+import pytest
 from infinity.errors import ErrorCode
+from infinity_runner import InfinityRunner, infinity_runner_decorator_factory
+
+from common import common_values
 
 
 class TestDrop:

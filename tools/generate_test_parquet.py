@@ -1,5 +1,6 @@
 import argparse
 import os
+
 import pyarrow as pa
 import pyarrow.parquet as pq
 from generate_util.format_data import sparse_format_float
@@ -27,9 +28,7 @@ def generate(generate_if_exist: bool, copy_dir: str):
         and not generate_if_exist
     ):
         print(
-            "File {} and {} already existed. Skip Generating.".format(
-                parquet_path, import_slt_path
-            )
+            f"File {parquet_path} and {import_slt_path} already existed. Skip Generating."
         )
         return
 
@@ -54,25 +53,23 @@ def generate(generate_if_exist: bool, copy_dir: str):
 
     with open(import_slt_path, "w") as slt_file:
         slt_file.write("statement ok\n")
-        slt_file.write("DROP TABLE IF EXISTS {};\n".format(table_name))
+        slt_file.write(f"DROP TABLE IF EXISTS {table_name};\n")
         slt_file.write("\n")
 
         slt_file.write("statement ok\n")
         slt_file.write(
-            "CREATE TABLE {} (col1 Boolean, col2 TINYINT, col3 BIGINT, col4 FLOAT);\n".format(
-                table_name
-            )
+            f"CREATE TABLE {table_name} (col1 Boolean, col2 TINYINT, col3 BIGINT, col4 FLOAT);\n"
         )
         slt_file.write("\n")
 
         slt_file.write("statement ok\n")
         slt_file.write(
-            "COPY {} FROM '{}' WITH (FORMAT PARQUET);\n".format(table_name, copy_path)
+            f"COPY {table_name} FROM '{copy_path}' WITH (FORMAT PARQUET);\n"
         )
         slt_file.write("\n")
 
         slt_file.write("query I\n")
-        slt_file.write("SELECT * FROM {};\n".format(table_name))
+        slt_file.write(f"SELECT * FROM {table_name};\n")
         slt_file.write("----\n")
         for i in range(row_n):
             slt_file.write(
@@ -87,30 +84,28 @@ def generate(generate_if_exist: bool, copy_dir: str):
 
         slt_file.write("statement ok\n")
         slt_file.write(
-            "COPY {} TO '{}' WITH (FORMAT PARQUET);\n".format(table_name, copy_path1)
+            f"COPY {table_name} TO '{copy_path1}' WITH (FORMAT PARQUET);\n"
         )
         slt_file.write("\n")
 
         slt_file.write("statement ok\n")
-        slt_file.write("DROP TABLE IF EXISTS {};\n".format(table_name1))
+        slt_file.write(f"DROP TABLE IF EXISTS {table_name1};\n")
         slt_file.write("\n")
 
         slt_file.write("statement ok\n")
         slt_file.write(
-            "CREATE TABLE {} (col1 Boolean, col2 TINYINT, col3 BIGINT, col4 FLOAT);\n".format(
-                table_name1
-            )
+            f"CREATE TABLE {table_name1} (col1 Boolean, col2 TINYINT, col3 BIGINT, col4 FLOAT);\n"
         )
         slt_file.write("\n")
 
         slt_file.write("statement ok\n")
         slt_file.write(
-            "COPY {} FROM '{}' WITH (FORMAT PARQUET);\n".format(table_name1, copy_path1)
+            f"COPY {table_name1} FROM '{copy_path1}' WITH (FORMAT PARQUET);\n"
         )
         slt_file.write("\n")
 
         slt_file.write("query I\n")
-        slt_file.write("SELECT * FROM {};\n".format(table_name1))
+        slt_file.write(f"SELECT * FROM {table_name1};\n")
         slt_file.write("----\n")
         for i in range(row_n):
             slt_file.write(
@@ -124,16 +119,16 @@ def generate(generate_if_exist: bool, copy_dir: str):
         slt_file.write("\n")
 
         slt_file.write("statement ok\n")
-        slt_file.write("DROP TABLE {};\n".format(table_name1))
+        slt_file.write(f"DROP TABLE {table_name1};\n")
         slt_file.write("\n")
 
         slt_file.write("statement ok\n")
-        slt_file.write("DROP TABLE {};\n".format(table_name))
+        slt_file.write(f"DROP TABLE {table_name};\n")
         slt_file.write("\n")
 
         # import with incompatible schema
         slt_file.write("statement ok\n")
-        slt_file.write("DROP TABLE IF EXISTS {};\n".format(table_name_err))
+        slt_file.write(f"DROP TABLE IF EXISTS {table_name_err};\n")
         slt_file.write("\n")
 
         slt_file.write("statement ok\n")
@@ -144,14 +139,12 @@ def generate(generate_if_exist: bool, copy_dir: str):
 
         slt_file.write("statement error\n")
         slt_file.write(
-            "COPY {} FROM '{}' WITH (FORMAT PARQUET);\n".format(
-                table_name_err, copy_path
-            )
+            f"COPY {table_name_err} FROM '{copy_path}' WITH (FORMAT PARQUET);\n"
         )
         slt_file.write("\n")
 
         slt_file.write("statement ok\n")
-        slt_file.write("DROP TABLE {};\n".format(table_name_err))
+        slt_file.write(f"DROP TABLE {table_name_err};\n")
         slt_file.write("\n")
 
 

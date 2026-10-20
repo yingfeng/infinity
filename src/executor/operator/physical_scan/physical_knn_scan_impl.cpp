@@ -577,6 +577,13 @@ void PhysicalKnnScan::ExecuteInternalByColumnDataTypeAndQueryDataType(QueryConte
                 if (!status.ok()) {
                     UnrecoverableError(status.message());
                 }
+                if (column_vector.nulls_ptr_) {
+                    for (BlockOffset i = 0; i < row_count; ++i) {
+                        if (!column_vector.nulls_ptr_->IsTrue(i)) {
+                            bitmask.SetFalse(i);
+                        }
+                    }
+                }
                 BruteForceBlockScan<t, ColumnDataType, C, DistanceDataType>::Execute(merge_heap,
                                                                                      dist_func,
                                                                                      knn_query_ptr,

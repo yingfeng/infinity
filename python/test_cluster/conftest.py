@@ -1,7 +1,7 @@
+import logging
+
 from infinity_cluster import InfinityCluster
 from mocked_infinity_cluster import MockInfinityCluster
-
-import logging
 
 
 def pytest_configure():

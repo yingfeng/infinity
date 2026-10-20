@@ -2637,6 +2637,17 @@ admin_statement: ADMIN SHOW CATALOG LONG_VALUE LONG_VALUE DATABASES {
      free($4->table_name_ptr_);
      delete $4;
 }
+| ADMIN SHOW TABLE table_name COLUMNS {
+     $$ = new infinity::AdminStatement();
+     $$->admin_type_ = infinity::AdminStmtType::kListColumns;
+     if($4->schema_name_ptr_ != nullptr) {
+         $$->schema_name_ = $4->schema_name_ptr_;
+         free($4->schema_name_ptr_);
+     }
+     $$->table_name_ = $4->table_name_ptr_;
+     free($4->table_name_ptr_);
+     delete $4;
+}
 | ADMIN SHOW TABLE table_name SEGMENT LONG_VALUE {
      $$ = new infinity::AdminStatement();
      $$->admin_type_ = infinity::AdminStmtType::kShowSegment;
@@ -2674,20 +2685,7 @@ admin_statement: ADMIN SHOW CATALOG LONG_VALUE LONG_VALUE DATABASES {
      $$->segment_index_ = $6;
      $$->block_index_ = $8;
 }
-| ADMIN SHOW TABLE table_name SEGMENT LONG_VALUE BLOCK LONG_VALUE COLUMNS {
-     $$ = new infinity::AdminStatement();
-     $$->admin_type_ = infinity::AdminStmtType::kListColumns;
-     if($4->schema_name_ptr_ != nullptr) {
-         $$->schema_name_ = $4->schema_name_ptr_;
-         free($4->schema_name_ptr_);
-     }
-     $$->table_name_ = $4->table_name_ptr_;
-     free($4->table_name_ptr_);
-     delete $4;
-     $$->segment_index_ = $6;
-     $$->block_index_ = $8;
-}
-| ADMIN SHOW TABLE table_name SEGMENT LONG_VALUE BLOCK LONG_VALUE COLUMN LONG_VALUE {
+| ADMIN SHOW TABLE table_name COLUMN LONG_VALUE {
      $$ = new infinity::AdminStatement();
      $$->admin_type_ = infinity::AdminStmtType::kShowColumn;
      if($4->schema_name_ptr_ != nullptr) {
@@ -2697,9 +2695,7 @@ admin_statement: ADMIN SHOW CATALOG LONG_VALUE LONG_VALUE DATABASES {
      $$->table_name_ = $4->table_name_ptr_;
      free($4->table_name_ptr_);
      delete $4;
-     $$->segment_index_ = $6;
-     $$->block_index_ = $8;
-     $$->column_index_ = $10;
+     $$->column_index_ = $6;
 }
 | ADMIN SHOW TABLE table_name INDEXES {
      $$ = new infinity::AdminStatement();
@@ -3920,6 +3916,10 @@ constant_expr: STRING {
 | FALSE {
     infinity::ConstantExpr* const_expr = new infinity::ConstantExpr(infinity::LiteralType::kBoolean);
     const_expr->bool_value_ = false;
+    $$ = const_expr;
+}
+| NULLABLE {
+    infinity::ConstantExpr* const_expr = new infinity::ConstantExpr(infinity::LiteralType::kNull);
     $$ = const_expr;
 }
 | DOUBLE_VALUE {

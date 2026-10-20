@@ -1,7 +1,7 @@
 # generate 'test/sql/dml/mem_index/insert_with_hnsw_index_big.slt' and 'test/data/csv/insert_with_hnsw_index_big.csv'
 
-import os
 import argparse
+import os
 import random
 
 
@@ -18,7 +18,7 @@ def generate(generate_if_exist: bool, copy_dir: str):
 
     csv_dir = "./test/data/csv"
     slt_dir = "./test/sql/dml/mem_index"
-    slt_name = "/{}.slt".format(table_name)
+    slt_name = f"/{table_name}.slt"
 
     slt_path = slt_dir + slt_name
 
@@ -26,34 +26,30 @@ def generate(generate_if_exist: bool, copy_dir: str):
     os.makedirs(slt_dir, exist_ok=True)
 
     if os.path.exists(slt_path) and not generate_if_exist:
-        print("File {}  already existed. Skip Generating.".format(slt_path))
+        print(f"File {slt_path}  already existed. Skip Generating.")
         return
 
     with open(slt_path, "w") as slt_file:
         slt_file.write("statement ok\n")
-        slt_file.write("DROP TABLE IF EXISTS {};\n".format(table_name))
+        slt_file.write(f"DROP TABLE IF EXISTS {table_name};\n")
         slt_file.write("\n")
 
         slt_file.write("statement ok\n")
         slt_file.write(
-            "CREATE TABLE {} (c1 INTEGER, c2 EMBEDDING(FLOAT, {}));\n".format(
-                table_name, dim
-            )
+            f"CREATE TABLE {table_name} (c1 INTEGER, c2 EMBEDDING(FLOAT, {dim}));\n"
         )
         slt_file.write("\n")
 
         slt_file.write("statement ok\n")
         slt_file.write(
-            "CREATE INDEX {} ON {}(c2) USING Hnsw WITH (M = {}, ef_construction = {}, metric = {});\n".format(
-                index_name, table_name, M, ef_construction, metric
-            )
+            f"CREATE INDEX {index_name} ON {table_name}(c2) USING Hnsw WITH (M = {M}, ef_construction = {ef_construction}, metric = {metric});\n"
         )
         slt_file.write("\n")
 
         row_id = 0
         for i in range(insert_n):
             slt_file.write("statement ok\n")
-            slt_file.write("INSERT INTO {} VALUES".format(table_name))
+            slt_file.write(f"INSERT INTO {table_name} VALUES")
             for j in range(batch_n):
                 slt_file.write(
                     " ({}, [{}])".format(
@@ -80,11 +76,11 @@ def generate(generate_if_exist: bool, copy_dir: str):
                 )
             )
             slt_file.write("----\n")
-            slt_file.write("{}\n".format(row_id))
+            slt_file.write(f"{row_id}\n")
             slt_file.write("\n")
 
         slt_file.write("statement ok\n")
-        slt_file.write("DROP TABLE {};\n".format(table_name))
+        slt_file.write(f"DROP TABLE {table_name};\n")
         slt_file.write("\n")
 
 

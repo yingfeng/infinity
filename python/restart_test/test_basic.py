@@ -1,7 +1,8 @@
-from infinity_runner import InfinityRunner, infinity_runner_decorator_factory
-from common import common_values
 from infinity.common import ConflictType
 from infinity.errors import ErrorCode
+from infinity_runner import InfinityRunner, infinity_runner_decorator_factory
+
+from common import common_values
 
 
 def test_0(infinity_runner: InfinityRunner):

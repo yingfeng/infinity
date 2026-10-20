@@ -16,8 +16,9 @@
 This example is to connect local infinity instance, create table, insert data, search the data
 '''
 
-import infinity
 import sys
+
+import infinity
 
 try:
     # Use infinity_embedded module to open a local directory

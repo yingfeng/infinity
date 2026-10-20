@@ -24,7 +24,7 @@ import (
 
 // ClientVersion is the version of this Go SDK client
 // This should match the protocol version expected by the server
-const ClientVersion = 36 // version: 0.7.0
+const ClientVersion = 37 // version: 0.7.4
 
 // Connect creates a new connection to Infinity
 // This is a factory function that creates the appropriate connection type based on the URI
@@ -40,7 +40,7 @@ const ClientVersion = 36 // version: 0.7.0
 func Connect(uri URI) (*InfinityConnection, error) {
 	switch u := uri.(type) {
 	case NetworkAddress:
-		return NewInfinityConnection(u)
+		return NewInfinityConnectionWithConfig(u, &thrift.TConfiguration{})
 	default:
 		return nil, NewInfinityException(
 			int(ErrorCodeInvalidServerAddress),
@@ -61,15 +61,24 @@ type InfinityConnection struct {
 
 // NewInfinityConnection creates a new connection to Infinity server
 func NewInfinityConnection(address NetworkAddress) (*InfinityConnection, error) {
+	return NewInfinityConnectionWithConfig(address, &thrift.TConfiguration{})
+}
+
+// NewInfinityConnectionWithConfig creates a new connection to Infinity server with a custom thrift configuration.
+func NewInfinityConnectionWithConfig(address NetworkAddress, conf *thrift.TConfiguration) (*InfinityConnection, error) {
+	if conf == nil {
+		conf = &thrift.TConfiguration{}
+	}
+
 	// Create thrift transport
 	// Use TBufferedTransport for sync communication (matching Python's TBufferedTransport)
-	transport := thrift.NewTSocketConf(fmt.Sprintf("%s:%d", address.IP, address.Port), &thrift.TConfiguration{})
+	transport := thrift.NewTSocketConf(fmt.Sprintf("%s:%d", address.IP, address.Port), conf)
 
 	// Use buffered transport
 	bufferedTransport := thrift.NewTBufferedTransport(transport, 8192)
 
 	// Create binary protocol (matching Python's TBinaryProtocol)
-	protocolFactory := thrift.NewTBinaryProtocolFactoryDefault()
+	protocolFactory := thrift.NewTBinaryProtocolFactoryConf(conf)
 	protocol := protocolFactory.GetProtocol(bufferedTransport)
 
 	// Create client

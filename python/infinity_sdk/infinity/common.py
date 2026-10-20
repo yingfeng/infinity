@@ -11,9 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Union
-from dataclasses import dataclass, field
+
 import numpy as np
 
 
@@ -102,13 +103,13 @@ LOCAL_HOST = NetworkAddress("127.0.0.1", 23817)
 LOCAL_INFINITY_PATH = "/var/infinity"
 
 
-class ConflictType(object):
+class ConflictType:
     Ignore = 0
     Error = 1
     Replace = 2
 
 
-class SortType(object):
+class SortType:
     Asc = 0
     Desc = 1
 

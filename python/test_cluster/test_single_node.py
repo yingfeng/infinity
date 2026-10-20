@@ -1,5 +1,6 @@
+from database_operations import clear_instance, do_some_operations, instance_state
 from infinity_cluster import InfinityCluster
-from database_operations import do_some_operations, instance_state, clear_instance
+
 
 def test_admin2standalone(cluster: InfinityCluster):
     '''

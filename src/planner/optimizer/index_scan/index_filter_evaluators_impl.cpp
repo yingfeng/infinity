@@ -182,9 +182,11 @@ std::unique_ptr<IndexFilterEvaluator> IndexFilterEvaluatorBuildFromAnd(std::vect
                 for (auto &chi : child_logical->other_children_evaluators_) {
                     other_children_evaluators.push_back(std::move(chi));
                 }
+                break;
             }
             case Type::kOr: {
                 other_children_evaluators.push_back(std::move(child));
+                break;
             }
         }
     }
@@ -258,9 +260,11 @@ std::unique_ptr<IndexFilterEvaluator> IndexFilterEvaluatorBuildFromOr(std::vecto
                 for (auto &chi : child_logical->other_children_evaluators_) {
                     other_children_evaluators.push_back(std::move(chi));
                 }
+                break;
             }
             case Type::kAnd: {
                 other_children_evaluators.push_back(std::move(child));
+                break;
             }
         }
     }
@@ -1071,11 +1075,19 @@ Bitmask IndexFilterEvaluatorSecondaryT<ColumnValueT>::Evaluate(const SegmentID s
     result.SetAllFalse();
     for (const auto rng : secondary_index_start_end_pairs_) {
         Bitmask part_result(segment_row_count);
-        if (cardinality == SecondaryIndexCardinality::kHighCardinality) {
-            part_result = ExecuteSingleRangeHighCardinalityT<ColumnValueT>(rng, &*index_meta, segment_row_count);
-        } else {
-            part_result = ExecuteSingleRangeLowCardinalityT<ColumnValueT>(rng, &*index_meta, segment_row_count);
+        // JsonTermT uses std::string and is not trivially copyable,
+        // so the HighCardinality memcpy path cannot be instantiated for it.
+        // JsonTermT always takes LowCardinality.
+        if constexpr (std::is_trivially_copyable_v<SecondaryIndexOrderedT>) {
+            if (cardinality == SecondaryIndexCardinality::kHighCardinality) {
+                part_result = ExecuteSingleRangeHighCardinalityT<ColumnValueT>(rng, &*index_meta, segment_row_count);
+                result.MergeOr(part_result);
+                continue;
+            }
+        } else if (cardinality == SecondaryIndexCardinality::kHighCardinality) {
+            UnrecoverableError("High-cardinality secondary indexes require trivially copyable ordered keys.");
         }
+        part_result = ExecuteSingleRangeLowCardinalityT<ColumnValueT>(rng, &*index_meta, segment_row_count);
         result.MergeOr(part_result);
     }
     result.RunOptimize();

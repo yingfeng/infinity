@@ -1,16 +1,22 @@
+import logging
+import os
+import pickle
 import queue
 import time
+
 import pytest
-from infinity_runner import InfinityRunner, infinity_runner_decorator_factory, infinity_runner_decorator_factory2
-from common import common_values
-from infinity.common import ConflictType
 from infinity import index
+from infinity.common import ConflictType
 from infinity.errors import ErrorCode
-import os
+from infinity_runner import (
+    InfinityRunner,
+    infinity_runner_decorator_factory,
+    infinity_runner_decorator_factory2,
+)
 from restart_util import EnwikiGenerator
 from util import RtnThread
-import pickle
-import logging
+
+from common import common_values
 
 
 class TestFullText:
@@ -140,7 +146,7 @@ class TestFullText:
                                 topn=10,
                                 extra_options=None,
                             )
-                            .filter("id<{}".format(cur_insert_n))
+                            .filter(f"id<{cur_insert_n}")
                             .to_result()
                         )
                         gt_data_dict, _, _ = gt_res
@@ -157,7 +163,7 @@ class TestFullText:
                                     topn=10,
                                     extra_options=None,
                                 )
-                                .filter("id<{}".format(cur_insert_n))
+                                .filter(f"id<{cur_insert_n}")
                                 .to_result()
                             )
                             logging.info(f"search at {cur_insert_n} done")
@@ -283,7 +289,7 @@ class TestFullText:
                         topn=3,
                         extra_options=None,
                     )
-                    .filter("id<{}".format(bound))
+                    .filter(f"id<{bound}")
                     .to_result()
                 )
                 gt_data_dict, _, _ = gt_res

@@ -107,7 +107,7 @@ bool PhysicalUpdate::Execute(QueryContext *query_context, OperatorState *operato
 
             Status status = new_txn->Update(*table_info_->db_name_, *table_info_->table_name_, output_data_block, row_ids);
             if (!status.ok()) {
-                operator_state->status_ = status;
+                operator_state->status_ = status.clone();
                 RecoverableError(status);
                 return false;
             }

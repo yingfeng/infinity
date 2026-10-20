@@ -1,12 +1,13 @@
-import pytest
 import logging
-from common import common_values
+
 import infinity
-import infinity.index as index
+import pytest
+from infinity import index
 from infinity.common import ConflictType, InfinityException
 from infinity.errors import ErrorCode
-
 from infinity.infinity_http import infinity_http
+
+from common import common_values
 
 
 @pytest.fixture(scope="class")

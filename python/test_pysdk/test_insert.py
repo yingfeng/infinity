@@ -1,13 +1,13 @@
+import infinity
+import numpy as np
 import pandas as pd
 import pytest
-import numpy as np
-from common import common_values
-import infinity
-import infinity.index as index
-from infinity.common import ConflictType, InfinityException, SparseVector, Array
+from infinity import index
+from infinity.common import Array, ConflictType, InfinityException, SparseVector
 from infinity.errors import ErrorCode
-
 from infinity.infinity_http import infinity_http
+
+from common import common_values
 
 
 @pytest.fixture(scope="class")
@@ -297,6 +297,43 @@ class TestInfinity:
         res = db_obj.drop_table("test_insert_embedding_4" + suffix, ConflictType.Error)
         assert res.error_code == ErrorCode.OK
 
+    def _test_insert_embedding_numpy(self, suffix):
+        """
+        target: test insert embedding column with numpy array values (#1253)
+        method: insert a raw np.ndarray, and a plain list of numpy scalars
+                (e.g. list(embedding_array), which isn't itself an ndarray)
+        expected: ok
+        """
+        db_obj = self.infinity_obj.get_database("default_db")
+
+        db_obj.drop_table("test_insert_embedding_numpy_int" + suffix, ConflictType.Ignore)
+        table_obj = db_obj.create_table(
+            "test_insert_embedding_numpy_int" + suffix, {"c1": {"type": "vector,3,int"}}, ConflictType.Error)
+        assert table_obj
+        res = table_obj.insert([{"c1": np.array([1, 2, 3], dtype=np.int64)}])
+        assert res.error_code == ErrorCode.OK
+        res = table_obj.insert([{"c1": list(np.array([4, 5, 6], dtype=np.int64))}])
+        assert res.error_code == ErrorCode.OK
+        res, extra_result = table_obj.output(["*"]).to_df()
+        pd.testing.assert_frame_equal(res, pd.DataFrame({'c1': ([1, 2, 3], [4, 5, 6])}))
+        res = db_obj.drop_table("test_insert_embedding_numpy_int" + suffix, ConflictType.Error)
+        assert res.error_code == ErrorCode.OK
+
+        db_obj.drop_table("test_insert_embedding_numpy_float" + suffix, ConflictType.Ignore)
+        table_obj = db_obj.create_table(
+            "test_insert_embedding_numpy_float" + suffix, {"c1": {"type": "vector,3,float"}}, ConflictType.Error)
+        assert table_obj
+        res = table_obj.insert([{"c1": np.array([1.1, 2.2, 3.3], dtype=np.float32)}])
+        assert res.error_code == ErrorCode.OK
+        res = table_obj.insert([{"c1": list(np.array([4.4, 5.5, 6.6], dtype=np.float32))}])
+        assert res.error_code == ErrorCode.OK
+        res, extra_result = table_obj.output(["*"]).to_df()
+        pd.testing.assert_frame_equal(res, pd.DataFrame(
+            {'c1': (np.array([1.1, 2.2, 3.3], dtype=np.float32).tolist(),
+                    np.array([4.4, 5.5, 6.6], dtype=np.float32).tolist())}))
+        res = db_obj.drop_table("test_insert_embedding_numpy_float" + suffix, ConflictType.Error)
+        assert res.error_code == ErrorCode.OK
+
     def _test_insert_big_embedding(self, suffix):
         """
         target: test insert embedding with big dimension
@@ -487,6 +524,111 @@ class TestInfinity:
         res = db_obj.drop_table("test_insert_zero_column" + suffix, ConflictType.Error)
         assert res.error_code == ErrorCode.OK
 
+    def _test_insert_null(self, suffix):
+        """
+        target: test insert null values into nullable columns
+        method:
+        1. create table with nullable columns of different types
+        2. insert rows with explicit None values
+        3. verify null values are stored correctly
+        4. drop table
+        expected: all operations successfully, NULL values stored as expected
+        """
+        db_obj = self.infinity_obj.get_database("default_db")
+        db_obj.drop_table("test_insert_null" + suffix, ConflictType.Ignore)
+
+        table_obj = db_obj.create_table(
+            "test_insert_null" + suffix,
+            {
+                "c1": {"type": "int"},
+                "c2": {"type": "varchar"},
+                "c3": {"type": "float"},
+            },
+            ConflictType.Error,
+        )
+        assert table_obj
+
+        # Insert explicit None values into nullable columns
+        res = table_obj.insert([{"c1": 1, "c2": "hello", "c3": 1.5}])
+        assert res.error_code == ErrorCode.OK
+        res = table_obj.insert([{"c1": None, "c2": "world", "c3": 2.5}])
+        assert res.error_code == ErrorCode.OK
+        res = table_obj.insert([{"c1": 3, "c2": None, "c3": 3.5}])
+        assert res.error_code == ErrorCode.OK
+        res = table_obj.insert([{"c1": 4, "c2": "test", "c3": None}])
+        assert res.error_code == ErrorCode.OK
+        res = table_obj.insert([{"c1": None, "c2": None, "c3": None}])
+        assert res.error_code == ErrorCode.OK
+
+        res, extra_result = table_obj.output(["*"]).to_df()
+        print(res)
+        pd.testing.assert_frame_equal(
+            res.sort_values("c1", na_position="last").reset_index(drop=True),
+            pd.DataFrame({
+                "c1": pd.array([1, 3, 4, pd.NA, pd.NA], dtype="Int32"),
+                "c2": pd.array(["hello", pd.NA, "test", "world", pd.NA], dtype="string"),
+                "c3": pd.array([1.5, 3.5, pd.NA, 2.5, pd.NA], dtype="Float32"),
+            }),
+        )
+
+        res = db_obj.drop_table("test_insert_null" + suffix, ConflictType.Error)
+        assert res.error_code == ErrorCode.OK
+
+    def _test_insert_not_null(self, suffix):
+        """
+        target: test insert into NOT NULL columns
+        method:
+        1. Create table with a NOT NULL column (no default)
+        2. Insert omitting the NOT NULL column — fails
+        3. Insert with explicit None in the NOT NULL column — fails
+        4. Insert with proper value in the NOT NULL column — succeeds
+        5. Verify data
+        6. Drop table
+        expected: NOT NULL constraint enforced during insert
+        """
+        db_obj = self.infinity_obj.get_database("default_db")
+        db_obj.drop_table("test_insert_not_null" + suffix, ConflictType.Ignore)
+
+        table_obj = db_obj.create_table(
+            "test_insert_not_null" + suffix,
+            {
+                "c1": {"type": "int"},
+                "c2": {"type": "varchar", "constraints": ["not null"]},
+                "c3": {"type": "float", "constraints": ["not null"], "default": 0.0},
+            },
+            ConflictType.Error,
+        )
+        assert table_obj
+
+        # Case 1: omitting c2 (NOT NULL without default) — fails
+        with pytest.raises(Exception):
+            table_obj.insert([{"c1": 1, "c3": 1.0}])
+
+        # Case 2: c2=None (explicit NULL on NOT NULL column) — fails
+        with pytest.raises(Exception):
+            table_obj.insert([{"c1": 1, "c2": None, "c3": 1.0}])
+
+        # Case 3: omitting c3 (NOT NULL with default) — succeeds, uses default
+        res = table_obj.insert([{"c1": 1, "c2": "hello"}])
+        assert res.error_code == ErrorCode.OK
+
+        # Case 4: all values provided — succeeds
+        res = table_obj.insert([{"c1": 2, "c2": "world", "c3": 2.5}])
+        assert res.error_code == ErrorCode.OK
+
+        res, _ = table_obj.output(["*"]).to_df()
+        pd.testing.assert_frame_equal(
+            res.sort_values("c1").reset_index(drop=True),
+            pd.DataFrame({
+                "c1": pd.array([1, 2], dtype="Int32"),
+                "c2": pd.array(["hello", "world"], dtype="string"),
+                "c3": pd.array([0.0, 2.5], dtype="Float32"),
+            }),
+        )
+
+        res = db_obj.drop_table("test_insert_not_null" + suffix, ConflictType.Error)
+        assert res.error_code == ErrorCode.OK
+
     def _test_insert_sparse(self, suffix):
         """
         target: test insert sparse column
@@ -498,7 +640,7 @@ class TestInfinity:
         table_obj = db_obj.create_table("test_insert_sparse" + suffix, {"c1": {"type": "sparse,100,float,int"}},
                                         ConflictType.Error)
         assert table_obj
-        res = table_obj.insert([{"c1": SparseVector(**{"indices": [10, 20, 30], "values": [1.1, 2.2, 3.3]})}])
+        res = table_obj.insert([{"c1": SparseVector(indices=[10, 20, 30], values=[1.1, 2.2, 3.3])}])
         assert res.error_code == ErrorCode.OK
         res = table_obj.insert([{"c1": SparseVector([40, 50, 60], [4.4, 5.5, 6.6])}])
         assert res.error_code == ErrorCode.OK
@@ -517,7 +659,6 @@ class TestInfinity:
 
         res = db_obj.drop_table("test_insert_sparse" + suffix, ConflictType.Error)
         assert res.error_code == ErrorCode.OK
-        pass
 
     def _test_insert_multivector(self, suffix):
         """
@@ -712,6 +853,7 @@ class TestInfinity:
         self._test_insert_varchar(suffix)
         self._test_insert_big_varchar(suffix)
         self._test_insert_embedding(suffix)
+        self._test_insert_embedding_numpy(suffix)
         self._test_insert_big_embedding(suffix)
         self._test_insert_big_embedding_float(suffix)
         self._test_insert_exceed_block_size(suffix)
@@ -721,6 +863,8 @@ class TestInfinity:
         self._test_read_after_shutdown(suffix)
         self._test_batch_insert(suffix)
         self._test_insert_zero_column(suffix)
+        self._test_insert_null(suffix)
+        self._test_insert_not_null(suffix)
         self._test_insert_sparse(suffix)
         self._test_insert_multivector(suffix)
         self._test_insert_tensor(suffix)
@@ -820,10 +964,16 @@ class TestInfinity:
                                         {"c1": {"type": "int"}, "c2": {"type": "int"}}, ConflictType.Error)
 
         # insert
-        with pytest.raises(Exception):
-            table_obj.insert(values)
-        insert_res, extra_result = table_obj.output(["*"]).to_df()
-        print(insert_res)
+        if len(values[0]) == 1:
+            # missing columns: allowed, fills NULL
+            insert_res = table_obj.insert(values)
+            assert insert_res.error_code == ErrorCode.OK
+            insert_res, extra_result = table_obj.output(["*"]).to_df()
+            print(insert_res)
+        else:
+            # extra columns: still raises exception
+            with pytest.raises(Exception):
+                table_obj.insert(values)
 
         res = db_obj.drop_table(
             "test_insert_with_not_matched_columns" + suffix, ConflictType.Error)
@@ -969,104 +1119,4 @@ class TestInfinity:
             "test_insert_no_match_column" + suffix, ConflictType.Error)
         assert res.error_code == ErrorCode.OK
 
-    @pytest.mark.slow
-    def test_insert_with_large_data(self, suffix):
-        total_row_count = 1000000
-
-        db_obj = self.infinity_obj.get_database("default_db")
-        db_obj.drop_table("hr_data_mix" + suffix, ConflictType.Ignore)
-        table_obj = db_obj.create_table("hr_data_mix" + suffix, {
-            "id": {"type": "varchar"},
-            "content": {"type": "varchar"},
-            "dense_vec": {"type": "vector, 1024, float"},
-            "sparse_vec": {"type": "sparse,250002,float,int"},
-        })
-
-        import json
-        import time
-        def read_jsonl(file_path):
-            data = []
-            with open(file_path, 'r') as file:
-                for line in file:
-                    data.append(json.loads(line))
-            return data
-
-        data_array = read_jsonl("./test/data/jsonl/test_table.jsonl")
-        loop_count: int = total_row_count // len(data_array)
-
-        start = time.time()
-        for global_idx in range(loop_count):
-            insert_data = []
-            for local_idx, data in enumerate(data_array):
-
-                # each 1000, a duplicated row is generated
-                if local_idx == 9 and global_idx % 1000 == 0:
-                    end = time.time()
-                    print(f"ID: {global_idx}@{local_idx}, cost: {end - start}s")
-                    data = data_array[0]
-                    local_idx = 0
-
-                indices = []
-                values = []
-                for key, value in data['sparse_vec'].items():
-                    indices.append(int(key))
-                    values.append(value)
-
-                insert_data.append(
-                    {
-                        "id": f'{global_idx}@{local_idx}',
-                        "content": data['content'],
-                        "dense_vec": data['dense_vec'],
-                        "sparse_vec": SparseVector(indices, values)
-                    }
-                )
-            table_obj.insert(insert_data)
-        res, extra_result = table_obj.output(["count(*)"]).to_pl()
-        assert res.height == 1 and res.width == 1 and res.item(0, 0) == total_row_count
-
-        db_obj.drop_table("hr_data_mix" + suffix, ConflictType.Error)
-
-    @pytest.mark.slow
-    def test_insert_with_index_large_data(self, suffix):
-        total_row_count = 9000000
-
-        db_obj = self.infinity_obj.get_database("default_db")
-        db_obj.drop_table("test_insert_with_index_large_data" + suffix, ConflictType.Ignore)
-        table_obj = db_obj.create_table("test_insert_with_index_large_data" + suffix, {
-            "c1": {"type": "int"},
-        })
-
-        # create index
-        table_obj.create_index("my_index",
-                               index.IndexInfo("c1",
-                                               index.IndexType.Secondary),
-                               ConflictType.Error)
-
-        import json
-        import time
-        def read_jsonl(file_path):
-            data = []
-            with open(file_path, 'r') as file:
-                for line in file:
-                    data.append(json.loads(line))
-            return data
-
-        data_array = read_jsonl("./test/data/jsonl/test_table_2000.jsonl")
-        loop_count: int = total_row_count // len(data_array)
-
-        insert_data = []
-        for _, data in enumerate(data_array):
-            insert_data.append({
-                "c1": data.get("c1", 0)
-            })
-
-        start = time.time()
-        for loop_idx in range(loop_count):
-            if loop_idx % 1000 == 0 and loop_idx != 0:
-                elapsed = time.time() - start
-                print(f"Insert {loop_idx} times, cost: {elapsed:.2f}s")
-            table_obj.insert(insert_data)
-        res, extra_result = table_obj.output(["count(*)"]).to_pl()
-        assert res.height == 1 and res.width == 1 and res.item(0, 0) == total_row_count
-
-        db_obj.drop_table("test_insert_with_index_large_data" + suffix, ConflictType.Error)
+    

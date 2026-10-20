@@ -14,31 +14,72 @@
 
 import logging
 from functools import wraps
-from readerwriterlock import rwlock
 
+from readerwriterlock import rwlock
 from thrift.protocol import TBinaryProtocol
 from thrift.transport import TSocket, TTransport
 from thrift.transport.TTransport import TTransportException
 
 from infinity import URI
-from infinity.remote_thrift.infinity_thrift_rpc import InfinityService
-from infinity.remote_thrift.infinity_thrift_rpc.ttypes import (
-    SelectRequest, ExplainRequest, DeleteRequest, UpdateRequest, CommonResponse, CommonRequest,
-    ShowSegmentsRequest, ShowSegmentRequest, ShowBlocksRequest, ShowBlockRequest, ShowBlockColumnRequest,
-    ShowCurrentNodeRequest, OptimizeRequest, AlterIndexRequest, AddColumnsRequest, DropColumnsRequest,
-    DumpIndexRequest, CreateTableSnapshotRequest, CreateDatabaseSnapshotRequest,
-    CreateSystemSnapshotRequest, RestoreSnapshotRequest, ListSnapshotsRequest, ShowSnapshotRequest,
-    DropSnapshotRequest, ConfigValue, SetConfigRequest, ShowConfigRequest,
-    CompactRequest,
-    ConnectRequest, CreateConflict, CreateOption, DropConflict, DropOption,
-    CreateDatabaseRequest, DropDatabaseRequest, ListDatabaseRequest, ShowDatabaseRequest, GetDatabaseRequest,
-    CreateTableRequest, DropTableRequest, RenameTableRequest, ListTableRequest, ShowTableRequest, ShowColumnsRequest,
-    GetTableRequest, IndexInfo, CreateIndexRequest, DropIndexRequest, ShowIndexRequest, ListIndexRequest,
-    Field, InsertRequest, ImportRequest, ExportRequest
-)
-import infinity.remote_thrift.infinity_thrift_rpc.ttypes as ttypes
-from infinity.errors import ErrorCode
 from infinity.common import InfinityException
+from infinity.errors import ErrorCode
+from infinity.remote_thrift.infinity_thrift_rpc import InfinityService, ttypes
+from infinity.remote_thrift.infinity_thrift_rpc.ttypes import (
+    AddColumnsRequest,
+    AlterIndexRequest,
+    CommonRequest,
+    CommonResponse,
+    CompactRequest,
+    ConfigValue,
+    ConnectRequest,
+    CreateConflict,
+    CreateDatabaseRequest,
+    CreateDatabaseSnapshotRequest,
+    CreateIndexRequest,
+    CreateOption,
+    CreateSystemSnapshotRequest,
+    CreateTableRequest,
+    CreateTableSnapshotRequest,
+    DeleteRequest,
+    DropColumnsRequest,
+    DropConflict,
+    DropDatabaseRequest,
+    DropIndexRequest,
+    DropOption,
+    DropSnapshotRequest,
+    DropTableRequest,
+    DumpIndexRequest,
+    ExplainRequest,
+    ExportRequest,
+    Field,
+    GetDatabaseRequest,
+    GetTableRequest,
+    ImportRequest,
+    IndexInfo,
+    InsertRequest,
+    ListDatabaseRequest,
+    ListIndexRequest,
+    ListSnapshotsRequest,
+    ListTableRequest,
+    OptimizeRequest,
+    RenameTableRequest,
+    RestoreSnapshotRequest,
+    SelectRequest,
+    SetConfigRequest,
+    ShowBlockColumnRequest,
+    ShowBlockRequest,
+    ShowBlocksRequest,
+    ShowColumnsRequest,
+    ShowConfigRequest,
+    ShowCurrentNodeRequest,
+    ShowDatabaseRequest,
+    ShowIndexRequest,
+    ShowSegmentRequest,
+    ShowSegmentsRequest,
+    ShowSnapshotRequest,
+    ShowTableRequest,
+    UpdateRequest,
+)
 
 TRY_TIMES = 10
 
@@ -123,9 +164,9 @@ class ThriftInfinityClient:
         # version: 0.6.8 and 0.6.9 and 0.6.10, client_version: 33
         # version: 0.6.13, client_version: 34
         # version: 0.6.15, client_version: 35
-        # version: 0.7.0, 0.7.0.dev1, 0.7.0.dev2, 0.7.0.dev3, 0.7.0.dev4, 0.7.0.dev5,
-        #          0.7.0.dev6 and 0.7.0.dev7, client_version: 36
-        res = self.client.Connect(ConnectRequest(client_version=36))  # 0.7.0
+        # version: 0.7.0, 0.7.1, 0.7.2, client_version: 36
+        # version: 0.7.3, 0.7.4, client_version: 37
+        res = self.client.Connect(ConnectRequest(client_version=37))  # 0.7.4
         if res.error_code != 0:
             raise InfinityException(res.error_code, res.error_msg)
         self.session_id = res.session_id
@@ -145,7 +186,7 @@ class ThriftInfinityClient:
                             self._reconnect()
                             self.session_i += 1
                             self.logger.debug(
-                                f"Tried {i} times, session_id: {self.session_id}, session_i: {self.session_i}, exception: {str(e)}")
+                                f"Tried {i} times, session_id: {self.session_id}, session_i: {self.session_i}, exception: {e!s}")
                 except Exception:
                     raise
             else:

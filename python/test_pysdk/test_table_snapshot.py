@@ -1,13 +1,14 @@
-import pytest
-from common import common_values
-from infinity.common import ConflictType, InfinityException, SparseVector
-import infinity
-from infinity.errors import ErrorCode
 import random
 import time
-import infinity.index as index
 
+import infinity
+import pytest
+from infinity import index
+from infinity.common import ConflictType, InfinityException, SparseVector
+from infinity.errors import ErrorCode
 from infinity.infinity_http import infinity_http
+
+from common import common_values
 
 
 @pytest.fixture(scope="class")
@@ -588,9 +589,9 @@ class TestSnapshot:
 
     def test_multithread_snapshot_with_modifications(self, suffix):
         """Test snapshot creation and restore while table is being modified by multiple threads - runs 20 times"""
+        import random
         import threading
         import time
-        import random
 
         # Run the entire test 20 times
         for test_run in range(2):
@@ -711,7 +712,6 @@ class TestSnapshot:
                         except Exception as inner_e:
                             # Index operations might fail due to concurrent modifications
                             print(f"Index operation failed: {inner_e}")
-                            pass
                     except Exception as e:
                         import traceback
                         print(f"Index thread error: {e}")

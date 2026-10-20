@@ -16,9 +16,10 @@
 This example is about connecting to the local infinity instance, creating table, inserting data, creating ivf index, and searching data
 '''
 
-import infinity
 import sys
 import time
+
+import infinity
 
 try:
     # Use infinity_embedded module to open a local directory

@@ -1,13 +1,13 @@
-from typing import Any
 import json
-from typing import List
-import os
-import h5py
-import uuid
 import logging
-import requests
-import sys
+import os
 import re
+import sys
+import uuid
+from typing import Any
+
+import h5py
+import requests
 
 from .base_client import BaseClient
 
@@ -80,7 +80,7 @@ class QuickwitClient(BaseClient):
         self.path_prefix = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         logging.getLogger("quickwit_transport").setLevel(logging.WARNING)
 
-    def upload_batch(self, actions: List):
+    def upload_batch(self, actions: list):
         self.client.upload_batch(self.table_name, actions)
 
     def upload(self):

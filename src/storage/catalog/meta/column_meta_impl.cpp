@@ -55,10 +55,11 @@ Status ColumnMeta::InitSet(const std::shared_ptr<ColumnDef> &col_def) {
     {
         auto filename = std::make_shared<std::string>(fmt::format("{}.col", column_id));
         size_t total_data_size = 0;
+        size_t null_size = (block_meta_.block_capacity() + 7) / 8;
         if (col_def->type()->type() == LogicalType::kBoolean) {
-            total_data_size = (block_meta_.block_capacity() + 7) / 8;
+            total_data_size = (block_meta_.block_capacity() + 7) / 8 + null_size;
         } else {
-            total_data_size = block_meta_.block_capacity() * col_def->type()->Size();
+            total_data_size = block_meta_.block_capacity() * col_def->type()->Size() + null_size;
         }
         auto file_worker = std::make_unique<DataFileWorker>(std::make_shared<std::string>(InfinityContext::instance().config()->DataDir()),
                                                             std::make_shared<std::string>(InfinityContext::instance().config()->TempDir()),
@@ -107,10 +108,11 @@ Status ColumnMeta::LoadSet() {
     {
         auto filename = std::make_shared<std::string>(fmt::format("{}.col", col_def->id()));
         size_t total_data_size = 0;
+        size_t null_size = (block_meta_.block_capacity() + 7) / 8;
         if (col_def->type()->type() == LogicalType::kBoolean) {
-            total_data_size = (block_meta_.block_capacity() + 7) / 8;
+            total_data_size = (block_meta_.block_capacity() + 7) / 8 + null_size;
         } else {
-            total_data_size = block_meta_.block_capacity() * col_def->type()->Size();
+            total_data_size = block_meta_.block_capacity() * col_def->type()->Size() + null_size;
         }
         auto file_worker = std::make_unique<DataFileWorker>(std::make_shared<std::string>(InfinityContext::instance().config()->DataDir()),
                                                             std::make_shared<std::string>(InfinityContext::instance().config()->TempDir()),
@@ -152,10 +154,11 @@ Status ColumnMeta::RestoreSet(const ColumnDef *column_def) {
     {
         auto filename = std::make_shared<std::string>(fmt::format("{}.col", column_def->id()));
         size_t total_data_size = 0;
+        size_t null_size = (block_meta_.block_capacity() + 7) / 8;
         if (column_def->type()->type() == LogicalType::kBoolean) {
-            total_data_size = (block_meta_.block_capacity() + 7) / 8;
+            total_data_size = (block_meta_.block_capacity() + 7) / 8 + null_size;
         } else {
-            total_data_size = block_meta_.block_capacity() * column_def->type()->Size();
+            total_data_size = block_meta_.block_capacity() * column_def->type()->Size() + null_size;
         }
         auto file_worker = std::make_unique<DataFileWorker>(std::make_shared<std::string>(InfinityContext::instance().config()->DataDir()),
                                                             std::make_shared<std::string>(InfinityContext::instance().config()->TempDir()),
@@ -234,13 +237,12 @@ Status ColumnMeta::GetColumnBuffer(BufferObj *&column_buffer, BufferObj *&outlin
     return Status::OK();
 }
 
-std::tuple<size_t, Status> ColumnMeta::GetColumnSize(size_t row_cnt, const std::shared_ptr<ColumnDef> &col_def) const {
-
+std::tuple<size_t, Status> ColumnMeta::GetColumnSize(size_t, const std::shared_ptr<ColumnDef> &col_def) const {
     size_t total_data_size = 0;
     if (col_def->type()->type() == LogicalType::kBoolean) {
-        total_data_size = (row_cnt + 7) / 8;
+        total_data_size = (block_meta_.block_capacity() + 7) / 8 + (block_meta_.block_capacity() + 7) / 8;
     } else {
-        total_data_size = row_cnt * col_def->type()->Size();
+        total_data_size = block_meta_.block_capacity() * col_def->type()->Size() + (block_meta_.block_capacity() + 7) / 8;
     }
     return {total_data_size, Status::OK()};
 }

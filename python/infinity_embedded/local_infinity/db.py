@@ -14,13 +14,17 @@
 
 from abc import ABC
 
+from infinity_embedded.common import ConflictType, InfinityException
 from infinity_embedded.db import Database
+from infinity_embedded.embedded_infinity_ext import ConflictType as LocalConflictType
 from infinity_embedded.errors import ErrorCode
 from infinity_embedded.local_infinity.table import LocalTable
-from infinity_embedded.local_infinity.utils import check_valid_name, name_validity_check
-from infinity_embedded.common import ConflictType, InfinityException
-from infinity_embedded.local_infinity.utils import select_res_to_polars, get_ordinary_info
-from infinity_embedded.embedded_infinity_ext import ConflictType as LocalConflictType
+from infinity_embedded.local_infinity.utils import (
+    check_valid_name,
+    get_ordinary_info,
+    name_validity_check,
+    select_res_to_polars,
+)
 
 
 class LocalDatabase(Database, ABC):

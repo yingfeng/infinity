@@ -6,6 +6,7 @@ import subprocess
 import time
 import traceback
 from shutil import copyfile
+
 import numpy as np
 
 from common import common_values
@@ -57,15 +58,13 @@ def copy_data(file_name):
 
 def generate_big_int_csv(num, filename):
     with open(os.getcwd() + common_values.TEST_DATA_DIR + "csv/" + filename, "w") as f:
-        for i in range(num):
-            f.write(str(i) + "," + str(i) + "\n")
+        f.writelines(str(i) + "," + str(i) + "\n" for i in range(num))
     f.close()
 
 
 def generate_big_rows_csv(num, filename):
     with open(os.getcwd() + common_values.TEST_DATA_DIR + "csv/" + filename, "w") as f:
-        for i in range(num):
-            f.write(str(i) + ",asdasdlk中fjio@!#!@asd #$%$23\n")
+        f.writelines(str(i) + ",asdasdlk中fjio@!#!@asd #$%$23\n" for i in range(num))
     f.close()
 
 
@@ -100,7 +99,7 @@ def generate_commas_enwiki(in_filename, out_filename, is_embedding):
         if is_embedding:
             i = 0
             for row in reader:
-                suffix = [i, "[{},{},{},{}]".format(i, i, i, i)]
+                suffix = [i, f"[{i},{i},{i},{i}]"]
                 writer.writerow(row + suffix)
                 i += 1
         else:

@@ -374,7 +374,6 @@ Status NewTxn::GetTables(const std::string &db_name, std::vector<std::shared_ptr
             return status;
         }
         std::shared_ptr<TableDetail> table_detail = std::make_shared<TableDetail>();
-        table_meta->SetDBTableName(db_name, table_name);
         status = table_meta->GetTableDetail(*table_detail);
         table_detail->create_ts_ = create_timestamp;
         output_table_array.push_back(table_detail);
@@ -1885,7 +1884,7 @@ Status NewTxn::CheckpointDB(DBMeta &db_meta, const CheckpointOption &option, Che
     for (size_t idx = 0; idx < table_count; ++idx) {
         const std::string &table_id_str = table_id_strs_ptr->at(idx);
         const std::string &table_name = table_names_ptr->at(idx);
-        TableMeta table_meta(db_meta.db_id_str(), table_id_str, table_name, this);
+        TableMeta table_meta(db_meta.db_id_str(), db_meta.db_name(), table_id_str, table_name, this);
         status = this->CheckpointTable(table_meta, option, ckp_txn_store);
         if (!status.ok()) {
             return status;
@@ -2465,7 +2464,6 @@ Status NewTxn::GetTableMeta(const std::string &db_name,
     if (!status.ok()) {
         return status;
     }
-    table_meta->SetDBTableName(db_name, table_name);
     return Status::OK();
 }
 
@@ -2481,8 +2479,7 @@ Status NewTxn::GetTableMeta(const std::string &table_name,
         return status;
     }
     LOG_DEBUG(fmt::format("GetTableMeta: txn_id: {} table_id: {}", TxnID(), table_id_str));
-    table_meta = std::make_shared<TableMeta>(db_meta->db_id_str(), table_id_str, table_name, this);
-    table_meta->SetDBTableName(db_meta->db_name(), table_name);
+    table_meta = std::make_shared<TableMeta>(db_meta->db_id_str(), db_meta->db_name(), table_id_str, table_name, this);
     if (table_key_ptr) {
         *table_key_ptr = table_key;
     }
@@ -2507,7 +2504,6 @@ Status NewTxn::GetTableIndexMeta(const std::string &db_name,
     if (!status.ok()) {
         return status;
     }
-    table_meta->SetDBTableName(db_name, table_name);
     status = GetTableIndexMeta(index_name, *table_meta, table_index_meta, index_key_ptr);
     if (!status.ok()) {
         return status;
@@ -2782,7 +2778,7 @@ Status NewTxn::CommitCheckpointDB(DBMeta &db_meta, const WalCmdCheckpointV2 *che
     for (size_t idx = 0; idx < table_count; ++idx) {
         const std::string &table_id_str = table_id_strs_ptr->at(idx);
         const std::string &table_name = table_names_ptr->at(idx);
-        TableMeta table_meta(db_meta.db_id_str(), table_id_str, table_name, this);
+        TableMeta table_meta(db_meta.db_id_str(), db_meta.db_name(), table_id_str, table_name, this);
         status = CommitCheckpointTable(table_meta, checkpoint_cmd);
         if (!status.ok()) {
             return status;
@@ -2829,8 +2825,11 @@ Status NewTxn::RestoreTableFromSnapshot(const WalCmdRestoreTableSnapshot *restor
             return status;
         }
     } else {
-        table_meta =
-            std::make_shared<TableMeta>(db_meta.db_id_str(), restore_table_snapshot_cmd->table_id_, restore_table_snapshot_cmd->table_name_, this);
+        table_meta = std::make_shared<TableMeta>(db_meta.db_id_str(),
+                                                 db_meta.db_name(),
+                                                 restore_table_snapshot_cmd->table_id_,
+                                                 restore_table_snapshot_cmd->table_name_,
+                                                 this);
     }
 
     // restore metadata of the table
@@ -4769,6 +4768,7 @@ Status NewTxn::PostRollback(TxnTimeStamp abort_ts) {
             MetaCache *meta_cache = txn_mgr_->storage()->meta_cache();
             CreateIndexTxnStore *create_index_txn_store = static_cast<CreateIndexTxnStore *>(base_txn_store_.get());
             TableMeta table_meta(create_index_txn_store->db_id_str_,
+                                 create_index_txn_store->db_name_,
                                  create_index_txn_store->table_id_str_,
                                  create_index_txn_store->table_name_,
                                  kv_instance_.get(),
@@ -5259,7 +5259,10 @@ Status NewTxn::CleanupInner(const std::vector<std::shared_ptr<MetaKey>> &metas) 
                 if (!status.ok()) {
                     return status;
                 }
+                // Cleanup only needs the ids, so the database name is
+                // left empty.
                 TableMeta table_meta(table_meta_key->db_id_str_,
+                                     "",
                                      table_meta_key->table_id_str_,
                                      table_meta_key->table_name_,
                                      kv_instance,
@@ -5285,8 +5288,14 @@ Status NewTxn::CleanupInner(const std::vector<std::shared_ptr<MetaKey>> &metas) 
             }
             case MetaType::kSegment: {
                 auto *segment_meta_key = static_cast<SegmentMetaKey *>(meta.get());
-                TableMeta
-                    table_meta(segment_meta_key->db_id_str_, segment_meta_key->table_id_str_, "", kv_instance, begin_ts, MAX_TIMESTAMP, meta_cache);
+                TableMeta table_meta(segment_meta_key->db_id_str_,
+                                     "",
+                                     segment_meta_key->table_id_str_,
+                                     "",
+                                     kv_instance,
+                                     begin_ts,
+                                     MAX_TIMESTAMP,
+                                     meta_cache);
                 Status status = table_meta.RemoveSegmentIDs1({segment_meta_key->segment_id_});
                 if (!status.ok()) {
                     return status;
@@ -5301,7 +5310,8 @@ Status NewTxn::CleanupInner(const std::vector<std::shared_ptr<MetaKey>> &metas) 
             }
             case MetaType::kBlock: {
                 auto *block_meta_key = static_cast<BlockMetaKey *>(meta.get());
-                TableMeta table_meta(block_meta_key->db_id_str_, block_meta_key->table_id_str_, "", kv_instance, begin_ts, MAX_TIMESTAMP, meta_cache);
+                TableMeta
+                    table_meta(block_meta_key->db_id_str_, "", block_meta_key->table_id_str_, "", kv_instance, begin_ts, MAX_TIMESTAMP, meta_cache);
                 SegmentMeta segment_meta(block_meta_key->segment_id_, table_meta);
                 BlockMeta block_meta(block_meta_key->block_id_, segment_meta);
                 Status status = NewCatalog::CleanBlock(block_meta, UsageFlag::kOther);
@@ -5325,7 +5335,7 @@ Status NewTxn::CleanupInner(const std::vector<std::shared_ptr<MetaKey>> &metas) 
             case MetaType::kBlockColumn: {
                 auto *column_meta_key = static_cast<ColumnMetaKey *>(meta.get());
                 TableMeta
-                    table_meta(column_meta_key->db_id_str_, column_meta_key->table_id_str_, "", kv_instance, begin_ts, MAX_TIMESTAMP, meta_cache);
+                    table_meta(column_meta_key->db_id_str_, "", column_meta_key->table_id_str_, "", kv_instance, begin_ts, MAX_TIMESTAMP, meta_cache);
                 SegmentMeta segment_meta(column_meta_key->segment_id_, table_meta);
                 BlockMeta block_meta(column_meta_key->block_id_, segment_meta);
                 ColumnMeta column_meta(column_meta_key->column_def_->id(), block_meta);
@@ -5347,6 +5357,7 @@ Status NewTxn::CleanupInner(const std::vector<std::shared_ptr<MetaKey>> &metas) 
                 }
 
                 TableMeta table_meta(table_index_meta_key->db_id_str_,
+                                     "",
                                      table_index_meta_key->table_id_str_,
                                      "",
                                      kv_instance,
@@ -5366,6 +5377,7 @@ Status NewTxn::CleanupInner(const std::vector<std::shared_ptr<MetaKey>> &metas) 
             case MetaType::kSegmentIndex: {
                 auto *segment_index_meta_key = static_cast<SegmentIndexMetaKey *>(meta.get());
                 TableMeta table_meta(segment_index_meta_key->db_id_str_,
+                                     "",
                                      segment_index_meta_key->table_id_str_,
                                      "",
                                      kv_instance,
@@ -5383,6 +5395,7 @@ Status NewTxn::CleanupInner(const std::vector<std::shared_ptr<MetaKey>> &metas) 
             case MetaType::kChunkIndex: {
                 auto *chunk_index_meta_key = static_cast<ChunkIndexMetaKey *>(meta.get());
                 TableMeta table_meta(chunk_index_meta_key->db_id_str_,
+                                     "",
                                      chunk_index_meta_key->table_id_str_,
                                      "",
                                      kv_instance,

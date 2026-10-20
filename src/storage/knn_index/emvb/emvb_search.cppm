@@ -38,6 +38,7 @@ class EMVBSearch {
     const u32 n_docs_;                              // number of documents in the entire collection
     const u32 n_centroids_;                         // number of centroids
     const u32 *doc_lens_;                           // array of document lengths
+    const u32 *doc_segment_offsets_;                // source segment offset for each document, ordered by doc_id
     const u32 *doc_offsets_;                        // start offsets of each document in all the embeddings
     const u32 *centroid_id_assignments_;            // centroid id assignments for each embedding
     const f32 *centroids_data_;                     // centroids data
@@ -50,17 +51,18 @@ public:
                u32 n_docs,
                u32 n_centroids, // need to be a multiple of 8
                const u32 *doc_lens,
+               const u32 *doc_segment_offsets,
                const u32 *doc_offsets,
                const u32 *centroid_id_assignments,
                const f32 *centroids_data,
                const EMVBSharedVec<u32> *centroids_to_docid,
                const EMVBProductQuantizer *product_quantizer);
 
-    // return docid: start from 0
+    // return docid: source segment offset (mapped from internal doc_id via doc_segment_offsets_)
     std::tuple<u32, std::unique_ptr<f32[]>, std::unique_ptr<u32[]>>
     GetQueryResult(const f32 *query_ptr, u32 nprobe, f32 thresh, u32 n_doc_to_score, u32 out_second_stage, u32 k, f32 thresh_query) const;
 
-    // return docid: start from start_segment_offset
+    // return docid: source segment offset (mapped from internal doc_id via doc_segment_offsets_)
     std::tuple<u32, std::unique_ptr<f32[]>, std::unique_ptr<u32[]>> GetQueryResult(const f32 *query_ptr,
                                                                                    u32 nprobe,
                                                                                    f32 thresh,

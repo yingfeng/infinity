@@ -12,16 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 import os
-from infinity_embedded import InfinityConnection
 from abc import ABC
-from infinity_embedded.common import ConflictType, LOCAL_INFINITY_PATH, InfinityException, LOCAL_INFINITY_CONFIG_PATH
-from infinity_embedded.local_infinity.client import LocalInfinityClient
+
+from infinity_embedded import InfinityConnection
+from infinity_embedded.common import (
+    LOCAL_INFINITY_CONFIG_PATH,
+    LOCAL_INFINITY_PATH,
+    ConflictType,
+    InfinityException,
+)
 from infinity_embedded.embedded_infinity_ext import ConflictType as LocalConflictType
 from infinity_embedded.errors import ErrorCode
+from infinity_embedded.local_infinity.client import LocalInfinityClient
 from infinity_embedded.local_infinity.db import LocalDatabase
 from infinity_embedded.local_infinity.utils import name_validity_check
-import logging
 
 
 class LocalInfinityConnection(InfinityConnection, ABC):

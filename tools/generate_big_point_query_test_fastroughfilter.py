@@ -1,5 +1,5 @@
-import os
 import argparse
+import os
 import random
 
 
@@ -21,21 +21,19 @@ def generate(generate_if_exists: bool, copy_dir: str):
     os.makedirs(csv_dir, exist_ok=True)
     os.makedirs(slt_dir, exist_ok=True)
     if os.path.exists(slt_path1) and os.path.exists(slt_path2) and not generate_if_exists:
-        print("File {} and {} already existed exists. Skip Generating.".format(
-            slt_path1, slt_path2))
+        print(f"File {slt_path1} and {slt_path2} already existed exists. Skip Generating.")
         return
     with (open(slt_path1, "w") as test_slt_file1, open(slt_path2, "w") as test_slt_file2):
         test_slt_file1.write("statement ok\n")
-        test_slt_file1.write("DROP TABLE IF EXISTS {};\n".format(table_name1))
+        test_slt_file1.write(f"DROP TABLE IF EXISTS {table_name1};\n")
         test_slt_file1.write("\n")
         test_slt_file1.write("statement ok\n")
         test_slt_file1.write(
-            "CREATE TABLE {} (c1 integer, c2 boolean) PROPERTIES (bloom_filter_columns = \"c1,c2\");\n".format(
-                table_name1))
+            f"CREATE TABLE {table_name1} (c1 integer, c2 boolean) PROPERTIES (bloom_filter_columns = \"c1,c2\");\n")
         test_slt_file1.write("\n")
         test_slt_file1.write("statement ok\n")
         test_slt_file1.write(
-            "COPY {} FROM '{}' WITH ( DELIMITER ',', FORMAT CSV );\n".format(table_name1, copy_path))
+            f"COPY {table_name1} FROM '{copy_path}' WITH ( DELIMITER ',', FORMAT CSV );\n")
 
         for i in range(repeat_n):
             x = random.randint(row_n + 1, row_n * 3)
@@ -43,37 +41,36 @@ def generate(generate_if_exists: bool, copy_dir: str):
             z = random.randint(row_n + 1, row_n * 3)
             test_slt_file1.write("\nquery I\n")
             test_slt_file1.write(
-                "SELECT * FROM {} where c1 = {} or c1 = {} or c1 = {};\n".format(table_name1, x, y, z))
+                f"SELECT * FROM {table_name1} where c1 = {x} or c1 = {y} or c1 = {z};\n")
             test_slt_file1.write("----\n")
 
         test_slt_file1.write("\n")
         test_slt_file1.write("statement ok\n")
-        test_slt_file1.write("DROP TABLE {};\n".format(table_name1))
+        test_slt_file1.write(f"DROP TABLE {table_name1};\n")
 
         test_slt_file2.write("statement ok\n")
-        test_slt_file2.write("DROP TABLE IF EXISTS {};\n".format(table_name2))
+        test_slt_file2.write(f"DROP TABLE IF EXISTS {table_name2};\n")
         test_slt_file2.write("\n")
         test_slt_file2.write("statement ok\n")
         test_slt_file2.write(
-            "CREATE TABLE {} (c1 integer, c2 boolean) PROPERTIES (bloom_filter_columns = \"c1,c2\");\n".format(
-                table_name2))
+            f"CREATE TABLE {table_name2} (c1 integer, c2 boolean) PROPERTIES (bloom_filter_columns = \"c1,c2\");\n")
         test_slt_file2.write("\n")
         test_slt_file2.write("statement ok\n")
         test_slt_file2.write(
-            "COPY {} FROM '{}' WITH ( DELIMITER ',', FORMAT CSV );\n".format(table_name2, copy_path))
+            f"COPY {table_name2} FROM '{copy_path}' WITH ( DELIMITER ',', FORMAT CSV );\n")
 
         for i in range(repeat_n):
             x = random.randint(0, row_n - 1)
             test_slt_file2.write("\nquery I\n")
             test_slt_file2.write(
-                "SELECT * FROM {} where c1 = {};\n".format(table_name2, x))
+                f"SELECT * FROM {table_name2} where c1 = {x};\n")
             test_slt_file2.write("----\n")
             test_slt_file2.write("{} {}\n".format(
                 x, "true" if x % 3 == 0 else "false"))
 
         test_slt_file2.write("\n")
         test_slt_file2.write("statement ok\n")
-        test_slt_file2.write("DROP TABLE {};\n".format(table_name2))
+        test_slt_file2.write(f"DROP TABLE {table_name2};\n")
 
 
 if __name__ == "__main__":

@@ -1,14 +1,13 @@
+import inspect
 import os
 import sys
-import inspect
 import time
+
+import faiss
 import infinity
+import numpy as np
 from infinity.common import LOCAL_HOST, ConflictType
 from infinity.errors import ErrorCode
-
-
-import numpy as np
-import faiss
 
 
 def infinity_import_sift_1m_no_index(path):
@@ -67,8 +66,8 @@ class FlatKNNBenchmark:
             sys.path.insert(0, parent_dir + "/legacy_benchmark")
         from remote_benchmark_knn import (
             benchmark,
-            read_groundtruth,
             calculate_recall_all,
+            read_groundtruth,
         )
 
         self.benchmark_func = benchmark

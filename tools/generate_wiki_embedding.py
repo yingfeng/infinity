@@ -10,8 +10,7 @@ def generate():
         with open(dst_fp, 'w') as dst:
             i = 0
             for line in src:
-                suffix = '\t{}\t"[{}, {}, {}, {}]"\n'.format(
-                    i, i, i, i, i)
+                suffix = f'\t{i}\t"[{i}, {i}, {i}, {i}]"\n'
                 dst.write(line.rstrip() + suffix)
                 i += 1
 

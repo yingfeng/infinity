@@ -1,12 +1,14 @@
-import subprocess
-from common import common_values
-from infinity_runner import InfinityRunner, infinity_runner_decorator_factory
-import pytest
 import os
-import threading
-import time
 import random
 import re
+import subprocess
+import threading
+import time
+
+import pytest
+from infinity_runner import InfinityRunner, infinity_runner_decorator_factory
+
+from common import common_values
 
 
 @pytest.mark.slow

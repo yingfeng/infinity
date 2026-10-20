@@ -78,6 +78,8 @@ public:
 
     u32 GetRowCount() const;
 
+    bool IsBuilt() const { return is_built_.test(std::memory_order_acquire); }
+
     void Insert(const ColumnVector &col, u32 row_offset, u32 row_count, KVInstance &kv_instance, TxnTimeStamp begin_ts, MetaCache *meta_cache);
 
     void Dump(BufferObj *buffer_obj);

@@ -81,6 +81,18 @@ public:
 
     const std::vector<std::binary_semaphore *> &semas() const { return semas_; }
 
+    // Release all semaphores exactly once across all threads that process this inverter.
+    void ReleaseSemas() {
+        bool expected = false;
+        if (!semas_released_.compare_exchange_strong(expected, true, std::memory_order_acq_rel)) {
+            return;
+        }
+        for (auto *sema : semas_) {
+            sema->release();
+        }
+        // semas_ does not need clearing since the atomic flag prevents re-entry.
+    }
+
 private:
     using TermBuffer = std::vector<char>;
     using PosInfoVec = std::vector<PosInfo>;
@@ -112,6 +124,7 @@ private:
 
     u32 merged_{1};
     std::vector<std::binary_semaphore *> semas_{};
+    std::atomic<bool> semas_released_{false};
 
 protected:
     size_t InvertColumn(u32 doc_id, const std::string &val);

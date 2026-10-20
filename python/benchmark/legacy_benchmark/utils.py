@@ -1,5 +1,7 @@
 import os
 import struct
+
+
 class SparseMatrix:
     nrow: int
     ncol: int

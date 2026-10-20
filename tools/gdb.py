@@ -1,7 +1,8 @@
 # gdb -ex "source /home/huikong/Code/work/infinity2/tmp/gdb.py"
 
 import re
-import gdb # type: ignore
+
+import gdb  # type: ignore
 
 # executable_path = "build/Debug/infinity"
 executable_path = "/home/huikong/Code/work/infinity2/build/Debug/src/infinity"

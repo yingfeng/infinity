@@ -304,7 +304,7 @@ void CalculateScoreOnColumnVector(ColumnVector &column_vector,
                                   BlockID block_id,
                                   u32 start_offset,
                                   u32 row_count,
-                                  const Bitmask &bitmask,
+                                  Bitmask &bitmask,
                                   const MatchTensorExpression &match_tensor_expr,
                                   MatchTensorScanFunctionData &function_data);
 
@@ -1086,7 +1086,7 @@ void ExecuteScanOnColumn(ColumnVector &column_vector,
                          const BlockID block_id,
                          const u32 start_block_offset,
                          const u32 row_count,
-                         const Bitmask &bitmask,
+                         Bitmask &bitmask,
                          const MatchTensorExpression &match_tensor_expr,
                          MatchTensorScanFunctionData &function_data) {
     const char *query_tensor_ptr = match_tensor_expr.query_embedding_.ptr;
@@ -1109,7 +1109,7 @@ struct TensorScanParameterPack {
     const BlockID block_id_;
     const u32 start_block_offset_;
     const u32 row_count_;
-    const Bitmask &bitmask_;
+    Bitmask &bitmask_;
     const MatchTensorExpression &match_tensor_expr_;
     MatchTensorScanFunctionData &function_data_;
     TensorScanParameterPack(ColumnVector &column_vector,
@@ -1117,7 +1117,7 @@ struct TensorScanParameterPack {
                             const BlockID block_id,
                             const u32 start_block_offset,
                             const u32 row_count,
-                            const Bitmask &bitmask,
+                            Bitmask &bitmask,
                             const MatchTensorExpression &match_tensor_expr,
                             MatchTensorScanFunctionData &function_data)
         : column_vector_(column_vector), segment_id_(segment_id), block_id_(block_id), start_block_offset_(start_block_offset), row_count_(row_count),
@@ -1221,9 +1221,17 @@ void CalculateScoreOnColumnVector(ColumnVector &column_vector,
                                   const BlockID block_id,
                                   const u32 start_offset,
                                   const u32 row_count,
-                                  const Bitmask &bitmask,
+                                  Bitmask &bitmask,
                                   const MatchTensorExpression &match_tensor_expr,
                                   MatchTensorScanFunctionData &function_data) {
+    // Exclude NULL rows from scoring (NULL tensor rows cannot participate in search)
+    if (column_vector.nulls_ptr_) {
+        for (u32 i = start_offset; i < start_offset + row_count; ++i) {
+            if (!column_vector.nulls_ptr_->IsTrue(i)) {
+                bitmask.SetFalse(i);
+            }
+        }
+    }
     TensorScanParameterPack parameter_pack(column_vector, segment_id, block_id, start_offset, row_count, bitmask, match_tensor_expr, function_data);
     auto column_elem_type = static_cast<const EmbeddingInfo *>(parameter_pack.column_vector_.data_type()->type_info().get())->Type();
     auto query_elem_type = parameter_pack.match_tensor_expr_.embedding_data_type_;

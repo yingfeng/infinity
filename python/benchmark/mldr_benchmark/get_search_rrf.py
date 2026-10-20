@@ -13,19 +13,29 @@
 # limitations under the License.
 
 import os
-from itertools import chain, combinations
+import struct
 import time
 from dataclasses import dataclass, field
-from FlagEmbedding import BGEM3FlagModel
-from tqdm import tqdm
-import numpy as np
-import struct
-from mldr_common_tools import QueryArgs, check_languages, check_query_types
-from mldr_common_tools import FakeJScoredDoc, get_queries_and_qids, save_result
-from mldr_common_tools import query_yields, apply_funcs, get_colbert_model, save_colbert_list
-from transformers import HfArgumentParser
+from itertools import chain, combinations
+
 import infinity
+import numpy as np
+from FlagEmbedding import BGEM3FlagModel
 from infinity.common import LOCAL_HOST
+from mldr_common_tools import (
+    FakeJScoredDoc,
+    QueryArgs,
+    apply_funcs,
+    check_languages,
+    check_query_types,
+    get_colbert_model,
+    get_queries_and_qids,
+    query_yields,
+    save_colbert_list,
+    save_result,
+)
+from tqdm import tqdm
+from transformers import HfArgumentParser
 
 
 @dataclass
@@ -50,7 +60,6 @@ def prepare_dense_embedding(embedding_file: str, model_args: ModelArgs, queries:
             assert len(single_embedding) == 1024
             f.write(struct.pack('i', 1024))
             single_embedding.tofile(f)
-    return
 
 
 def prepare_sparse_embedding(embedding_file: str, model_args: ModelArgs, queries: list[str], qids: list[int]):
@@ -68,7 +77,6 @@ def prepare_sparse_embedding(embedding_file: str, model_args: ModelArgs, queries
             f.write(struct.pack('i', len(tmp_list)))
             for p, v in tmp_list:
                 f.write(struct.pack('if', p, v))
-    return
 
 
 def prepare_colbert_embedding(embedding_file: str, model_args: ModelArgs, queries: list[str], qids: list[int]):

@@ -1,47 +1,47 @@
 import argparse
 import itertools
 import os
+import subprocess
 import sys
 import threading
 import time
 from shutil import copyfile
-import subprocess
 
-from generate_big import generate as generate1
-from generate_fvecs import generate as generate2
-from generate_sort import generate as generate3
-from generate_limit import generate as generate4
 from generate_aggregate import generate as generate5
-from generate_top import generate as generate6
-from generate_top_varchar import generate as generate7
+from generate_big import generate as generate1
+from generate_big_point_query_test_fastroughfilter import generate as generate12
+from generate_big_sparse import generate as generate15
+from generate_bvecs import generate as generate17
 from generate_compact import generate as generate8
+from generate_csr import generate as generate16
+from generate_embedding_parquet import generate as generate22
+from generate_emvb_test_data import generate as generate18
+from generate_fvecs import generate as generate2
+from generate_groupby1 import generate as generate29
 from generate_hnsw_with_delete import generate as generate9
 from generate_index_scan import generate as generate10
+from generate_large_import import generate as generate31
+from generate_limit import generate as generate4
 from generate_many_import import generate as generate11
-from generate_big_point_query_test_fastroughfilter import generate as generate12
 from generate_many_import_drop import generate as generate13
 from generate_mem_hnsw import generate as generate14
-from generate_big_sparse import generate as generate15
-from generate_csr import generate as generate16
-from generate_bvecs import generate as generate17
-from generate_emvb_test_data import generate as generate18
-from generate_test_parquet import generate as generate20
-from generate_sparse_parquet import generate as generate21
-from generate_embedding_parquet import generate as generate22
-from generate_varchar_parquet import generate as generate23
-from generate_test_parquet import generate as generate24
-from generate_tensor_parquet import generate as generate25
-from generate_tensor_array_parquet import generate as generate26
-from generate_multivector_parquet import generate as generate27
 from generate_multivector_knn_scan import generate as generate28
-from generate_groupby1 import generate as generate29
+from generate_multivector_parquet import generate as generate27
+from generate_sort import generate as generate3
+from generate_sparse_parquet import generate as generate21
+from generate_tensor_array_parquet import generate as generate26
+from generate_tensor_parquet import generate as generate25
+from generate_test_parquet import generate as generate20
+from generate_test_parquet import generate as generate24
+from generate_top import generate as generate6
+from generate_top_varchar import generate as generate7
 from generate_unnest import generate as generate30
-from generate_large_import import generate as generate31
+from generate_varchar_parquet import generate as generate23
 
 
 class SpinnerThread(threading.Thread):
     def __init__(self):
-        super(SpinnerThread, self).__init__()
+        super().__init__()
         self.stop = False
 
     def run(self):
@@ -56,14 +56,14 @@ class SpinnerThread(threading.Thread):
 
 def process_test(sqllogictest_bin: str, slt_dir: str, data_dir: str, copy_dir: str, test_file_name: str = None,
                  loop: int = 1):
-    print("sqlllogictest-bin path is {}".format(sqllogictest_bin))
-    print("slt_dir path is {}".format(slt_dir))
-    print("data_dir path is {}".format(data_dir))
+    print(f"sqlllogictest-bin path is {sqllogictest_bin}")
+    print(f"slt_dir path is {slt_dir}")
+    print(f"data_dir path is {data_dir}")
 
     test_cnt = 0
     skipped_files = {}
     for i in range(loop):
-        print("Start running test loop: {}".format(i + 1))
+        print(f"Start running test loop: {i + 1}")
         for dirpath, dirnames, filenames in os.walk(slt_dir):
             for filename in filenames:
                 file = os.path.join(dirpath, filename)
@@ -87,9 +87,9 @@ def process_test(sqllogictest_bin: str, slt_dir: str, data_dir: str, copy_dir: s
                     )  # Prints the error message.
                 print("=" * 99)
                 test_cnt += 1
-        print("Finish running test loop: {}".format(i + 1))
+        print(f"Finish running test loop: {i + 1}")
 
-    print("Finished {} tests.".format(test_cnt))
+    print(f"Finished {test_cnt} tests.")
 
 
 # Flatten files under data_dir into copy_dir, ignoring symlinks
@@ -188,4 +188,4 @@ if __name__ == "__main__":
             sys.exit(-1)
         end = time.time()
         print("Test finished.")
-        print("Time cost: {}s".format(end - start))
+        print(f"Time cost: {end - start}s")

@@ -204,6 +204,10 @@ bool CastExpression::CanCast(const DataType &source, const DataType &target) {
                     return false;
             }
         }
+        case LogicalType::kNull: {
+            // NULL is compatible with any type.
+            return true;
+        }
         default: {
             UnrecoverableError(fmt::format("Invalid cast from {} to {}", source.ToString(), target.ToString()));
         }

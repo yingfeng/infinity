@@ -14,6 +14,7 @@
 
 import os
 
+
 def run_sdk(): 
     os.system("cd test")
     os.system("python3 -m pytest -m 'not complex and not slow' test/test_database.py")

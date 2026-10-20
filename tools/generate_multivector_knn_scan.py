@@ -1,9 +1,10 @@
-import os
 import argparse
+import os
 import random
-from math import sin, cos, acos, pi
-import numpy as np
 import string
+from math import acos, cos, pi, sin
+
+import numpy as np
 
 
 class MyFormatter(string.Formatter):
@@ -99,7 +100,7 @@ def generate(generate_if_exists: bool, copy_dir: str):
     os.makedirs(csv_dir, exist_ok=True)
     os.makedirs(slt_dir, exist_ok=True)
     if os.path.exists(csv_path) and os.path.exists(slt_path) and os.path.exists(slt_path_hnsw) and not generate_if_exists:
-        print("File {}, {} and {} already existed. Skip Generating.".format(slt_path, slt_path_hnsw, csv_path))
+        print(f"File {slt_path}, {slt_path_hnsw} and {csv_path} already existed. Skip Generating.")
         return
     # generate data
     all_multivector_centers, all_multivectors, distance_results = get_random_data()
@@ -108,8 +109,7 @@ def generate(generate_if_exists: bool, copy_dir: str):
     insert_val_1 = ",".join([f"({i},{get_multivector_str_not_quoted(all_multivectors[i])})" for i in range(20)])
     # 2. import row [20, 980)
     with open(csv_path, "w") as multivector_scan_csv_file:
-        for i in range(20, 980):
-            multivector_scan_csv_file.write(f'{i},"{get_multivector_str_not_quoted(all_multivectors[i])}"\n')
+        multivector_scan_csv_file.writelines(f'{i},"{get_multivector_str_not_quoted(all_multivectors[i])}"\n' for i in range(20, 980))
     # 3. insert row [980, 1000)
     insert_val_3 = ",".join([f"({i},{get_multivector_str_not_quoted(all_multivectors[i])})" for i in range(980, 1000)])
     # 4. dense scan for row in query_data

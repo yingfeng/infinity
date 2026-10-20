@@ -1,11 +1,13 @@
-from common import common_values
 import infinity
-from infinity.errors import ErrorCode
-from infinity.table import ExplainType
-from infinity.common import ConflictType
 import polars as pl
 import pytest
+from infinity.common import ConflictType
+from infinity.errors import ErrorCode
 from infinity.infinity_http import infinity_http
+from infinity.table import ExplainType
+
+from common import common_values
+
 
 @pytest.mark.usefixtures("http")
 @pytest.mark.usefixtures("suffix")

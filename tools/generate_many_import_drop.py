@@ -1,7 +1,7 @@
 # generate 'test/sql/dml/compact/test_big_many_import_drop.slt'
 
-import os
 import argparse
+import os
 import random
 
 
@@ -13,8 +13,8 @@ def generate(generate_if_exists: bool, copy_dir: str):
 
     csv_dir = "./test/data/csv"
     slt_dir = "./test/sql/dml/cleanup"
-    csv_name = "/{}.csv".format(table_name)
-    slt_name = "/{}.slt".format(table_name)
+    csv_name = f"/{table_name}.csv"
+    slt_name = f"/{table_name}.slt"
 
     csv_path = csv_dir + csv_name
     slt_path = slt_dir + slt_name
@@ -23,9 +23,7 @@ def generate(generate_if_exists: bool, copy_dir: str):
     os.makedirs(slt_dir, exist_ok=True)
     if os.path.exists(csv_path) and os.path.exists(slt_path) and not generate_if_exists:
         print(
-            "File {} and {} already existed exists. Skip Generating.".format(
-                slt_path, csv_path
-            )
+            f"File {slt_path} and {csv_path} already existed exists. Skip Generating."
         )
         return
 
@@ -36,31 +34,28 @@ def generate(generate_if_exists: bool, copy_dir: str):
         for _ in range(p):
             x = [i for i in range(max_v)]
             random.shuffle(x)
-            for x1 in x:
-                csv_file.write("{}\n".format(x1))
+            csv_file.writelines(f"{x1}\n" for x1 in x)
 
     with open(slt_path, "w") as slt_file:
         for i in range(loop_n):
             slt_file.write("statement ok\n")
-            slt_file.write("DROP TABLE IF EXISTS {};\n".format(table_name))
+            slt_file.write(f"DROP TABLE IF EXISTS {table_name};\n")
             slt_file.write("\n")
 
             slt_file.write("statement ok\n")
             slt_file.write(
-                "CREATE TABLE {} (c1 INTEGER);\n".format(table_name))
+                f"CREATE TABLE {table_name} (c1 INTEGER);\n")
             slt_file.write("\n")
 
             for _ in range(import_n):
                 slt_file.write("statement ok\n")
                 slt_file.write(
-                    "COPY {} FROM '{}{}' WITH ( DELIMITER ',', FORMAT CSV );\n".format(
-                        table_name, copy_dir, csv_name
-                    )
+                    f"COPY {table_name} FROM '{copy_dir}{csv_name}' WITH ( DELIMITER ',', FORMAT CSV );\n"
                 )
                 slt_file.write("\n")
 
             slt_file.write("statement ok\n")
-            slt_file.write("DROP TABLE {};\n".format(table_name))
+            slt_file.write(f"DROP TABLE {table_name};\n")
             slt_file.write("\n")
         # # The delete will throw exception when compacting, so add this to wait for sometime
         # slt_file.write("statement ok\n")

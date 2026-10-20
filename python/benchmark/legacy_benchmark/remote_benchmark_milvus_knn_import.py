@@ -3,7 +3,7 @@ import os
 import struct
 import time
 
-from pymilvus import MilvusClient, DataType
+from pymilvus import DataType, MilvusClient
 
 
 def fvecs_read_all(filename):
@@ -12,7 +12,7 @@ def fvecs_read_all(filename):
         while True:
             try:
                 dims = struct.unpack('i', f.read(4))[0]
-                vec = struct.unpack('{}f'.format(dims), f.read(4 * dims))
+                vec = struct.unpack(f'{dims}f', f.read(4 * dims))
                 assert dims == len(vec)
                 vectors.append(list(vec))
             except struct.error:
@@ -25,7 +25,7 @@ def fvecs_read(filename):
         while True:
             try:
                 dims = struct.unpack('i', f.read(4))[0]
-                vec = struct.unpack('{}f'.format(dims), f.read(4 * dims))
+                vec = struct.unpack(f'{dims}f', f.read(4 * dims))
                 assert dims == len(vec)
                 yield list(vec)
             except struct.error:

@@ -159,6 +159,14 @@ std::string FunctionExpression::ExtractFunctionInfo() {
                 self(cast_expr->arguments()[0], param_str, self);
                 break;
             }
+            case ExpressionType::kFunction: {
+                // Nested function as an argument, e.g. is_null(json_extract_string(col, '$..')).
+                // Recurse into its own ExtractFunctionInfo so the index-pushdown key can still be
+                // built (it simply won't match any index, falling back to a normal scan filter).
+                auto nested_func = std::static_pointer_cast<FunctionExpression>(expr);
+                param_str += nested_func->ExtractFunctionInfo();
+                break;
+            }
             default: {
                 RecoverableError(
                     Status::NotSupport(fmt::format("Not implemented ExtractFunctionInfo for expression type: {}", ExpressionType2Str(expr->type()))));

@@ -682,7 +682,14 @@ void PhysicalImport::NewCSVRowHandler(void *context_raw_ptr) {
         }
         std::shared_ptr<ColumnDef> column_def = parser_context->GetColumnDef(column_idx);
         if (column_def->has_default_value()) {
-            auto const_expr = dynamic_cast<ConstantExpr *>(column_def->default_expr_.get());
+            ConstantExpr *const_expr = nullptr;
+            ConstantExpr null_const_expr(LiteralType::kNull);
+            if (column_def->default_expr_ != nullptr) {
+                const_expr = dynamic_cast<ConstantExpr *>(column_def->default_expr_.get());
+            } else {
+                // Implicit NULL default for nullable columns without explicit default.
+                const_expr = &null_const_expr;
+            }
             column_vector.AppendByConstantExpr(const_expr);
         } else {
             Status status = Status::ImportFileFormatError(
@@ -826,6 +833,10 @@ std::shared_ptr<ConstantExpr> BuildConstantExprFromJson(std::string_view object_
                 return res;
             }
         }
+        case simdjson::json_type::null: {
+            auto res = std::make_shared<ConstantExpr>(LiteralType::kNull);
+            return res;
+        }
         default: {
             const auto error_info = fmt::format("Unrecognized json object type");
             RecoverableError(Status::ImportFileFormatError(error_info));
@@ -954,6 +965,9 @@ std::shared_ptr<ConstantExpr> BuildConstantSparseExprFromJson(std::string_view o
                 }
             }
             return res;
+        }
+        case simdjson::json_type::null: {
+            return std::make_shared<ConstantExpr>(LiteralType::kNull);
         }
         default: {
             const auto error_info = fmt::format("Unrecognized json object type");
@@ -1231,10 +1245,10 @@ void PhysicalImport::JSONLRowHandler(std::string_view line_sv, std::vector<std::
                 case LogicalType::kSparse: {
                     const auto *sparse_info = static_cast<SparseInfo *>(column_vector.data_type()->type_info().get());
                     std::shared_ptr<ConstantExpr> const_expr = BuildConstantSparseExprFromJson(doc[column_def->name_].raw_json(), sparse_info);
-                    const_expr->TrySortSparseVec(column_def);
                     if (const_expr.get() == nullptr) {
                         RecoverableError(Status::ImportFileFormatError("Invalid json object."));
                     }
+                    const_expr->TrySortSparseVec(column_def);
                     column_vector.AppendByConstantExpr(const_expr.get());
                     break;
                 }
@@ -1258,7 +1272,13 @@ void PhysicalImport::JSONLRowHandler(std::string_view line_sv, std::vector<std::
                 }
             }
         } else if (column_def->has_default_value()) {
-            auto const_expr = dynamic_cast<ConstantExpr *>(column_def->default_expr_.get());
+            ConstantExpr *const_expr = nullptr;
+            ConstantExpr null_const_expr(LiteralType::kNull);
+            if (column_def->default_expr_ != nullptr) {
+                const_expr = dynamic_cast<ConstantExpr *>(column_def->default_expr_.get());
+            } else {
+                const_expr = &null_const_expr;
+            }
             column_vector.AppendByConstantExpr(const_expr);
         } else {
             Status status = Status::ImportFileFormatError(fmt::format("Column {} not found in JSON.", column_def->name_));

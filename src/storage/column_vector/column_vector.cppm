@@ -149,6 +149,12 @@ public:
     // Set the <index> element of the vector to the specified value.
     void SetValueByIndex(size_t index, const Value &value);
 
+    // Whether the <index> row is null.
+    bool IsNullAt(size_t index) const;
+
+    // Mark the <index> row as null.
+    void SetNullAt(size_t index);
+
     void Finalize(size_t index);
 
     void AppendByPtr(const char *value_ptr);

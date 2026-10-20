@@ -121,7 +121,15 @@ public:
 
     inline bool has_default_value() const {
         auto const_expr = std::dynamic_pointer_cast<ConstantExpr>(default_expr_);
-        return const_expr != nullptr && const_expr->literal_type_ != LiteralType::kNull;
+        if (const_expr != nullptr && const_expr->literal_type_ != LiteralType::kNull) {
+            // An explicit, non-null default value is always usable.
+            return true;
+        }
+        // A nullable column (no NOT NULL constraint) implicitly defaults to
+        // NULL, which is a valid default value for INSERT (omitted column),
+        // ALTER TABLE ADD COLUMN, and import of a missing/nullable cell.
+        // Note: a column with neither NULL nor NOT NULL is nullable by default.
+        return !constraints_.contains(ConstraintType::kNotNull);
     }
 
     [[nodiscard]] std::shared_ptr<ConstantExpr> default_value() const { return std::dynamic_pointer_cast<ConstantExpr>(default_expr_); }

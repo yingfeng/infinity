@@ -1,21 +1,23 @@
 import os
+import random
 import threading
 import time
+
 import pytest
+from infinity import index
+from infinity.common import ConflictType
 from infinity_runner import InfinityRunner, infinity_runner_decorator_factory
 from restart_util import (
-    SimpleEmbeddingGenerator,
-    SimpleVarcharGenerator,
-    SimpleTensorGenerator,
     EnwikiGenerator,
-    SiftGenerator,
     LChYDataGenerato,
+    SiftGenerator,
+    SimpleEmbeddingGenerator,
+    SimpleTensorGenerator,
+    SimpleVarcharGenerator,
 )
-from infinity import index
-from common import common_values
-from infinity.common import ConflictType
-import random
 from util import RtnThread
+
+from common import common_values
 
 
 class TestInsertImport:

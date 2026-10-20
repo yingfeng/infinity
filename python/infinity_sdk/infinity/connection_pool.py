@@ -12,13 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 from threading import Lock
+
 import infinity
 from infinity.common import NetworkAddress
-import logging
 
 
-class ConnectionPool(object):
+class ConnectionPool:
     def __init__(self, uri=NetworkAddress("127.0.0.1", 23817), max_size=16):
         self.uri_ = uri
         self.max_size_ = max_size

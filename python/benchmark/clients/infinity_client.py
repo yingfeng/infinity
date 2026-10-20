@@ -1,16 +1,15 @@
-import os
-
-from infinity.infinity_http import infinity_http
 import json
-import h5py
-from typing import Any
 import logging
+import os
+from typing import Any
 
+import h5py
 import infinity
-import infinity.index as index
-from infinity import NetworkAddress
+from infinity import NetworkAddress, index
 from infinity.common import SparseVector
+from infinity.infinity_http import infinity_http
 from infinity.remote_thrift.query_builder import InfinityThriftQueryBuilder
+
 from .base_client import BaseClient
 
 
@@ -186,7 +185,7 @@ class InfinityClient(BaseClient):
             query_builder.output(["_row_id"])
             query_builder.match_sparse(
                 list(self.data["schema"].keys())[0],#vector column name:col1
-                SparseVector(**{"indices": indices, "values": values}),
+                SparseVector(indices=indices, values=values),
                 self.data["metric_type"],#ip
                 self.data["topK"],
                 {"alpha": str(self.data["alpha"]), "beta": str(self.data["beta"])},

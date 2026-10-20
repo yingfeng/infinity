@@ -4,8 +4,8 @@
 # - https://en.wikipedia.org/wiki/AOL_search_log_release
 # - https://www.kaggle.com/datasets/dineshydv/aol-user-session-collection-500k
 
-import sys
 import re
+import sys
 
 
 def load_terms(enwiki_terms_file):
@@ -36,8 +36,7 @@ def process_tsv(aol_search_log_file, enwiki_terms_file, output_aol_queries_file)
                 unique_queries.add(" ".join(words))
     sorted_queries = sorted(unique_queries)
     with open(output_aol_queries_file, "w") as file:
-        for query in sorted_queries:
-            file.write(query + "\n")
+        file.writelines(query + "\n" for query in sorted_queries)
 
 
 if __name__ == "__main__":

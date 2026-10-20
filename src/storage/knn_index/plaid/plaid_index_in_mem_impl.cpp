@@ -125,6 +125,9 @@ void PlaidIndexInMem::Insert(const ColumnVector &col, const u32 row_offset, cons
 
     // Buffer the new embeddings
     for (u32 i = 0; i < row_count; ++i) {
+        if (col.nulls_ptr_ && !col.nulls_ptr_->IsTrue(row_offset + i)) {
+            continue;
+        }
         auto [raw_data, embedding_num] = col.GetTensorRaw(row_offset + i);
         const auto *tensor_data = reinterpret_cast<const f32 *>(raw_data.data());
 

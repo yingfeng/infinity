@@ -85,6 +85,7 @@ import :default_values;
 import :special_function;
 import :trunc;
 import :fixed_dimensional_encoding;
+import :is_null;
 
 import logical_type;
 import internal_types;
@@ -157,6 +158,9 @@ void BuiltinFunctions::RegisterScalarFunction() {
 
     // json function
     RegisterJsonFunction(catalog_ptr_);
+
+    // null functions
+    RegisterIsNullFunction(catalog_ptr_);
 
     // string functions
     RegisterSubstringFunction(catalog_ptr_);

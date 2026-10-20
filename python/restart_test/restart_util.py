@@ -1,9 +1,10 @@
-import os
-from infinity import index
 import csv
 import json
-import numpy as np
+import os
 import random
+
+import numpy as np
+from infinity import index
 from infinity.common import SparseVector
 
 

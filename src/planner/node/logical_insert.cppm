@@ -22,6 +22,7 @@ import :meta_info;
 
 import internal_types;
 import data_type;
+import logical_type;
 
 namespace infinity {
 
@@ -60,6 +61,9 @@ public:
 
 public:
     static bool NeedCastInInsert(const DataType &from, const DataType &to) {
+        if (from.type() == LogicalType::kNull) {
+            return false;
+        }
         if (from.type() == to.type()) {
             switch (from.type()) {
                 // Embedding

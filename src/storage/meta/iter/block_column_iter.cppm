@@ -39,12 +39,16 @@ public:
         : block_offset_(block_offset), col_(col), ele_size_(col.data_type()->Size()), cur_(offset), end_(offset + row_cnt), row_count_(row_cnt) {}
 
     std::optional<std::pair<ValueType, SegmentOffset>> Next() {
-        if (cur_ == end_) {
-            return std::nullopt;
+        while (cur_ < end_) {
+            if (col_.nulls_ptr_ && !col_.nulls_ptr_->IsTrue(cur_)) {
+                ++cur_;
+                continue;
+            }
+            const void *ret = col_.data() + cur_ * ele_size_;
+            const auto *v_ptr = reinterpret_cast<ValueType>(ret);
+            return std::make_pair(v_ptr, block_offset_ + cur_++);
         }
-        const void *ret = col_.data() + cur_ * ele_size_;
-        const auto *v_ptr = reinterpret_cast<ValueType>(ret);
-        return std::make_pair(v_ptr, block_offset_ + cur_++);
+        return std::nullopt;
     }
 
     size_t GetRowCount() const { return row_count_; }
@@ -91,13 +95,17 @@ public:
     }
 
     std::optional<std::pair<ValueType, SegmentOffset>> Next() {
-        if (cur_ == end_) {
-            return std::nullopt;
+        while (cur_ < end_) {
+            if (col_.nulls_ptr_ && !col_.nulls_ptr_->IsTrue(cur_)) {
+                ++cur_;
+                continue;
+            }
+            // Boolean values are stored as compact bits, use GetCompactBit to read
+            // Use the column vector's public method to get boolean value safely
+            bool_value_ = col_.GetValueByIndex(cur_).GetValue<BooleanT>();
+            return std::make_pair(&bool_value_, block_offset_ + cur_++);
         }
-        // Boolean values are stored as compact bits, use GetCompactBit to read
-        // Use the column vector's public method to get boolean value safely
-        bool_value_ = col_.GetValueByIndex(cur_).GetValue<BooleanT>();
-        return std::make_pair(&bool_value_, block_offset_ + cur_++);
+        return std::nullopt;
     }
 
     size_t GetRowCount() const { return row_count_; }
@@ -127,6 +135,11 @@ public:
         while (multi_vector_cur_ == multi_vector_ref_.embedding_num()) {
             if (cur_ == end_) {
                 return std::nullopt;
+            }
+            // skip NULL rows
+            if (col_.nulls_ptr_ && !col_.nulls_ptr_->IsTrue(cur_)) {
+                ++cur_;
+                continue;
             }
             multi_vector_ref_ = col_.GetMultiVectorRaw(cur_++);
             multi_vector_cur_ = 0;
@@ -161,13 +174,17 @@ public:
         : block_offset_(block_offset), col_(col), ele_size_(col.data_type()->Size()), cur_(offset), end_(offset + row_cnt), row_count_(row_cnt) {}
 
     std::optional<std::pair<SparseVecRef<DataType, IdxType>, SegmentOffset>> Next() {
-        if (cur_ == end_) {
-            return std::nullopt;
+        while (cur_ < end_) {
+            if (col_.nulls_ptr_ && !col_.nulls_ptr_->IsTrue(cur_)) {
+                ++cur_;
+                continue;
+            }
+            auto [data_span, index_span, nnz] = col_.GetSparseRaw(cur_++);
+            auto *data_ptr = reinterpret_cast<const DataType *>(data_span.data());
+            auto *index_ptr = reinterpret_cast<const IdxType *>(index_span.data());
+            return std::make_pair(SparseVecRef<DataType, IdxType>(nnz, index_ptr, data_ptr), block_offset_ + cur_ - 1);
         }
-        auto [data_span, index_span, nnz] = col_.GetSparseRaw(cur_++);
-        auto *data_ptr = reinterpret_cast<const DataType *>(data_span.data());
-        auto *index_ptr = reinterpret_cast<const IdxType *>(index_span.data());
-        return std::make_pair(SparseVecRef<DataType, IdxType>(nnz, index_ptr, data_ptr), block_offset_ + cur_ - 1);
+        return std::nullopt;
     }
 
     size_t GetRowCount() const { return row_count_; }

@@ -1,6 +1,7 @@
-import numpy as np
-import os
 import argparse
+import os
+
+import numpy as np
 
 
 def generate(generate_if_exists: bool, copy_dir: str):
@@ -17,9 +18,7 @@ def generate(generate_if_exists: bool, copy_dir: str):
     os.makedirs(slt_dir, exist_ok=True)
     if os.path.exists(agg_path) and os.path.exists(slt_path) and not generate_if_exists:
         print(
-            "File {} and {} already existed exists. Skip Generating.".format(
-                slt_path, agg_path
-            )
+            f"File {slt_path} and {agg_path} already existed exists. Skip Generating."
         )
         return
 
@@ -32,18 +31,18 @@ def generate(generate_if_exists: bool, copy_dir: str):
 
         # write to slt
         slt_file.write("statement ok\n")
-        slt_file.write("DROP TABLE IF EXISTS {};\n".format(table_name))
+        slt_file.write(f"DROP TABLE IF EXISTS {table_name};\n")
         slt_file.write("\n")
 
         slt_file.write("statement ok\n")
         slt_file.write(
-            "CREATE TABLE {} (c1 int, c2 float);\n".format(table_name)
+            f"CREATE TABLE {table_name} (c1 int, c2 float);\n"
         )
 
         # select count(*) from test_simple_agg_big
         slt_file.write("\n")
         slt_file.write("query I\n")
-        slt_file.write("SELECT count(*) FROM {};\n".format(table_name))
+        slt_file.write(f"SELECT count(*) FROM {table_name};\n")
         slt_file.write("----\n")
         slt_file.write(str(0))
         slt_file.write("\n")
@@ -51,22 +50,18 @@ def generate(generate_if_exists: bool, copy_dir: str):
         slt_file.write("\n")
         slt_file.write("query I\n")
         slt_file.write(
-            "COPY {} FROM '{}' WITH ( DELIMITER ',', FORMAT CSV );\n".format(
-                table_name, copy_path
-            )
+            f"COPY {table_name} FROM '{copy_path}' WITH ( DELIMITER ',', FORMAT CSV );\n"
         )
 
         slt_file.write("\n")
         slt_file.write("query I\n")
         slt_file.write(
-            "COPY {} FROM '{}' WITH ( DELIMITER ',', FORMAT CSV );\n".format(
-                table_name, copy_path
-            )
+            f"COPY {table_name} FROM '{copy_path}' WITH ( DELIMITER ',', FORMAT CSV );\n"
         )
 
         slt_file.write("\n")
         slt_file.write("query I\n")
-        slt_file.write("SELECT * FROM {};\n".format(table_name))
+        slt_file.write(f"SELECT * FROM {table_name};\n")
         slt_file.write("----\n")
         for _ in range(2):
             for i in sequence:
@@ -77,7 +72,7 @@ def generate(generate_if_exists: bool, copy_dir: str):
         # select max(c1) from test_simple_agg_big
         slt_file.write("\n")
         slt_file.write("query I\n")
-        slt_file.write("SELECT max(c1) FROM {};\n".format(table_name))
+        slt_file.write(f"SELECT max(c1) FROM {table_name};\n")
         slt_file.write("----\n")
         slt_file.write(str(row_n))
         slt_file.write("\n")
@@ -86,7 +81,7 @@ def generate(generate_if_exists: bool, copy_dir: str):
 
         slt_file.write("\n")
         slt_file.write("query I\n")
-        slt_file.write("SELECT min(c1) FROM {};\n".format(table_name))
+        slt_file.write(f"SELECT min(c1) FROM {table_name};\n")
         slt_file.write("----\n")
         slt_file.write(str(1))
         slt_file.write("\n")
@@ -95,7 +90,7 @@ def generate(generate_if_exists: bool, copy_dir: str):
 
         slt_file.write("\n")
         slt_file.write("query I\n")
-        slt_file.write("SELECT sum(c1) FROM {};\n".format(table_name))
+        slt_file.write(f"SELECT sum(c1) FROM {table_name};\n")
         slt_file.write("----\n")
         slt_file.write(str(np.sum(sequence) * 2))
         slt_file.write("\n")
@@ -103,7 +98,7 @@ def generate(generate_if_exists: bool, copy_dir: str):
         # select avg(c1) from test_simple_agg_big
         slt_file.write("\n")
         slt_file.write("query I\n")
-        slt_file.write("SELECT AVG(c1) FROM {};\n".format(table_name))
+        slt_file.write(f"SELECT AVG(c1) FROM {table_name};\n")
         slt_file.write("----\n")
         slt_file.write(str(np.mean(sequence)) + "00000")
         slt_file.write("\n")
@@ -111,7 +106,7 @@ def generate(generate_if_exists: bool, copy_dir: str):
         # select count(c1) from test_simple_agg_big
         slt_file.write("\n")
         slt_file.write("query I\n")
-        slt_file.write("SELECT count(c1) FROM {};\n".format(table_name))
+        slt_file.write(f"SELECT count(c1) FROM {table_name};\n")
         slt_file.write("----\n")
         slt_file.write(str(row_n * 2))
         slt_file.write("\n")
@@ -119,7 +114,7 @@ def generate(generate_if_exists: bool, copy_dir: str):
         # select count(*) from test_simple_agg_big
         slt_file.write("\n")
         slt_file.write("query I\n")
-        slt_file.write("SELECT count(*) FROM {};\n".format(table_name))
+        slt_file.write(f"SELECT count(*) FROM {table_name};\n")
         slt_file.write("----\n")
         slt_file.write(str(row_n * 2))
         slt_file.write("\n")
@@ -127,7 +122,7 @@ def generate(generate_if_exists: bool, copy_dir: str):
         # select avg(distinct c1) from test_simple_agg_big
         slt_file.write("\n")
         slt_file.write("query I\n")
-        slt_file.write("SELECT AVG(distinct c1) FROM {};\n".format(table_name))
+        slt_file.write(f"SELECT AVG(distinct c1) FROM {table_name};\n")
         slt_file.write("----\n")
         slt_file.write(str(np.mean(sequence)) + "00000")
         slt_file.write("\n")
@@ -135,7 +130,7 @@ def generate(generate_if_exists: bool, copy_dir: str):
         # select count(distinct c1, c2) from test_simple_agg_big
         slt_file.write("\n")
         slt_file.write("query I\n")
-        slt_file.write("SELECT count(distinct c1, c2) FROM {};\n".format(table_name))
+        slt_file.write(f"SELECT count(distinct c1, c2) FROM {table_name};\n")
         slt_file.write("----\n")
         slt_file.write(str(row_n))
         slt_file.write("\n")
@@ -143,7 +138,7 @@ def generate(generate_if_exists: bool, copy_dir: str):
         # select sum(distinct c1), count(distinct c1) from test_simple_agg_big
         slt_file.write("\n")
         slt_file.write("query I\n")
-        slt_file.write("SELECT sum(distinct c1), count(distinct c1) FROM {};\n".format(table_name))
+        slt_file.write(f"SELECT sum(distinct c1), count(distinct c1) FROM {table_name};\n")
         slt_file.write("----\n")
         slt_file.write(str(np.sum(sequence)) + " " + str(row_n))
         slt_file.write("\n")
@@ -151,7 +146,7 @@ def generate(generate_if_exists: bool, copy_dir: str):
         # select sum(distinct c1), count(distinct c2) from test_simple_agg_big
         slt_file.write("\n")
         slt_file.write("query I\n")
-        slt_file.write("SELECT sum(distinct c1), count(distinct c2) FROM {};\n".format(table_name))
+        slt_file.write(f"SELECT sum(distinct c1), count(distinct c2) FROM {table_name};\n")
         slt_file.write("----\n")
         slt_file.write(str(np.sum(sequence)) + " " + str(row_n))
         slt_file.write("\n")
@@ -159,7 +154,7 @@ def generate(generate_if_exists: bool, copy_dir: str):
         # select sum(distinct c1), count(c2), sum(c1), count(distinct c2) from test_simple_agg_big
         slt_file.write("\n")
         slt_file.write("query I\n")
-        slt_file.write("SELECT sum(distinct c1), count(c2), sum(c1), avg(distinct c2) FROM {};\n".format(table_name))
+        slt_file.write(f"SELECT sum(distinct c1), count(c2), sum(c1), avg(distinct c2) FROM {table_name};\n")
         slt_file.write("----\n")
         slt_file.write(str(np.sum(sequence)) + " " + str(row_n * 2) + " " + str(np.sum(sequence) * 2) + " " + str(np.mean(sequence)) + "00000")
         slt_file.write("\n")
@@ -167,26 +162,26 @@ def generate(generate_if_exists: bool, copy_dir: str):
         # select count(distinct c1, c2), count(c2) from test_simple_agg_big
         slt_file.write("\n")
         slt_file.write("query I\n")
-        slt_file.write("SELECT count(distinct c1, c2), count(c2) FROM {};\n".format(table_name))
+        slt_file.write(f"SELECT count(distinct c1, c2), count(c2) FROM {table_name};\n")
         slt_file.write("----\n")
         slt_file.write(str(row_n) + " " + str(row_n * 2))
         slt_file.write("\n")
 
         slt_file.write("\n")
         slt_file.write("statement ok\n")
-        slt_file.write("DROP TABLE {};\n".format(table_name))
+        slt_file.write(f"DROP TABLE {table_name};\n")
 
         # -------------------------------------
         slt_file.write("\n")
         slt_file.write("statement ok\n")
         slt_file.write(
-            "CREATE TABLE {} (c1 SMALLINT, c2 TINYINT);\n".format(table_name)
+            f"CREATE TABLE {table_name} (c1 SMALLINT, c2 TINYINT);\n"
         )
 
         # select count(*) from test_simple_agg_big
         slt_file.write("\n")
         slt_file.write("query I\n")
-        slt_file.write("SELECT count(*) FROM {};\n".format(table_name))
+        slt_file.write(f"SELECT count(*) FROM {table_name};\n")
         slt_file.write("----\n")
         slt_file.write(str(0))
         slt_file.write("\n")
@@ -194,9 +189,7 @@ def generate(generate_if_exists: bool, copy_dir: str):
         slt_file.write("\n")
         slt_file.write("query I\n")
         slt_file.write(
-            "COPY {} FROM '{}' WITH ( DELIMITER ',', FORMAT CSV );\n".format(
-                table_name, copy_path
-            )
+            f"COPY {table_name} FROM '{copy_path}' WITH ( DELIMITER ',', FORMAT CSV );\n"
         )
 
         sequence = np.arange(1, row_n + 1)
@@ -205,7 +198,7 @@ def generate(generate_if_exists: bool, copy_dir: str):
         # c2 is tinyint
         slt_file.write("\n")
         slt_file.write("query I\n")
-        slt_file.write("SELECT max(c2) FROM {};\n".format(table_name))
+        slt_file.write(f"SELECT max(c2) FROM {table_name};\n")
         slt_file.write("----\n")
         slt_file.write(str(pow(2, 7) - 1))
         slt_file.write("\n")
@@ -214,7 +207,7 @@ def generate(generate_if_exists: bool, copy_dir: str):
 
         slt_file.write("\n")
         slt_file.write("query I\n")
-        slt_file.write("SELECT min(c1) FROM {};\n".format(table_name))
+        slt_file.write(f"SELECT min(c1) FROM {table_name};\n")
         slt_file.write("----\n")
         slt_file.write(str(1))
         slt_file.write("\n")
@@ -223,7 +216,7 @@ def generate(generate_if_exists: bool, copy_dir: str):
 
         slt_file.write("\n")
         slt_file.write("query I\n")
-        slt_file.write("SELECT sum(c2) FROM {};\n".format(table_name))
+        slt_file.write(f"SELECT sum(c2) FROM {table_name};\n")
         slt_file.write("----\n")
         slt_file.write(str(np.sum(np.arange(1, 128))))
         slt_file.write("\n")
@@ -231,7 +224,7 @@ def generate(generate_if_exists: bool, copy_dir: str):
         # select avg(c1) from test_simple_agg_big
         slt_file.write("\n")
         slt_file.write("query I\n")
-        slt_file.write("SELECT AVG(c2) FROM {};\n".format(table_name))
+        slt_file.write(f"SELECT AVG(c2) FROM {table_name};\n")
         slt_file.write("----\n")
         slt_file.write(f"{np.around(np.sum(np.arange(1, 128)) / row_n, 6):.6f}")
         slt_file.write("\n")
@@ -239,7 +232,7 @@ def generate(generate_if_exists: bool, copy_dir: str):
         # select count(c1) from test_simple_agg_big
         slt_file.write("\n")
         slt_file.write("query I\n")
-        slt_file.write("SELECT count(c2) FROM {};\n".format(table_name))
+        slt_file.write(f"SELECT count(c2) FROM {table_name};\n")
         slt_file.write("----\n")
         slt_file.write(str(row_n))
         slt_file.write("\n")
@@ -247,14 +240,14 @@ def generate(generate_if_exists: bool, copy_dir: str):
         # select count(*) from test_simple_agg_big
         slt_file.write("\n")
         slt_file.write("query I\n")
-        slt_file.write("SELECT count(*) FROM {};\n".format(table_name))
+        slt_file.write(f"SELECT count(*) FROM {table_name};\n")
         slt_file.write("----\n")
         slt_file.write(str(row_n))
         slt_file.write("\n")
 
         slt_file.write("\n")
         slt_file.write("statement ok\n")
-        slt_file.write("DROP TABLE {};\n".format(table_name))
+        slt_file.write(f"DROP TABLE {table_name};\n")
 
 
 if __name__ == "__main__":

@@ -1,6 +1,8 @@
 import os
+
 import infinity
 from infinity.common import ConflictType
+
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 
@@ -48,7 +50,7 @@ print(res)
 if extra_result is not None:
     print(extra_result)
 
-res, extra_result = table_obj.output(["*"]).filter("regex(c1, '(\w+([-+.]\w+)*)@(\w+([-.]\w+)*)\.(\w+([-.]\w+)*)')").to_df()
+res, extra_result = table_obj.output(["*"]).filter(r"regex(c1, '(\w+([-+.]\w+)*)@(\w+([-.]\w+)*)\.(\w+([-.]\w+)*)')").to_df()
 print(res)
 if extra_result is not None:
     print(extra_result)

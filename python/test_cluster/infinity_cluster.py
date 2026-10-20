@@ -1,15 +1,15 @@
-from abc import abstractmethod
 import json
 import logging
-import subprocess
-import time
-import tomli
 import os
 import socket
+import subprocess
+import time
+from abc import abstractmethod
+
+import tomli
+from infinity.infinity_http import http_network_util, infinity_http
 
 from scripts import timeout_kill
-
-from infinity.infinity_http import infinity_http, http_network_util
 
 
 def convert_request_to_curl(method: str, header: dict, data: dict, url: str):

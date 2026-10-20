@@ -1,9 +1,11 @@
-import time
 import os
-from infinity_cluster import InfinityCluster
+import time
+
+import common_values
 from infinity.common import ConflictType
 from infinity.errors import ErrorCode
-import common_values
+from infinity_cluster import InfinityCluster
+
 
 def count_lines(file_path: str):
     with open(file_path, 'r') as file:

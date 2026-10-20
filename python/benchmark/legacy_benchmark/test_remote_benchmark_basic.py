@@ -17,9 +17,8 @@ import time
 import traceback
 from datetime import datetime
 
-import pandas as pd
-
 import infinity
+import pandas as pd
 from infinity import NetworkAddress
 from infinity.errors import ErrorCode
 

@@ -1,6 +1,6 @@
 import argparse
-import os
 import logging
+import os
 import sys
 
 from clients.elasticsearch_client import ElasticsearchClient

@@ -88,10 +88,15 @@ TEST_F(EMVBTest, test_fakepq) {
         }
     }
     FakePQ fake_pq;
+    std::vector<u32> doc_segment_offsets(n_docs);
+    for (u32 i = 0; i < n_docs; ++i) {
+        doc_segment_offsets[i] = i;
+    }
     auto emvb = EMVBSearch<FIXED_QUERY_TOKEN_NUM>(embedding_dimension,
                                                   n_docs,
                                                   centroid_num,
                                                   doc_lens.data(),
+                                                  doc_segment_offsets.data(),
                                                   doc_offsets.data(),
                                                   centroid_id_assignments.data(),
                                                   centroids_data.data(),

@@ -1,9 +1,11 @@
-import time
 import os
-from infinity_cluster import InfinityCluster
+import time
+
+import common_values
 from infinity.common import ConflictType
 from infinity.errors import ErrorCode
-import common_values
+from infinity_cluster import InfinityCluster
+
 
 class TestKnn:
     def test_knn(self, cluster: InfinityCluster):

@@ -17,8 +17,8 @@ This example demonstrates FDE (Feature Dimension Expansion) functionality.
 It shows how to use the match_dense method for vector search with tensor input.
 '''
 
-import sys
 import os
+import sys
 
 # Add the local Python SDK to the path for development
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'python'))
@@ -49,8 +49,8 @@ try:
     print("Created table with embedding column")
 
     # Import FDE class for insert operations
-    from infinity.common import FDE
     import numpy as np
+    from infinity.common import FDE
 
     # Example 1: Insert data using traditional embeddings
     print("\n=== Inserting Traditional Embeddings ===")

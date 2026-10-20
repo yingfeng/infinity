@@ -1,8 +1,8 @@
 # generate 'test/sql/dml/delete/test_delete_with_hnsw_big.slt' and 'test/data/csv/test_delete_with_hnsw_big.csv'
 
 
-import os
 import argparse
+import os
 import random
 
 
@@ -25,8 +25,8 @@ def generate(generate_if_exists: bool, copy: bool):
 
     csv_dir = "./test/data/csv"
     slt_dir = "./test/sql/dml/delete"
-    csv_name = "{}.csv".format(table_name)
-    slt_name = "{}.slt".format(table_name)
+    csv_name = f"{table_name}.csv"
+    slt_name = f"{table_name}.slt"
 
     copy_dir = "/var/infinity/test_data"
     copy_path = copy_dir + "/" + csv_name
@@ -38,9 +38,7 @@ def generate(generate_if_exists: bool, copy: bool):
     os.makedirs(slt_dir, exist_ok=True)
     if os.path.exists(csv_path) and os.path.exists(slt_path) and not generate_if_exists:
         print(
-            "File {} and {} already existed exists. Skip Generating.".format(
-                slt_path, csv_path
-            )
+            f"File {slt_path} and {csv_path} already existed exists. Skip Generating."
         )
         return
 
@@ -82,86 +80,75 @@ def generate(generate_if_exists: bool, copy: bool):
     delete_nearest_all = find_nearest(delete_x_all)
 
     with open(csv_path, "w") as csv_file:
-        for v_x, v_y in zip(x, y):
-            csv_file.write("{},{}\n".format(to_csv_embedding(v_x), v_y))
+        csv_file.writelines(f"{to_csv_embedding(v_x)},{v_y}\n" for v_x, v_y in zip(x, y))
 
     if copy:
         os.makedirs(copy_dir, exist_ok=True)
-        os.system("cp {} {}".format(csv_path, copy_path))
+        os.system(f"cp {csv_path} {copy_path}")
 
     with open(slt_path, "w") as slt_file:
         slt_file.write("statement ok\n")
-        slt_file.write("DROP TABLE IF EXISTS {};\n".format(table_name))
+        slt_file.write(f"DROP TABLE IF EXISTS {table_name};\n")
         slt_file.write("\n")
 
         slt_file.write("statement ok\n")
         slt_file.write(
-            "CREATE TABLE {} (c1 EMBEDDING(FLOAT, {}), c2 INTEGER);\n".format(
-                table_name, embedding_len
-            )
+            f"CREATE TABLE {table_name} (c1 EMBEDDING(FLOAT, {embedding_len}), c2 INTEGER);\n"
         )
         slt_file.write("\n")
 
         slt_file.write("query I\n")
         slt_file.write(
-            "COPY {} FROM '/var/infinity/test_data/{}' WITH ( DELIMITER ',', FORMAT CSV );\n".format(
-                table_name, csv_name
-            )
+            f"COPY {table_name} FROM '/var/infinity/test_data/{csv_name}' WITH ( DELIMITER ',', FORMAT CSV );\n"
         )
         slt_file.write("----\n")
         slt_file.write("\n")
 
         slt_file.write("statement ok\n")
-        slt_file.write("DELETE FROM {} WHERE c2 = 1;\n".format(table_name))
+        slt_file.write(f"DELETE FROM {table_name} WHERE c2 = 1;\n")
         slt_file.write("\n")
 
         slt_file.write("statement ok\n")
         slt_file.write(
-            "CREATE INDEX {} ON {}(c1) USING HNSW WITH (M = 100, ef_construction = 100, metric = l2);\n".format(
-                index_name, table_name
-            )
+            f"CREATE INDEX {index_name} ON {table_name}(c1) USING HNSW WITH (M = 100, ef_construction = 100, metric = l2);\n"
         )
         slt_file.write("\n")
 
         for v_x in x:
             slt_file.write("query I\n")
             slt_file.write(
-                "SELECT c1 FROM {} SEARCH MATCH VECTOR (c1, {}, 'float', 'l2', 1) WITH (ef = 4);\n".format(
-                    table_name, to_sql_embedding(v_x + diff)
-                )
+                f"SELECT c1 FROM {table_name} SEARCH MATCH VECTOR (c1, {to_sql_embedding(v_x + diff)}, 'float', 'l2', 1) WITH (ef = 4);\n"
             )
             slt_file.write("----\n")
             if v_x in delete_x_1:
                 slt_file.write(
-                    "[{}]\n".format(to_result_embedding(delete_nearest_1[v_x]))
+                    f"[{to_result_embedding(delete_nearest_1[v_x])}]\n"
                 )
             else:
-                slt_file.write("[{}]\n".format(to_result_embedding(v_x)))
+                slt_file.write(f"[{to_result_embedding(v_x)}]\n")
             slt_file.write("\n")
 
         slt_file.write("statement ok\n")
-        slt_file.write("DELETE FROM {} WHERE c2 = 2;\n".format(table_name))
+        slt_file.write(f"DELETE FROM {table_name} WHERE c2 = 2;\n")
         slt_file.write("\n")
 
         random.shuffle(x)
         for v_x in x:
             slt_file.write("query I\n")
             slt_file.write(
-                "SELECT c1 FROM {} SEARCH MATCH VECTOR (c1, {}, 'float', 'l2', 1) WITH (ef = 4);\n".format(
-                    table_name, to_sql_embedding(float(v_x) + diff)
-                )
+                f"SELECT c1 FROM {table_name} SEARCH MATCH VECTOR (c1, {to_sql_embedding(float(v_x) + diff)}, 'float', 'l2', 1) WITH (ef = 4);\n"
             )
             slt_file.write("----\n")
             if v_x in delete_x_all:
                 slt_file.write(
-                    "[{}]\n".format(to_result_embedding(delete_nearest_all[v_x]))
+                    f"[{to_result_embedding(delete_nearest_all[v_x])}]\n"
                 )
             else:
-                slt_file.write("[{}]\n".format(to_result_embedding(v_x)))
+                slt_file.write(f"[{to_result_embedding(v_x)}]\n")
             slt_file.write("\n")
 
         slt_file.write("statement ok\n")
-        slt_file.write("DROP TABLE {};\n".format(table_name))
+        slt_file.write(f"DROP TABLE {table_name};\n")
         slt_file.write("\n")
 
 

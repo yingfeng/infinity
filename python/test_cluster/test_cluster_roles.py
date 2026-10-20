@@ -1,9 +1,10 @@
 
 import pytest
-from infinity_cluster import InfinityCluster
-from infinity.common import InfinityException
 from database_operations import do_some_operations_cluster, instance_state
+from infinity.common import InfinityException
 from infinity.infinity_http import database_result
+from infinity_cluster import InfinityCluster
+
 
 def test_leader(cluster : InfinityCluster):
     '''

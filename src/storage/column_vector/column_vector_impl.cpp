@@ -37,6 +37,7 @@ import :cast_expression;
 import :expression_evaluator;
 import :expression_state;
 import :json_manager;
+import :null_value;
 
 import std.compat;
 import third_party;
@@ -176,9 +177,13 @@ VectorBufferType ColumnVector::GetVectorBufferType(const DataType &data_type) {
             vector_buffer_type = VectorBufferType::kVarBuffer;
             break;
         }
-        case LogicalType::kInvalid:
         case LogicalType::kNull:
         case LogicalType::kMissing: {
+            // Use CompactBit since NULL/missing columns don't store actual data, only a null bitmap.
+            vector_buffer_type = VectorBufferType::kCompactBit;
+            break;
+        }
+        case LogicalType::kInvalid: {
             UnrecoverableError("Unexpected data type for column vector.");
         }
         default: {
@@ -264,6 +269,22 @@ void ColumnVector::Initialize(BufferObj *buffer_obj,
         }
     }
     tail_index_.store(current_row_count);
+
+    // Read null bitmap from loaded buffer if present.
+    // The buffer layout in .col file is: [data_region (data_cap_size bytes)] [null_bitmap (null_size bytes)]
+    // Bit set = non-null, bit clear = null.
+    if (vector_type_ != ColumnVectorType::kConstant && buffer_obj != nullptr) {
+        size_t null_size = (capacity_ + 7) / 8;
+        size_t data_cap_size = (vector_buffer_type == VectorBufferType::kCompactBit) ? (capacity_ + 7) / 8 : (capacity_ * data_type_size_);
+        if (buffer_obj->GetBufferSize() >= data_cap_size + null_size) {
+            const u8 *null_bitmap = reinterpret_cast<const u8 *>(data_ptr_) + data_cap_size;
+            for (size_t i = 0; i < current_row_count; ++i) {
+                if (!(null_bitmap[i / 8] & (1u << (i % 8)))) {
+                    nulls_ptr_->SetFalse(i);
+                }
+            }
+        }
+    }
 }
 
 void ColumnVector::SetToCatalog(BufferObj *buffer_obj, BufferObj *outline_buffer_obj, ColumnVectorMode vector_tipe) {
@@ -349,26 +370,91 @@ void ColumnVector::Initialize(const ColumnVector &other, const Selection &input_
                 break;
             }
             case LogicalType::kVarchar: {
-                CopyFrom<VarcharT>(other.buffer_.get(), this->buffer_.get(), tail_index, input_select);
+                const char *src = other.buffer_->GetData();
+                char *dst = this->buffer_->GetDataMut();
+                for (size_t idx = 0; idx < tail_index; ++idx) {
+                    size_t src_idx = input_select.Get(idx);
+                    if (!other.nulls_ptr_->IsTrue(src_idx)) {
+                        continue;
+                    }
+                    VarcharT *dst_ptr = &((VarcharT *)(dst))[idx];
+                    const VarcharT *src_ptr = &((const VarcharT *)(src))[src_idx];
+                    CopyVarchar(*dst_ptr, this->buffer_.get(), *src_ptr, other.buffer_.get());
+                }
                 break;
             }
             case LogicalType::kJson: {
-                CopyFrom<JsonT>(other.buffer_.get(), this->buffer_.get(), tail_index, input_select);
+                const char *src = other.buffer_->GetData();
+                char *dst = this->buffer_->GetDataMut();
+                for (size_t idx = 0; idx < tail_index; ++idx) {
+                    size_t src_idx = input_select.Get(idx);
+                    if (!other.nulls_ptr_->IsTrue(src_idx)) {
+                        continue;
+                    }
+                    JsonT *dst_ptr = &((JsonT *)(dst))[idx];
+                    const JsonT *src_ptr = &((const JsonT *)(src))[src_idx];
+                    CopyJson(*dst_ptr, this->buffer_.get(), *src_ptr, other.buffer_.get());
+                }
                 break;
             }
             case LogicalType::kMultiVector: {
-                CopyFrom<MultiVectorT>(other.buffer_.get(), this->buffer_.get(), tail_index, input_select);
+                const char *src = other.buffer_->GetData();
+                char *dst = this->buffer_->GetDataMut();
+                const auto *embedding_info = static_cast<const EmbeddingInfo *>(data_type_->type_info().get());
+                for (size_t idx = 0; idx < tail_index; ++idx) {
+                    size_t src_idx = input_select.Get(idx);
+                    if (!other.nulls_ptr_->IsTrue(src_idx)) {
+                        continue;
+                    }
+                    MultiVectorT *dst_ptr = &((MultiVectorT *)(dst))[idx];
+                    const MultiVectorT *src_ptr = &((const MultiVectorT *)(src))[src_idx];
+                    CopyMultiVector(*dst_ptr, this->buffer_.get(), *src_ptr, other.buffer_.get(), embedding_info);
+                }
                 break;
             }
             case LogicalType::kTensor: {
-                CopyFrom<TensorT>(other.buffer_.get(), this->buffer_.get(), tail_index, input_select);
+                const char *src = other.buffer_->GetData();
+                char *dst = this->buffer_->GetDataMut();
+                const auto *embedding_info = static_cast<const EmbeddingInfo *>(data_type_->type_info().get());
+                for (size_t idx = 0; idx < tail_index; ++idx) {
+                    size_t src_idx = input_select.Get(idx);
+                    if (!other.nulls_ptr_->IsTrue(src_idx)) {
+                        continue;
+                    }
+                    TensorT *dst_ptr = &((TensorT *)(dst))[idx];
+                    const TensorT *src_ptr = &((const TensorT *)(src))[src_idx];
+                    CopyTensor(*dst_ptr, this->buffer_.get(), *src_ptr, other.buffer_.get(), embedding_info);
+                }
                 break;
             }
             case LogicalType::kTensorArray: {
-                CopyFrom<TensorArrayT>(other.buffer_.get(), this->buffer_.get(), tail_index, input_select);
+                const char *src = other.buffer_->GetData();
+                char *dst = this->buffer_->GetDataMut();
+                const auto *embedding_info = static_cast<const EmbeddingInfo *>(data_type_->type_info().get());
+                for (size_t idx = 0; idx < tail_index; ++idx) {
+                    size_t src_idx = input_select.Get(idx);
+                    if (!other.nulls_ptr_->IsTrue(src_idx)) {
+                        continue;
+                    }
+                    TensorArrayT *dst_ptr = &((TensorArrayT *)(dst))[idx];
+                    const TensorArrayT *src_ptr = &((const TensorArrayT *)(src))[src_idx];
+                    CopyTensorArray(*dst_ptr, this->buffer_.get(), *src_ptr, other.buffer_.get(), embedding_info);
+                }
+                break;
             }
             case LogicalType::kSparse: {
-                CopyFrom<SparseT>(other.buffer_.get(), this->buffer_.get(), tail_index, input_select);
+                const char *src = other.buffer_->GetData();
+                char *dst = this->buffer_->GetDataMut();
+                const auto *sparse_info = static_cast<const SparseInfo *>(data_type_->type_info().get());
+                for (size_t idx = 0; idx < tail_index; ++idx) {
+                    size_t src_idx = input_select.Get(idx);
+                    if (!other.nulls_ptr_->IsTrue(src_idx)) {
+                        continue;
+                    }
+                    SparseT *dst_sparse = reinterpret_cast<SparseT *>(dst) + idx;
+                    const SparseT *src_sparse = reinterpret_cast<const SparseT *>(src) + src_idx;
+                    CopySparse(*dst_sparse, this->buffer_.get(), *src_sparse, other.buffer_.get(), sparse_info);
+                }
                 break;
             }
             case LogicalType::kDate: {
@@ -392,7 +478,18 @@ void ColumnVector::Initialize(const ColumnVector &other, const Selection &input_
                 break;
             }
             case LogicalType::kArray: {
-                CopyFrom<ArrayT>(other.buffer_.get(), this->buffer_.get(), tail_index, input_select);
+                const char *src = other.buffer_->GetData();
+                char *dst = this->buffer_->GetDataMut();
+                const auto *array_info = static_cast<const ArrayInfo *>(data_type_->type_info().get());
+                for (size_t idx = 0; idx < tail_index; ++idx) {
+                    size_t src_idx = input_select.Get(idx);
+                    if (!other.nulls_ptr_->IsTrue(src_idx)) {
+                        continue;
+                    }
+                    ArrayT *dst_array = reinterpret_cast<ArrayT *>(dst) + idx;
+                    const ArrayT *src_array = reinterpret_cast<const ArrayT *>(src) + src_idx;
+                    CopyArray(*dst_array, this->buffer_.get(), *src_array, other.buffer_.get(), array_info);
+                }
                 break;
             }
             // case LogicalType::kTuple: {
@@ -457,6 +554,13 @@ void ColumnVector::Initialize(const ColumnVector &other, const Selection &input_
             }
             default: {
                 UnrecoverableError("std::tuple is not implement.");
+            }
+        }
+        // Copy null bitmap
+        for (size_t i = 0; i < tail_index; ++i) {
+            size_t src_idx = input_select.Get(i);
+            if (!other.nulls_ptr_->IsTrue(src_idx)) {
+                this->nulls_ptr_->SetFalse(i);
             }
         }
     }
@@ -632,6 +736,13 @@ void ColumnVector::Initialize(ColumnVectorType vector_type, const ColumnVector &
             }
             default: {
                 UnrecoverableError("std::tuple is not implement.");
+            }
+        }
+        // Copy null bitmap
+        size_t count = end_idx - start_idx;
+        for (size_t i = 0; i < count; ++i) {
+            if (!other.nulls_ptr_->IsTrue(start_idx + i)) {
+                this->nulls_ptr_->SetFalse(i);
             }
         }
     }
@@ -819,6 +930,12 @@ void ColumnVector::CopyRow(const ColumnVector &other, size_t dst_idx, size_t src
             UnrecoverableError("std::tuple is not implement.");
         }
     }
+    // Copy null bitmap
+    if (!other.nulls_ptr_->IsTrue(src_idx)) {
+        this->nulls_ptr_->SetFalse(dst_idx);
+    } else {
+        this->nulls_ptr_->SetTrue(dst_idx);
+    }
 }
 
 std::string ColumnVector::ToString(size_t row_index) const {
@@ -970,13 +1087,18 @@ std::string ColumnVector::ToString(size_t row_index) const {
         }
         case LogicalType::kNull:
             [[fallthrough]];
-        case LogicalType::kMissing:
-            [[fallthrough]];
-        case LogicalType::kEmptyArray:
-            [[fallthrough]];
+        case LogicalType::kMissing: {
+            // These types logically represent null / missing values.
+            // If we reach here the null bitmap was not set, but the value is
+            // still logically null for this type.
+            return "null";
+        }
+        case LogicalType::kEmptyArray: {
+            return "[]";
+        }
         case LogicalType::kInvalid: {
             UnrecoverableError("Attempt to access an unaccepted type");
-            // Null/Missing/Invalid
+            // Invalid
         }
     }
     return std::string{};
@@ -1161,6 +1283,12 @@ void ColumnVector::SetValueByIndex(size_t index, const Value &value) {
                         std::to_string(capacity_)));
     }
 
+    if (value.IsNull()) {
+        nulls_ptr_->SetFalse(index);
+        return;
+    }
+    nulls_ptr_->SetTrue(index);
+
     // TODO: Check if the value type is same as column vector type
     // TODO: if not, try to cast
     if (value.type() != *data_type_) {
@@ -1169,12 +1297,32 @@ void ColumnVector::SetValueByIndex(size_t index, const Value &value) {
                                        data_type_->ToString()));
     }
 
-    // TODO: Check if the value is null, then set the column vector validity.
     if (data_type_->type() == LogicalType::kBoolean) {
         buffer_->SetCompactBit(index, value.GetValue<BooleanT>());
     } else {
         SetArrayValueRecursively(value, data_ptr_ + index * data_type_->Size());
     }
+}
+
+bool ColumnVector::IsNullAt(size_t index) const {
+    if (!initialized) {
+        UnrecoverableError("Column vector isn't initialized.");
+    }
+    return !nulls_ptr_->IsTrue(index);
+}
+
+void ColumnVector::SetNullAt(size_t index) {
+    if (!initialized) {
+        UnrecoverableError("Column vector isn't initialized.");
+    }
+    size_t tail_index = tail_index_.load();
+    if (index > tail_index || index >= capacity_) {
+        UnrecoverableError(fmt::format("Attempt to mark an unavailable row of column vector as null: {}, current column tail index: {}, capacity: {}",
+                                       std::to_string(index),
+                                       std::to_string(tail_index),
+                                       std::to_string(capacity_)));
+    }
+    nulls_ptr_->SetFalse(index);
 }
 
 void ColumnVector::SetArrayValueRecursively(const Value &value, char *dst_ptr) {
@@ -2082,9 +2230,23 @@ void ColumnVector::AppendByStringView(std::string_view sv) {
 }
 
 void ColumnVector::AppendByConstantExpr(const ConstantExpr *const_expr) {
+    // Handle nullptr (implicit NULL default for nullable columns).
+    if (const_expr == nullptr) {
+        Value null_value = Value::MakeNull();
+        AppendValue(null_value);
+        return;
+    }
     ExpressionBinder tmp_binder(nullptr);
     auto expr = tmp_binder.BuildValueExpr(*const_expr, nullptr, 0, false);
     auto value_expr = std::dynamic_pointer_cast<ValueExpression>(expr);
+    // If the constant expression is Null (e.g. missing CSV column without default),
+    // append NULL directly without casting, since NULL is type-agnostic.
+    if (value_expr->Type().type() == LogicalType::kNull) {
+        Value null_value = Value::MakeNull();
+        AppendValue(null_value);
+        return;
+    }
+
     if (value_expr->Type() == *data_type()) {
         auto value_to_insert = value_expr->GetValue();
         AppendValue(value_to_insert);
@@ -2113,6 +2275,8 @@ void ColumnVector::AppendWith(const ColumnVector &other, size_t from, size_t cou
     }
 
     size_t tail_index = tail_index_.load();
+    const bool source_is_constant = other.vector_type() == ColumnVectorType::kConstant;
+    const auto source_row_idx = [source_is_constant, from](size_t idx) -> size_t { return source_is_constant ? 0 : from + idx; };
     if (tail_index + count > this->capacity_) {
         UnrecoverableError(
             fmt::format("Attempt to append {} rows data to {} rows data, which exceeds {} limit.", count, tail_index, this->capacity_));
@@ -2168,7 +2332,11 @@ void ColumnVector::AppendWith(const ColumnVector &other, size_t from, size_t cou
             auto *base_src_ptr = (VarcharT *)(other.data_ptr_);
             VarcharT *base_dst_ptr = &((VarcharT *)(data_ptr_))[tail_index_.load()];
             for (size_t idx = 0; idx < count; ++idx) {
-                VarcharT &src_ref = base_src_ptr[from + idx];
+                const size_t src_idx = source_row_idx(idx);
+                if (!other.nulls_ptr_->IsTrue(src_idx)) {
+                    continue;
+                }
+                VarcharT &src_ref = base_src_ptr[src_idx];
                 VarcharT &dst_ref = base_dst_ptr[idx];
                 CopyVarchar(dst_ref, buffer_.get(), src_ref, other.buffer_.get());
             }
@@ -2178,7 +2346,11 @@ void ColumnVector::AppendWith(const ColumnVector &other, size_t from, size_t cou
             auto *base_src_ptr = (JsonT *)(other.data_ptr_);
             JsonT *base_dst_ptr = &((JsonT *)(data_ptr_))[tail_index_.load()];
             for (size_t idx = 0; idx < count; ++idx) {
-                JsonT &src_ref = base_src_ptr[from + idx];
+                const size_t src_idx = source_row_idx(idx);
+                if (!other.nulls_ptr_->IsTrue(src_idx)) {
+                    continue;
+                }
+                JsonT &src_ref = base_src_ptr[src_idx];
                 JsonT &dst_ref = base_dst_ptr[idx];
                 dst_ref.length_ = src_ref.length_;
 
@@ -2194,7 +2366,11 @@ void ColumnVector::AppendWith(const ColumnVector &other, size_t from, size_t cou
             MultiVectorT *base_dst_ptr = ((MultiVectorT *)(data_ptr_)) + tail_index_.load();
             const auto *embedding_info = static_cast<const EmbeddingInfo *>(data_type_->type_info().get());
             for (size_t idx = 0; idx < count; ++idx) {
-                const MultiVectorT &src_ref = base_src_ptr[from + idx];
+                const size_t src_idx = source_row_idx(idx);
+                if (!other.nulls_ptr_->IsTrue(src_idx)) {
+                    continue;
+                }
+                const MultiVectorT &src_ref = base_src_ptr[src_idx];
                 MultiVectorT &dst_ref = base_dst_ptr[idx];
                 CopyMultiVector(dst_ref, buffer_.get(), src_ref, other.buffer_.get(), embedding_info);
             }
@@ -2205,7 +2381,11 @@ void ColumnVector::AppendWith(const ColumnVector &other, size_t from, size_t cou
             TensorT *base_dst_ptr = ((TensorT *)(data_ptr_)) + tail_index_.load();
             const auto *embedding_info = static_cast<const EmbeddingInfo *>(data_type_->type_info().get());
             for (size_t idx = 0; idx < count; ++idx) {
-                const TensorT &src_ref = base_src_ptr[from + idx];
+                const size_t src_idx = source_row_idx(idx);
+                if (!other.nulls_ptr_->IsTrue(src_idx)) {
+                    continue;
+                }
+                const TensorT &src_ref = base_src_ptr[src_idx];
                 TensorT &dst_ref = base_dst_ptr[idx];
                 CopyTensor(dst_ref, buffer_.get(), src_ref, other.buffer_.get(), embedding_info);
             }
@@ -2216,7 +2396,11 @@ void ColumnVector::AppendWith(const ColumnVector &other, size_t from, size_t cou
             TensorArrayT *base_dst_ptr = ((TensorArrayT *)(data_ptr_)) + tail_index_.load();
             const auto *embedding_info = static_cast<const EmbeddingInfo *>(data_type_->type_info().get());
             for (size_t idx = 0; idx < count; ++idx) {
-                const TensorArrayT &src_ref = base_src_ptr[from + idx];
+                const size_t src_idx = source_row_idx(idx);
+                if (!other.nulls_ptr_->IsTrue(src_idx)) {
+                    continue;
+                }
+                const TensorArrayT &src_ref = base_src_ptr[src_idx];
                 TensorArrayT &dst_ref = base_dst_ptr[idx];
                 CopyTensorArray(dst_ref, buffer_.get(), src_ref, other.buffer_.get(), embedding_info);
             }
@@ -2227,7 +2411,11 @@ void ColumnVector::AppendWith(const ColumnVector &other, size_t from, size_t cou
             auto *base_dst_ptr = reinterpret_cast<SparseT *>(data_ptr_) + tail_index_.load();
             const auto *sparse_info = static_cast<const SparseInfo *>(data_type_->type_info().get());
             for (size_t idx = 0; idx < count; ++idx) {
-                const SparseT &src_sparse = base_src_ptr[from + idx];
+                const size_t src_idx = source_row_idx(idx);
+                if (!other.nulls_ptr_->IsTrue(src_idx)) {
+                    continue;
+                }
+                const SparseT &src_sparse = base_src_ptr[src_idx];
                 SparseT &dst_sparse = base_dst_ptr[idx];
                 CopySparse(dst_sparse, buffer_.get(), src_sparse, other.buffer_.get(), sparse_info);
             }
@@ -2238,7 +2426,11 @@ void ColumnVector::AppendWith(const ColumnVector &other, size_t from, size_t cou
             auto *base_dst_ptr = reinterpret_cast<ArrayT *>(data_ptr_) + tail_index_.load();
             const auto *array_info = static_cast<const ArrayInfo *>(data_type_->type_info().get());
             for (size_t idx = 0; idx < count; ++idx) {
-                const ArrayT &src_array = base_src_ptr[from + idx];
+                const size_t src_idx = source_row_idx(idx);
+                if (!other.nulls_ptr_->IsTrue(src_idx)) {
+                    continue;
+                }
+                const ArrayT &src_array = base_src_ptr[src_idx];
                 ArrayT &dst_array = base_dst_ptr[idx];
                 CopyArray(dst_array, buffer_.get(), src_array, other.buffer_.get(), array_info);
             }
@@ -2299,11 +2491,10 @@ void ColumnVector::AppendWith(const ColumnVector &other, size_t from, size_t cou
             //        case kBlob: {
             //        }
         case LogicalType::kEmbedding: {
-            //            auto *base_src_ptr = (EmbeddingT *)(other.data_ptr_);
             auto *base_src_ptr = other.data_ptr_;
             char *base_dst_ptr = data_ptr_ + tail_index_.load() * data_type_->Size();
             for (size_t idx = 0; idx < count; ++idx) {
-                char *src_ptr = base_src_ptr + (from + idx) * data_type_->Size();
+                const char *src_ptr = base_src_ptr + source_row_idx(idx) * data_type_->Size();
                 char *dst_ptr = base_dst_ptr + idx * data_type_->Size();
                 std::memcpy(dst_ptr, src_ptr, data_type_->Size());
             }
@@ -2331,7 +2522,7 @@ void ColumnVector::AppendWith(const ColumnVector &other, size_t from, size_t cou
 
     // Copy the null mask
     for (size_t idx = 0; idx < count; ++idx) {
-        if (!other.nulls_ptr_->IsTrue(from + idx)) {
+        if (!other.nulls_ptr_->IsTrue(source_row_idx(idx))) {
             this->nulls_ptr_->SetFalse(tail_index + idx);
         }
     }
@@ -2529,7 +2720,14 @@ std::shared_ptr<ColumnVector> ColumnVector::ReadAdv(const char *&ptr, i32 maxbyt
         LOG_CRITICAL(error_message);
         UnrecoverableError(error_message);
     }
-    column_vector->nulls_ptr_ = Bitmask::ReadAdv(ptr, maxbytes);
+
+    // Read null bitmap if present. Old-format column files may not have a null bitmap,
+    // in which case (maxbytes == 0) all rows are considered non-null.
+    if (maxbytes > 0) {
+        column_vector->nulls_ptr_ = Bitmask::ReadAdv(ptr, maxbytes);
+    } else {
+        column_vector->nulls_ptr_ = Bitmask::MakeSharedAllTrue(DEFAULT_VECTOR_SIZE);
+    }
     maxbytes = ptr_end - ptr;
     if (maxbytes < 0) {
         std::string error_message = "Fail to read data column vector: end";

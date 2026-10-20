@@ -109,6 +109,11 @@ void BGTaskProcessor::Process() {
                     if (storage_mode == StorageMode::kWritable or storage_mode == StorageMode::kReadable) {
                         auto *new_txn_mgr = InfinityContext::instance().storage()->new_txn_manager();
                         auto new_txn_shared = new_txn_mgr->BeginTxnShared(std::make_unique<std::string>("clean up"), TransactionType::kCleanup);
+                        // BeginTxnShared may return nullptr when another cleanup is already running.
+                        if (new_txn_shared == nullptr) {
+                            LOG_DEBUG("Cleanup task skipped: another cleanup is already running");
+                            break;
+                        }
                         Status status = new_txn_shared->Cleanup();
                         if (!status.ok()) {
                             UnrecoverableError(status.message());

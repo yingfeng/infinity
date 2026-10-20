@@ -1,7 +1,7 @@
-import os
-import json
-import struct
 import argparse
+import json
+import os
+import struct
 
 
 def transform_sparse_json_to_data(sparse_json_file: str):
@@ -22,7 +22,6 @@ def transform_sparse_json_to_data(sparse_json_file: str):
                     intp = int(p)
                     g.write(struct.pack('<i', intp))
                     g.write(struct.pack('<f', v))
-    return
 
 
 def transform_data_to_sparse_json(sparse_data_file: str):
@@ -44,7 +43,6 @@ def transform_data_to_sparse_json(sparse_data_file: str):
                     one_dict[str(p)] = v
                 result.append(one_dict)
             json.dump(result, g)
-    return
 
 
 if __name__ == "__main__":

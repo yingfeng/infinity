@@ -25,7 +25,6 @@
 # ]
 # ///
 
-import logging
 # logging.basicConfig(
 #     level=logging.INFO,
 #     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -33,15 +32,17 @@ import logging
 # )
 import argparse
 import copy
-import datrie
+import logging
 import math
 import os
 import re
 import string
+import unicodedata
+
+import datrie
 from hanziconv import HanziConv
 from nltk import word_tokenize
 from nltk.stem import SnowballStemmer, WordNetLemmatizer
-
 
 # Map language names (lowercase) to NLTK SnowballStemmer language names.
 # Used by set_language() to configure language-specific stemming.
@@ -64,6 +65,33 @@ _SNOWBALL_LANGUAGE_MAP = {
     "swedish": "swedish",
     "turkish": "turkish",
 }
+
+# Languages tokenized with diacritics folded to ASCII and no stemming.
+# SPLIT_CHAR only keeps ASCII letter runs whole, so accented words would
+# otherwise be fragmented before indexing ('škola' -> 'š kola'), and
+# neither language has a Snowball stemmer.
+_DIACRITIC_FOLDING_LANGUAGES = {"slovak", "czech"}
+
+
+def _fold_char(char: str) -> str:
+    # Latin-1 Supplement and Latin Extended-A letters whose NFD decomposition
+    # is one ASCII letter plus combining marks fold to that letter (Š -> S,
+    # ď -> d); everything else (æ, ø, ł, ß, non-Latin scripts) is kept. Same
+    # rule as RAGAnalyzer::FoldDiacritics in the C++ analyzer.
+    if not (0xC0 <= ord(char) < 0x180):
+        return char
+    decomposed = unicodedata.normalize("NFD", char)
+    base = decomposed[0]
+    if base.isascii() and base.isalpha() and all(unicodedata.combining(c) for c in decomposed[1:]):
+        return base
+    return char
+
+
+def fold_diacritics(text: str) -> str:
+    """Fold Latin diacritics to ASCII: 'škola' -> 'skola'."""
+    if text.isascii():
+        return text
+    return "".join(_fold_char(c) for c in text)
 
 
 class RagTokenizer:
@@ -122,6 +150,7 @@ class RagTokenizer:
         self.stemmer = SnowballStemmer("english")
         self.lemmatizer = WordNetLemmatizer()
         self._use_lemmatizer = True  # WordNet only supports English
+        self._fold_diacritics = False
 
         self.SPLIT_CHAR = r"([ ,\.<>/?;:'\[\]\\`!@#$%^&*\(\)\{\}\|_+=《》，。？、；‘’：“”【】~！￥%……（）——-]+|[a-zA-Z0-9,\.-]+)"
 
@@ -163,6 +192,14 @@ class RagTokenizer:
                       Case-insensitive.
         """
         lang_key = language.strip().lower()
+
+        self._fold_diacritics = lang_key in _DIACRITIC_FOLDING_LANGUAGES
+        if self._fold_diacritics:
+            # Folded to ASCII in tokenize() and left unstemmed: there is no
+            # Snowball stemmer for these languages (see _normalize_token).
+            logging.debug("Tokenizer language set to '%s' (diacritics folding, no stemming)", language)
+            return
+
         snowball_lang = _SNOWBALL_LANGUAGE_MAP.get(lang_key)
 
         if snowball_lang is not None:
@@ -307,7 +344,7 @@ class RagTokenizer:
             tks.append(tk)
         # F /= len(tks)
         L /= len(tks)
-        logging.debug("[SC] {} {} {} {} {}".format(tks, len(tks), L, F, B / len(tks) + L + F))
+        logging.debug(f"[SC] {tks} {len(tks)} {L} {F} {B / len(tks) + L + F}")
         return tks, B / len(tks) + L + F
 
     def _sort_tokens(self, tkslist):
@@ -389,8 +426,11 @@ class RagTokenizer:
 
         When the lemmatizer is enabled (English), applies lemmatization
         before stemming.  For other Snowball-supported languages, only
-        stemming is applied.  Non-alphabetic tokens are returned as-is.
+        stemming is applied.  Non-alphabetic tokens are returned as-is,
+        and so is every token of a diacritic-folding language.
         """
+        if self._fold_diacritics:
+            return t
         if re.match(r"[a-zA-Z_-]+$", t):
             if self._use_lemmatizer:
                 return self.stemmer.stem(self.lemmatizer.lemmatize(t))
@@ -421,6 +461,8 @@ class RagTokenizer:
         return txt_lang_pairs
 
     def tokenize(self, line: str) -> str:
+        if self._fold_diacritics:
+            line = fold_diacritics(line)
         line = re.sub(r"\W+", " ", line)
         line = self._strQ2B(line).lower()
         line = self._tradi2simp(line)
@@ -439,8 +481,8 @@ class RagTokenizer:
             tks, s = self._max_forward(L)
             tks1, s1 = self._max_backward(L)
             if self.DEBUG:
-                logging.debug("[FW] {} {}".format(tks, s))
-                logging.debug("[BW] {} {}".format(tks1, s1))
+                logging.debug(f"[FW] {tks} {s}")
+                logging.debug(f"[BW] {tks1} {s1}")
 
             i, j, _i, _j = 0, 0, 0, 0
             same = 0
@@ -488,7 +530,7 @@ class RagTokenizer:
                 res.append(" ".join(self._sort_tokens(tkslist)[0][0]))
 
         res = " ".join(res)
-        logging.debug("[TKS] {}".format(self.merge_(res)))
+        logging.debug(f"[TKS] {self.merge_(res)}")
         return self.merge_(res)
 
     def fine_grained_tokenize(self, tks: str) -> str:
@@ -626,7 +668,7 @@ if __name__ == '__main__':
             results.append(result)
 
         except Exception as e:
-            error_msg = f"ERROR: {str(e)}"
+            error_msg = f"ERROR: {e!s}"
             logging.error(f"Failed to process text: {text} - {e}")
             results.append(error_msg)
 

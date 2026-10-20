@@ -187,7 +187,11 @@ std::shared_ptr<ExpressionState> ExpressionState::CreateState(const std::shared_
 
     result->column_vector_ = std::make_shared<ColumnVector>(value_data_type);
     result->column_vector_->Initialize(ColumnVectorType::kConstant, DEFAULT_VECTOR_SIZE);
-    value_expr->AppendToChunk(result->column_vector_);
+    if (!value_expr->GetValue().IsNull()) {
+        value_expr->AppendToChunk(result->column_vector_);
+    } else {
+        result->column_vector_->nulls_ptr_->SetFalse(0);
+    }
 
     return result;
 }

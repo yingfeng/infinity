@@ -16,8 +16,9 @@
 This example is about connecting to the local infinity instance, creating table, creating emvb index, inserting data, and searching data
 '''
 
-import infinity
 import sys
+
+import infinity
 
 try:
     # Use infinity_embedded module to open a local directory

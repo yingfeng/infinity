@@ -191,6 +191,18 @@ void DataFileWorker::ReadFromFileImpl(size_t file_size, bool from_spill) {
         RecoverableError(status);
     }
 
+    // Handle legacy .col files that were written without a null bitmap.
+    // The file's buffer_size_ reflects only the data region, while this->buffer_size_
+    // (set at construction time) includes the null bitmap. Expand the buffer to the
+    // expected size and fill the null-bitmap region with 0xFF so all rows are valid.
+    if (buffer_size_ < this->buffer_size_) {
+        void *new_data = new char[this->buffer_size_];
+        memcpy(new_data, data_, buffer_size_);
+        memset(static_cast<char *>(new_data) + buffer_size_, 0xFF, this->buffer_size_ - buffer_size_);
+        delete[] static_cast<char *>(data_);
+        data_ = new_data;
+    }
+
     // file footer: checksum
     u64 checksum{0};
     auto [nbytes4, status4] = file_handle_->Read(&checksum, sizeof(checksum));
@@ -212,13 +224,37 @@ bool DataFileWorker::ReadFromMmapImpl(const void *p, size_t file_size) {
         Status status = Status::DataIOError(fmt::format("File size: {} isn't matched with {}.", file_size, buffer_size + 3 * sizeof(u64)));
         RecoverableError(status);
     }
+
+    // Handle legacy .col files that were written without a null bitmap.
+    // The file's buffer_size_ reflects only the data region, while this->buffer_size_
+    // (set at construction time) includes the null bitmap. Since the mmap'd region is
+    // too short to satisfy null-bitmap accesses, allocate a heap buffer with the full
+    // expected size and fill the null-bitmap region with 0xFF so all rows are valid.
+    if (buffer_size < this->buffer_size_) {
+        data_ = static_cast<void *>(new char[this->buffer_size_]);
+        memcpy(data_, ptr, buffer_size);
+        memset(static_cast<char *>(data_) + buffer_size, 0xFF, this->buffer_size_ - buffer_size);
+        mmap_data_ = static_cast<u8 *>(data_);
+        ptr += buffer_size;
+        [[maybe_unused]] u64 checksum = ReadBufAdv<u64>(ptr);
+        return true;
+    }
+
     mmap_data_ = const_cast<u8 *>(reinterpret_cast<const u8 *>(ptr));
     ptr += buffer_size;
     [[maybe_unused]] u64 checksum = ReadBufAdv<u64>(ptr);
     return true;
 }
 
-void DataFileWorker::FreeFromMmapImpl() {}
+void DataFileWorker::FreeFromMmapImpl() {
+    if (data_ != nullptr) {
+        // Allocated via ReadFromMmapImpl legacy-format fixup; free here so that
+        // FreeInMemory (which is only called on the heap-load path) is never
+        // invoked on the same buffer.
+        delete[] static_cast<char *>(data_);
+        data_ = nullptr;
+    }
+}
 
 void DataFileWorker::SetDataSize(size_t size) {
     if (data_ == nullptr) {

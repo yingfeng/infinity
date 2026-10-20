@@ -16,9 +16,10 @@
 This example is to connect local infinity instance, create table, insert data, search the data
 """
 
-import infinity
 # from infinity.table import ExplainType
 import sys
+
+import infinity
 import polars as pl
 
 pl.Config.set_tbl_rows(1000)

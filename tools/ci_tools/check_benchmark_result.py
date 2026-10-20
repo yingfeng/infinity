@@ -38,9 +38,7 @@ def main():
         sys.exit(1)
     difference_percentage = 100 * (latest_avg - golden_avg) / golden_avg
     print(
-        "golden_avg: {}s, latest_avg: {}s, difference percentage: {:.2f}%".format(
-            golden_avg, latest_avg, difference_percentage
-        )
+        f"golden_avg: {golden_avg}s, latest_avg: {latest_avg}s, difference percentage: {difference_percentage:.2f}%"
     )
     if difference_percentage < 7:
         print("benchmark result is acceptable")

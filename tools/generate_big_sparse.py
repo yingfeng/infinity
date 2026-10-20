@@ -3,8 +3,9 @@
 
 import argparse
 import os
-from generate_util.generate_sparse_data import generate_sparse_data, find_topk
+
 from generate_util.format_data import sparse_format_float
+from generate_util.generate_sparse_data import find_topk, generate_sparse_data
 
 
 def generate(generate_if_exists: bool, copy_dir: str):
@@ -36,9 +37,7 @@ def generate(generate_if_exists: bool, copy_dir: str):
         and not generate_if_exists
     ):
         print(
-            "File {} and {} and {} and {} already existed. Skip Generating.".format(
-                csv_path, import_slt_path, insert_slt_path, bmp_knn_slt_path
-            )
+            f"File {csv_path} and {import_slt_path} and {insert_slt_path} and {bmp_knn_slt_path} already existed. Skip Generating."
         )
         return
 
@@ -46,41 +45,39 @@ def generate(generate_if_exists: bool, copy_dir: str):
 
     with open(import_slt_path, "w") as import_slt_file, open(csv_path, "w") as csv_file:
         import_slt_file.write("statement ok\n")
-        import_slt_file.write("DROP TABLE IF EXISTS {};\n".format(table_name))
+        import_slt_file.write(f"DROP TABLE IF EXISTS {table_name};\n")
         import_slt_file.write("\n")
 
         import_slt_file.write("statement ok\n")
         import_slt_file.write(
-            "CREATE TABLE {} ( c1 INT, c2 SPARSE(FLOAT, {}) WITH (SORTED));\n".format(
-                table_name, max_dim
-            )
+            f"CREATE TABLE {table_name} ( c1 INT, c2 SPARSE(FLOAT, {max_dim}) WITH (SORTED));\n"
         )
         import_slt_file.write("\n")
 
         import_slt_file.write("statement ok\n")
         import_slt_file.write(
-            "COPY {} FROM '{}' WITH ( DELIMITER ',', FORMAT CSV);\n".format(table_name, copy_path)
+            f"COPY {table_name} FROM '{copy_path}' WITH ( DELIMITER ',', FORMAT CSV);\n"
         )
         import_slt_file.write("\n")
 
         import_slt_file.write("query I\n")
-        import_slt_file.write("SELECT * FROM {};\n".format(table_name))
+        import_slt_file.write(f"SELECT * FROM {table_name};\n")
         import_slt_file.write("----\n")
         for row_id in range(row_n):
             start, end = indptr[row_id], indptr[row_id + 1]
 
-            csv_file.write("{},".format(row_id))
+            csv_file.write(f"{row_id},")
             csv_file.write('"[')
             for j in range(start, end):
-                csv_file.write("{}:{}".format(indices[j], data[j]))
+                csv_file.write(f"{indices[j]}:{data[j]}")
                 if j != end - 1:
                     csv_file.write(",")
             csv_file.write(']"\n')
 
-            import_slt_file.write("{} [".format(row_id))
+            import_slt_file.write(f"{row_id} [")
             for j in range(start, end):
                 import_slt_file.write(
-                    "{}:{}".format(indices[j], sparse_format_float(data[j])),
+                    f"{indices[j]}:{sparse_format_float(data[j])}",
                 )
                 if j != end - 1:
                     import_slt_file.write(",")
@@ -88,33 +85,31 @@ def generate(generate_if_exists: bool, copy_dir: str):
 
         import_slt_file.write("\n")
         import_slt_file.write("statement ok\n")
-        import_slt_file.write("DROP TABLE {};\n".format(table_name))
+        import_slt_file.write(f"DROP TABLE {table_name};\n")
         import_slt_file.write("\n")
 
     insert_batch = 10
 
     with open(insert_slt_path, "w") as insert_slt_file:
         insert_slt_file.write("statement ok\n")
-        insert_slt_file.write("DROP TABLE IF EXISTS {};\n".format(table_name))
+        insert_slt_file.write(f"DROP TABLE IF EXISTS {table_name};\n")
         insert_slt_file.write("\n")
 
         insert_slt_file.write("statement ok\n")
         insert_slt_file.write(
-            "CREATE TABLE {} ( c1 INT, c2 SPARSE(FLOAT, {}));\n".format(
-                table_name, max_dim
-            )
+            f"CREATE TABLE {table_name} ( c1 INT, c2 SPARSE(FLOAT, {max_dim}));\n"
         )
         insert_slt_file.write("\n")
 
         for i in range(0, row_n, insert_batch):
             insert_slt_file.write("statement ok\n")
-            insert_slt_file.write("INSERT INTO {} VALUES\n".format(table_name))
+            insert_slt_file.write(f"INSERT INTO {table_name} VALUES\n")
             for j in range(i, min(i + insert_batch, row_n)):
                 start, end = indptr[j], indptr[j + 1]
-                insert_slt_file.write("({},[".format(j))
+                insert_slt_file.write(f"({j},[")
                 for k in range(start, end):
                     insert_slt_file.write(
-                        "{}:{}".format(indices[k], sparse_format_float(data[k]))
+                        f"{indices[k]}:{sparse_format_float(data[k])}"
                     )
                     if k != end - 1:
                         insert_slt_file.write(",")
@@ -125,14 +120,14 @@ def generate(generate_if_exists: bool, copy_dir: str):
             insert_slt_file.write("\n")
 
         insert_slt_file.write("query I\n")
-        insert_slt_file.write("SELECT * FROM {};\n".format(table_name))
+        insert_slt_file.write(f"SELECT * FROM {table_name};\n")
         insert_slt_file.write("----\n")
-        for i in range(0, row_n):
+        for i in range(row_n):
             start, end = indptr[i], indptr[i + 1]
-            insert_slt_file.write("{} [".format(i))
+            insert_slt_file.write(f"{i} [")
             for j in range(start, end):
                 insert_slt_file.write(
-                    "{}:{}".format(indices[j], sparse_format_float(data[j])),
+                    f"{indices[j]}:{sparse_format_float(data[j])}",
                 )
                 if j != end - 1:
                     insert_slt_file.write(",")
@@ -146,40 +141,34 @@ def generate(generate_if_exists: bool, copy_dir: str):
 
     with open(bmp_knn_slt_path, "w") as bmp_knn_slt_file:
         bmp_knn_slt_file.write("statement ok\n")
-        bmp_knn_slt_file.write("DROP TABLE IF EXISTS {};\n".format(table_name))
+        bmp_knn_slt_file.write(f"DROP TABLE IF EXISTS {table_name};\n")
         bmp_knn_slt_file.write("\n")
 
         bmp_knn_slt_file.write("statement ok\n")
         bmp_knn_slt_file.write(
-            "CREATE TABLE {} ( c1 INT, c2 SPARSE(FLOAT, {}));\n".format(
-                table_name, max_dim
-            )
+            f"CREATE TABLE {table_name} ( c1 INT, c2 SPARSE(FLOAT, {max_dim}));\n"
         )
         bmp_knn_slt_file.write("\n")
 
         bmp_knn_slt_file.write("statement ok\n")
         bmp_knn_slt_file.write(
-            "COPY {} FROM '{}' WITH ( DELIMITER ',', FORMAT CSV);\n".format(table_name, copy_path)
+            f"COPY {table_name} FROM '{copy_path}' WITH ( DELIMITER ',', FORMAT CSV);\n"
         )
         bmp_knn_slt_file.write("\n")
 
         bmp_knn_slt_file.write("statement ok\n")
         bmp_knn_slt_file.write(
-            "CREATE INDEX {} ON {} (c2) USING Bmp WITH (block_size = 8, compress_type = compress);\n".format(
-                index_name, table_name
-            )
+            f"CREATE INDEX {index_name} ON {table_name} (c2) USING Bmp WITH (block_size = 8, compress_type = compress);\n"
         )
         bmp_knn_slt_file.write("\n")
 
         bmp_knn_slt_file.write("statement ok\n")
         bmp_knn_slt_file.write(
-            "ALTER {} ON {} WITH (bp_reorder, topk = {});\n".format(
-                index_name, table_name, topk
-            )
+            f"ALTER {index_name} ON {table_name} WITH (bp_reorder, topk = {topk});\n"
         )
         bmp_knn_slt_file.write("\n")
 
-        for i in range(0, query_n):
+        for i in range(query_n):
             bmp_knn_slt_file.write("query I\n")
 
             start, end = qindptr[i], qindptr[i + 1]
@@ -188,7 +177,7 @@ def generate(generate_if_exists: bool, copy_dir: str):
                     table_name,
                     ",".join(
                         [
-                            "{}:{}".format(i, d) # sparse_format_float(d)
+                            f"{i}:{d}" # sparse_format_float(d)
                             for (i, d) in zip(qindices[start:end], qdata[start:end])
                         ]
                     ),
@@ -199,12 +188,11 @@ def generate(generate_if_exists: bool, copy_dir: str):
                 indptr, indices, data, topk, qindices[start:end], qdata[start:end]
             )
             bmp_knn_slt_file.write("----\n")
-            for r in res:
-                bmp_knn_slt_file.write("{}\n".format(r))
+            bmp_knn_slt_file.writelines(f"{r}\n" for r in res)
             bmp_knn_slt_file.write("\n")
 
         bmp_knn_slt_file.write("statement ok\n")
-        bmp_knn_slt_file.write("DROP TABLE {};\n".format(table_name))
+        bmp_knn_slt_file.write(f"DROP TABLE {table_name};\n")
         bmp_knn_slt_file.write("\n")
 
 

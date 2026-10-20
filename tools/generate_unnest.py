@@ -15,7 +15,7 @@ def generate(generate_if_exists: bool, copy_dir: str):
     os.makedirs(data_dir, exist_ok=True)
     os.makedirs(slt_dir, exist_ok=True)
     if os.path.exists(slt_path) and not generate_if_exists:
-        print("File {} already existed exists. Skip Generating.".format(slt_path))
+        print(f"File {slt_path} already existed exists. Skip Generating.")
         return
 
     varchar_samples = [
@@ -104,8 +104,7 @@ def generate(generate_if_exists: bool, copy_dir: str):
             for c2_item in c2:
                 select_res.append(f"{id} {c1} {c2_item}\n")
         select_res.sort()
-        for res in select_res:
-            slt_file.write(res)
+        slt_file.writelines(select_res)
         slt_file.write("\n")
 
         slt_file.write("query IIT rowsort\n")
@@ -116,8 +115,7 @@ def generate(generate_if_exists: bool, copy_dir: str):
             if "Shanghai" in c2:
                 select_res.append(f"{id} {c1} Shanghai\n")
         select_res.sort()
-        for res in select_res:
-            slt_file.write(res)
+        slt_file.writelines(select_res)
         slt_file.write("\n")
 
         slt_file.write("query TI rowsort\n")
@@ -129,8 +127,7 @@ def generate(generate_if_exists: bool, copy_dir: str):
         for c2, c1_list in varchar_to_int.items():
             select_res.append(f"{c2} {sum(c1_list)}\n")
         select_res.sort()
-        for res in select_res:
-            slt_file.write(res)
+        slt_file.writelines(select_res)
         slt_file.write("\n")
 
         slt_file.write("statement ok\n")

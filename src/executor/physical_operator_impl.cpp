@@ -170,8 +170,13 @@ void OutputToDataBlockHelper::OutputToDataBlock(BufferManager *buffer_mgr,
             cache_column_id = column_id;
         }
         if (block_offset < cached_block_row_cnt) [[likely]] {
-            auto val_for_update = cache_column_vector.GetValueByIndex(block_offset);
-            output_data_blocks[output_block_id]->column_vectors_[output_column_id]->SetValueByIndex(output_row_id, val_for_update);
+            auto &target_cv = *output_data_blocks[output_block_id]->column_vectors_[output_column_id];
+            if (cache_column_vector.IsNullAt(block_offset)) {
+                target_cv.SetNullAt(output_row_id);
+            } else {
+                auto val_for_update = cache_column_vector.GetValueByIndex(block_offset);
+                target_cv.SetValueByIndex(output_row_id, val_for_update);
+            }
         } else {
             LOG_WARN(fmt::format("Attempt to access an invisible index of column vector: column_id: {}, visible_row_cnt: {}, block_offset: {}",
                                  cache_column_id,

@@ -6,7 +6,7 @@ import time
 
 
 def benchmark_test(benchmark_dir: str):
-    print("benchmark path is {}".format(benchmark_dir))
+    print(f"benchmark path is {benchmark_dir}")
     # run test
 
     run_benchmark_cmds = [
@@ -48,4 +48,4 @@ if __name__ == "__main__":
         sys.exit(-1)
     end = time.time()
     print("Test finished.")
-    print("Time cost: {}s".format(end - start))
+    print(f"Time cost: {end - start}s")

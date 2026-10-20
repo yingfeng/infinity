@@ -1,9 +1,11 @@
-import pytest
 import infinity
+import pytest
 from infinity.errors import ErrorCode
-from infinity.remote_thrift.client import ThriftInfinityClient
-from common import common_values
 from infinity.infinity_http import infinity_http
+from infinity.remote_thrift.client import ThriftInfinityClient
+
+from common import common_values
+
 
 @pytest.mark.usefixtures("http")
 class TestInfinity:

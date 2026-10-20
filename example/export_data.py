@@ -18,6 +18,7 @@ This example is about connecting local infinity instance, creating table, ing da
 
 import os
 import sys
+
 import infinity
 
 current_path = os.path.abspath(__file__)

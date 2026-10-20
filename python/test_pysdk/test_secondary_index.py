@@ -13,12 +13,13 @@
 # limitations under the License.
 
 import infinity
-import infinity.index as index
 import pytest
-from common import common_values
+from infinity import index
 from infinity.common import ConflictType
 from infinity.errors import ErrorCode
 from infinity.infinity_http import infinity_http
+
+from common import common_values
 
 
 @pytest.fixture(scope="class")

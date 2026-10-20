@@ -17,17 +17,33 @@
 # __version__ = importlib.metadata.version("infinity_sdk")
 
 import logging
+
 # import pkg_resources
 # __version__ = pkg_resources.get_distribution("infinity_sdk").version
-
-from infinity.common import URI, NetworkAddress, LOCAL_HOST, LOCAL_INFINITY_PATH, InfinityException
+from infinity.common import (
+    LOCAL_HOST,
+    LOCAL_INFINITY_PATH,
+    URI,
+    InfinityException,
+    NetworkAddress,
+)
+from infinity.errors import ErrorCode
+from infinity.filter_utils import quote_string_literal, regex_filter
 from infinity.infinity import InfinityConnection
 from infinity.remote_thrift.infinity import RemoteThriftInfinityConnection
-from infinity.errors import ErrorCode
 
 __all__ = [
-    "URI", "NetworkAddress", "LOCAL_HOST", "LOCAL_INFINITY_PATH", "InfinityException",
-    "InfinityConnection", "RemoteThriftInfinityConnection", "ErrorCode", "connect"
+    "LOCAL_HOST",
+    "LOCAL_INFINITY_PATH",
+    "URI",
+    "ErrorCode",
+    "InfinityConnection",
+    "InfinityException",
+    "NetworkAddress",
+    "RemoteThriftInfinityConnection",
+    "connect",
+    "quote_string_literal",
+    "regex_filter"
 ]
 
 

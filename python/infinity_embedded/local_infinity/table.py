@@ -14,27 +14,52 @@
 
 import functools
 import inspect
-from typing import Optional, Union, List, Any
+from typing import Any, Union
 
-from infinity_embedded.embedded_infinity_ext import ConflictType as LocalConflictType
-from infinity_embedded.embedded_infinity_ext import ImportOptions, CopyFileType, WrapParsedExpr, \
-    ParsedExprType, WrapUpdateExpr, ExportOptions, WrapOptimizeOptions, WrapInsertRowExpr
-from infinity_embedded.common import ConflictType, DEFAULT_MATCH_VECTOR_TOPN, SortType
-from infinity_embedded.common import INSERT_DATA, VEC, SparseVector, InfinityException
-from infinity_embedded.errors import ErrorCode
-from infinity_embedded.index import IndexInfo
-from infinity_embedded.local_infinity.query_builder import Query, InfinityLocalQueryBuilder, ExplainQuery
-from infinity_embedded.local_infinity.types import build_result
-from infinity_embedded.local_infinity.utils import traverse_conditions, select_res_to_polars
-from infinity_embedded.local_infinity.utils import get_local_constant_expr_from_python_value, get_local_function_expr_from_fde
-from infinity_embedded.local_infinity.utils import name_validity_check, check_valid_name, get_ordinary_info
-from infinity_embedded.table import ExplainType
-from infinity_embedded.index import InitParameter
-from infinity_embedded.utils import deprecated_api
 from sqlglot import condition
 
+from infinity_embedded.common import (
+    DEFAULT_MATCH_VECTOR_TOPN,
+    INSERT_DATA,
+    VEC,
+    ConflictType,
+    InfinityException,
+    SortType,
+    SparseVector,
+)
+from infinity_embedded.embedded_infinity_ext import ConflictType as LocalConflictType
+from infinity_embedded.embedded_infinity_ext import (
+    CopyFileType,
+    ExportOptions,
+    ImportOptions,
+    ParsedExprType,
+    WrapInsertRowExpr,
+    WrapOptimizeOptions,
+    WrapParsedExpr,
+    WrapUpdateExpr,
+)
+from infinity_embedded.errors import ErrorCode
+from infinity_embedded.index import IndexInfo, InitParameter
+from infinity_embedded.local_infinity.query_builder import (
+    ExplainQuery,
+    InfinityLocalQueryBuilder,
+    Query,
+)
+from infinity_embedded.local_infinity.types import build_result
+from infinity_embedded.local_infinity.utils import (
+    check_valid_name,
+    get_local_constant_expr_from_python_value,
+    get_local_function_expr_from_fde,
+    get_ordinary_info,
+    name_validity_check,
+    select_res_to_polars,
+    traverse_conditions,
+)
+from infinity_embedded.table import ExplainType
+from infinity_embedded.utils import deprecated_api
 
-class LocalTable():
+
+class LocalTable:
 
     def __init__(self, conn, db_name, table_name):
         self._conn = conn
@@ -298,7 +323,7 @@ class LocalTable():
         else:
             raise InfinityException(res.error_code, res.error_msg)
 
-    def delete(self, cond: Optional[str] = None):
+    def delete(self, cond: str | None = None):
         match cond:
             case None:
                 where_expr = None
@@ -346,7 +371,7 @@ class LocalTable():
         return self
 
     @params_type_check
-    def match_text(self, fields: str, matching_text: str, topn: int, extra_options: Optional[dict] = None):
+    def match_text(self, fields: str, matching_text: str, topn: int, extra_options: dict | None = None):
         self.query_builder.match_text(fields, matching_text, topn, extra_options)
         return self
 
@@ -356,49 +381,49 @@ class LocalTable():
 
     @params_type_check
     def match_tensor(self, column_name: str, query_data: VEC, query_data_type: str, topn: int,
-                     extra_option: Optional[dict] = None):
+                     extra_option: dict | None = None):
         self.query_builder.match_tensor(column_name, query_data, query_data_type, topn, extra_option)
         return self
 
     @params_type_check
-    def fusion(self, method: str, topn: int, fusion_params: Optional[dict] = None):
+    def fusion(self, method: str, topn: int, fusion_params: dict | None = None):
         self.query_builder.fusion(method, topn, fusion_params)
         return self
 
-    def output(self, columns: Optional[List[str]]):
+    def output(self, columns: list[str] | None):
         self.query_builder.output(columns)
         return self
 
-    def highlight(self, columns: Optional[List[str]]):
+    def highlight(self, columns: list[str] | None):
         self.query_builder.highlight(columns)
         return self
 
     def to_result(self):
         return self.query_builder.to_result()
 
-    def filter(self, filter: Optional[str]):
+    def filter(self, filter: str | None):
         self.query_builder.filter(filter)
         return self
 
-    def limit(self, limit: Optional[int]):
+    def limit(self, limit: int | None):
         self.query_builder.limit(limit)
         return self
 
-    def offset(self, offset: Optional[int]):
+    def offset(self, offset: int | None):
         self.query_builder.offset(offset)
         return self
     
-    def group_by(self, group_by_expr_list: Optional[List[str]] | Optional[str]):
+    def group_by(self, group_by_expr_list: list[str] | None | str):
         if group_by_expr_list is None:
             return self
         self.query_builder.group_by(group_by_expr_list)
         return self
 
-    def having(self, having: Optional[str]):
+    def having(self, having: str | None):
         self.query_builder.having(having)
         return self
 
-    def sort(self, order_by_expr_list: Optional[List[list[str, SortType]]]):
+    def sort(self, order_by_expr_list: list[list[str, SortType]] | None):
         for order_by_expr in order_by_expr_list:
             if len(order_by_expr) != 2:
                 raise InfinityException(ErrorCode.INVALID_PARAMETER_VALUE,

@@ -16,8 +16,9 @@
 This example is about connecting to the local infinity instance, creating table, inserting data, creating bmp index and searching data
 '''
 
-import infinity
 import sys
+
+import infinity
 from infinity.common import SparseVector
 
 try:
@@ -45,8 +46,7 @@ try:
     table_instance.insert([
         {
             "c1": 1,
-            "c2": SparseVector(**{"indices": [0, 10, 20, 30, 40, 50, 60, 70, 80, 90],
-                                  "values": [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]})
+            "c2": SparseVector(indices=[0, 10, 20, 30, 40, 50, 60, 70, 80, 90], values=[1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
         }]
     )
 
@@ -60,7 +60,7 @@ try:
     table_instance.insert([
         {
             "c1": 3,
-            "c2": SparseVector(**{"indices": [0, 30, 60, 90], "values": [3.0, 3.0, 3.0, 3.0]})
+            "c2": SparseVector(indices=[0, 30, 60, 90], values=[3.0, 3.0, 3.0, 3.0])
         }]
     )
 
@@ -84,7 +84,7 @@ try:
     # Search with bmp index
     # "SELECT c1 FROM my_table SEARCH MATCH SPARSE (c2, [0:1.0,20:2.0,80:3.0], 'ip', 3)"
     res, extra_result = (table_instance.output(["c1"])
-                         .match_sparse("c2", SparseVector(**{"indices": [0, 20, 80], "values": [1.0, 2.0, 3.0]}), "ip",
+                         .match_sparse("c2", SparseVector(indices=[0, 20, 80], values=[1.0, 2.0, 3.0]), "ip",
                                        3)
                          .to_pl())
     print(res)

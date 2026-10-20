@@ -12,23 +12,37 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import re
 import functools
 import inspect
+import re
 from typing import Any
+
+import numpy as np
 import pandas as pd
 import polars as pl
-from sqlglot import condition
 import sqlglot.expressions as exp
-import numpy as np
+from sqlglot import condition
+
+from infinity_embedded.common import Array, InfinityException, SparseVector
+from infinity_embedded.embedded_infinity_ext import (
+    ConstraintType,
+    EmbeddingDataType,
+    LiteralType,
+    LogicalType,
+    ParsedExprType,
+    WrapColumnDef,
+    WrapColumnExpr,
+    WrapConstantExpr,
+    WrapDataType,
+    WrapEmbeddingType,
+    WrapFunctionExpr,
+    WrapInExpr,
+    WrapParsedExpr,
+    WrapSparseType,
+)
 from infinity_embedded.errors import ErrorCode
-from infinity_embedded.common import InfinityException, SparseVector, Array
 from infinity_embedded.local_infinity.types import build_result, logic_type_to_dtype
 from infinity_embedded.utils import binary_exp_to_paser_exp
-from infinity_embedded.embedded_infinity_ext import WrapInExpr, WrapParsedExpr, WrapFunctionExpr, \
-    WrapColumnExpr, WrapConstantExpr, ParsedExprType, LiteralType
-from infinity_embedded.embedded_infinity_ext import WrapEmbeddingType, WrapColumnDef, WrapDataType, LogicalType, \
-    EmbeddingDataType, WrapSparseType, ConstraintType
 
 
 def traverse_conditions(cons, fn=None):
@@ -55,6 +69,22 @@ def traverse_conditions(cons, fn=None):
         parsed_expr.type = ParsedExprType.kFunction
         parsed_expr.function_expr = function_expr
 
+        return parsed_expr
+    elif isinstance(cons, exp.Not) and isinstance(cons.args['this'], exp.Is):
+        # Handle IS NOT NULL / IS NOT TRUE / IS NOT FALSE / IS NOT UNKNOWN.
+        # Only IS NOT NULL is supported; others must be rejected.
+        inner_is = cons.args['this']
+        if not isinstance(inner_is.args.get('expression'), exp.Null):
+            raise InfinityException(ErrorCode.INVALID_EXPRESSION,
+                                    f"Unsupported IS expression: {cons}. Only IS NULL / IS NOT NULL are supported.")
+        func_expr = WrapFunctionExpr()
+        func_expr.func_name = "is_not_null"
+        if fn:
+            func_expr.arguments = [fn(inner_is.this)]
+        else:
+            func_expr.arguments = [traverse_conditions(inner_is.this)]
+        parsed_expr = WrapParsedExpr(ParsedExprType.kFunction)
+        parsed_expr.function_expr = func_expr
         return parsed_expr
     elif isinstance(cons, exp.Not) and not isinstance(cons.args['this'], exp.In):
         parsed_expr = WrapParsedExpr()
@@ -153,6 +183,21 @@ def traverse_conditions(cons, fn=None):
 
         parsed_expr = WrapParsedExpr()
         parsed_expr.type = ParsedExprType.kFunction
+        parsed_expr.function_expr = func_expr
+        return parsed_expr
+    elif isinstance(cons, exp.Is):
+        # Handle IS NULL / IS TRUE / IS FALSE / IS UNKNOWN.
+        # Only IS NULL is supported; others must be rejected.
+        if not isinstance(cons.args.get('expression'), exp.Null):
+            raise InfinityException(ErrorCode.INVALID_EXPRESSION,
+                                    f"Unsupported IS expression: {cons}. Only IS NULL / IS NOT NULL are supported.")
+        func_expr = WrapFunctionExpr()
+        func_expr.func_name = "is_null"
+        if fn:
+            func_expr.arguments = [fn(cons.this)]
+        else:
+            func_expr.arguments = [traverse_conditions(cons.this)]
+        parsed_expr = WrapParsedExpr(ParsedExprType.kFunction)
         parsed_expr.function_expr = func_expr
         return parsed_expr
     # in
@@ -276,6 +321,9 @@ def get_local_constant_expr_from_python_value(value) -> WrapConstantExpr:
         else:
             raise InfinityException(ErrorCode.INVALID_EXPRESSION,
                                     f"Invalid list member type: {type(value[0])}, ndarray dimension > 2")
+    elif isinstance(value, list) and len(value) > 0:
+        # Normalize numpy scalars in list to native Python types (element-wise check)
+        value = [x.item() if isinstance(x, (np.integer, np.floating, np.longdouble)) else x for x in value]
     elif isinstance(value, np.ndarray):
         if value.ndim <= 2:
             value = value.tolist()

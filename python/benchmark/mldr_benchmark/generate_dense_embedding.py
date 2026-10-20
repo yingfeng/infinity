@@ -10,13 +10,14 @@ python generate_dense_embedding.py \
 """
 import os
 import struct
+from dataclasses import dataclass, field
+
 import datasets
 import numpy as np
-from tqdm import tqdm
 from FlagEmbedding import FlagModel
-from dataclasses import dataclass, field
-from transformers import HfArgumentParser
 from mldr_common_tools import EvalArgs, check_languages, load_corpus
+from tqdm import tqdm
+from transformers import HfArgumentParser
 
 
 @dataclass

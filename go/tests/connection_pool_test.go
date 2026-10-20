@@ -17,17 +17,19 @@ package tests
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/infiniflow/infinity-go-sdk"
 )
 
-// TestConnectionPool tests connection pool functionality
-// Based on Python SDK test_pysdk/test_connection_pool.py
+// TestConnectionPool tests connection pool functionality.
 func TestConnectionPool(t *testing.T) {
-	// Create connection pool with initial size 8 (max_size in Python)
+	// Create a bounded connection pool with 8 warm connections.
 	config := infinity.ConnectionPoolConfig{
 		URI:         testLocalHost,
 		InitialSize: 8,
+		MaxOpen:     8,
+		MaxIdle:     8,
 	}
 
 	pool, err := infinity.NewConnectionPool(config, nil)
@@ -170,11 +172,97 @@ func TestConnectionPool(t *testing.T) {
 	t.Logf("Test completed successfully")
 }
 
+func TestConnectionPoolZeroMaxIdle(t *testing.T) {
+	config := infinity.ConnectionPoolConfig{
+		URI:         testLocalHost,
+		InitialSize: 1,
+		MaxOpen:     1,
+		MaxIdle:     0,
+	}
+
+	pool, err := infinity.NewConnectionPool(config, nil)
+	if err != nil {
+		t.Fatalf("Failed to create connection pool: %v", err)
+	}
+	defer pool.Close()
+
+	stats := pool.Stats()
+	if stats.TotalConnections != 0 || stats.AvailableConnections != 0 {
+		t.Fatalf("Expected no prewarmed idle connections when MaxIdle is 0, got total=%d available=%d", stats.TotalConnections, stats.AvailableConnections)
+	}
+
+	conn, err := pool.Get()
+	if err != nil {
+		t.Fatalf("Failed to get connection: %v", err)
+	}
+
+	stats = pool.Stats()
+	if stats.TotalConnections != 1 || stats.AvailableConnections != 0 || stats.InUseConnections != 1 {
+		t.Fatalf("Unexpected stats while connection is checked out: %+v", stats)
+	}
+
+	if err := pool.Put(conn); err != nil {
+		t.Fatalf("Failed to put connection back: %v", err)
+	}
+
+	stats = pool.Stats()
+	if stats.TotalConnections != 0 || stats.AvailableConnections != 0 || stats.InUseConnections != 0 {
+		t.Fatalf("Expected returned connection to be closed when MaxIdle is 0, got %+v", stats)
+	}
+
+	// Regression: a Get() blocked at MaxOpen must be woken when a Put frees
+	// capacity, even though MaxIdle is 0. The returned connection is closed,
+	// so the waiter must be allowed to create a fresh one.
+	blockedConn, err := pool.Get()
+	if err != nil {
+		t.Fatalf("Failed to get connection for contended case: %v", err)
+	}
+
+	gotCh := make(chan *infinity.InfinityConnection, 1)
+	errCh := make(chan error, 1)
+	go func() {
+		c, e := pool.Get()
+		if e != nil {
+			errCh <- e
+			return
+		}
+		gotCh <- c
+	}()
+
+	// Confirm the waiter is actually blocked before capacity is freed.
+	select {
+	case <-gotCh:
+		t.Fatal("waiter acquired a connection before capacity was freed")
+	case <-errCh:
+		t.Fatal("waiter errored before capacity was freed")
+	case <-time.After(200 * time.Millisecond):
+		// Expected: still blocked at MaxOpen.
+	}
+
+	if err := pool.Put(blockedConn); err != nil {
+		t.Fatalf("Failed to put connection back in contended case: %v", err)
+	}
+
+	select {
+	case c := <-gotCh:
+		if c == nil {
+			t.Fatal("waiter got nil connection after capacity freed")
+		}
+		_ = pool.Put(c)
+	case e := <-errCh:
+		t.Fatalf("waiter failed after capacity freed: %v", e)
+	case <-time.After(5 * time.Second):
+		t.Fatal("waiter blocked indefinitely after Put freed capacity (MaxIdle=0 regression)")
+	}
+}
+
 // TestConnectionPoolStats tests pool statistics
 func TestConnectionPoolStats(t *testing.T) {
 	config := infinity.ConnectionPoolConfig{
 		URI:         testLocalHost,
 		InitialSize: 5,
+		MaxOpen:     5,
+		MaxIdle:     5,
 	}
 
 	pool, err := infinity.NewConnectionPool(config, nil)
@@ -246,6 +334,8 @@ func TestConnectionPoolWithDatabaseOperations(t *testing.T) {
 	config := infinity.ConnectionPoolConfig{
 		URI:         testLocalHost,
 		InitialSize: 3,
+		MaxOpen:     4,
+		MaxIdle:     4,
 	}
 
 	pool, err := infinity.NewConnectionPool(config, nil)
@@ -319,6 +409,8 @@ func TestConnectionPoolMultipleConnections(t *testing.T) {
 	config := infinity.ConnectionPoolConfig{
 		URI:         testLocalHost,
 		InitialSize: 3,
+		MaxOpen:     4,
+		MaxIdle:     4,
 	}
 
 	pool, err := infinity.NewConnectionPool(config, nil)
@@ -346,7 +438,7 @@ func TestConnectionPoolMultipleConnections(t *testing.T) {
 		t.Errorf("Expected 0 available connections, got %d", stats.AvailableConnections)
 	}
 
-	// Getting another connection should create a new one (no max size limit in Go implementation)
+	// Getting another connection should create a new one because MaxOpen allows 4 total connections.
 	conn4, err := pool.Get()
 	if err != nil {
 		t.Fatalf("Failed to get 4th connection: %v", err)
@@ -386,6 +478,8 @@ func TestConnectionPoolClosed(t *testing.T) {
 	config := infinity.ConnectionPoolConfig{
 		URI:         testLocalHost,
 		InitialSize: 2,
+		MaxOpen:     2,
+		MaxIdle:     2,
 	}
 
 	pool, err := infinity.NewConnectionPool(config, nil)
@@ -433,6 +527,8 @@ func TestConnectionPoolZeroInitialSize(t *testing.T) {
 	config := infinity.ConnectionPoolConfig{
 		URI:         testLocalHost,
 		InitialSize: 0,
+		MaxOpen:     1,
+		MaxIdle:     1,
 	}
 
 	pool, err := infinity.NewConnectionPool(config, nil)

@@ -19,15 +19,29 @@
 # import pkg_resources
 # __version__ = pkg_resources.get_distribution("infinity_sdk").version
 
-from infinity_embedded.common import URI, NetworkAddress, LOCAL_HOST, LOCAL_INFINITY_PATH, InfinityException, \
-    LOCAL_INFINITY_CONFIG_PATH
+from infinity_embedded.common import (
+    LOCAL_HOST,
+    LOCAL_INFINITY_CONFIG_PATH,
+    LOCAL_INFINITY_PATH,
+    URI,
+    InfinityException,
+    NetworkAddress,
+)
+from infinity_embedded.errors import ErrorCode
 from infinity_embedded.infinity import InfinityConnection
 from infinity_embedded.local_infinity.infinity import LocalInfinityConnection
-from infinity_embedded.errors import ErrorCode
 
 __all__ = [
-    "URI", "NetworkAddress", "LOCAL_HOST", "LOCAL_INFINITY_PATH", "InfinityException",
-    "LOCAL_INFINITY_CONFIG_PATH", "InfinityConnection", "LocalInfinityConnection", "ErrorCode", "connect"
+    "LOCAL_HOST",
+    "LOCAL_INFINITY_CONFIG_PATH",
+    "LOCAL_INFINITY_PATH",
+    "URI",
+    "ErrorCode",
+    "InfinityConnection",
+    "InfinityException",
+    "LocalInfinityConnection",
+    "NetworkAddress",
+    "connect"
 ]
 
 

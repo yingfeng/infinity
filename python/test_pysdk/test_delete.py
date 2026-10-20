@@ -1,14 +1,15 @@
-import numpy as np
 import time
+
+import infinity
+import numpy as np
 import pandas as pd
 import pytest
-from common import common_values
-import infinity
-from infinity.errors import ErrorCode
-from infinity.common import ConflictType, InfinityException
 from common.utils import trace_expected_exceptions
-
+from infinity.common import ConflictType, InfinityException
+from infinity.errors import ErrorCode
 from infinity.infinity_http import infinity_http
+
+from common import common_values
 
 
 @pytest.fixture(scope="class")
@@ -169,7 +170,7 @@ class TestInfinity:
                 print(e)
 
             res, extra_result = table_obj.output(["*"]).to_df()
-            print("{}：{}".format(common_values.types_array[i], res))
+            print(f"{common_values.types_array[i]}：{res}")
 
         for i in range(len(common_values.types_array)):
             db_obj.drop_table("test_delete_table_no_rows_met_condition" + str(i) + suffix, ConflictType.Error)
@@ -303,7 +304,7 @@ class TestInfinity:
                                               "bool",
                                               "vector, 3, float"])
     @pytest.mark.parametrize('column_types_example', [1, 127, 32767, 2147483647, pow(2, 63) - 1, 10,
-                                                      float(1.1), np.float32(1 / 3), np.double(1 / 3),
+                                                      1.1, np.float32(1 / 3), np.double(1 / 3),
                                                       np.float64(1 / 3),
                                                       "^789$ test insert varchar",
                                                       True,

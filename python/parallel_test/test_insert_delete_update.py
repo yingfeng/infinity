@@ -1,10 +1,11 @@
-import time
-
 import random
+import time
 from threading import Thread
+
 from infinity.common import ConflictType
-from infinity.errors import ErrorCode
 from infinity.connection_pool import ConnectionPool
+from infinity.errors import ErrorCode
+
 kRunningTime = 30
 kNumThread = 4
 

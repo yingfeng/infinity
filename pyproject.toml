@@ -1,6 +1,6 @@
 [project]
 name = "infinity-sdk"
-version = "0.7.0"
+version = "0.7.4"
 description = "infinity"
 readme = "python/infinity_sdk/README.md"
 license = "Apache-2.0"
@@ -69,6 +69,55 @@ filterwarnings = [
     # "ignore::thrift.transport.TTransport",
     # note the use of single quote below to denote "raw" strings in TOML
     'ignore:function ham\(\) is deprecated:DeprecationWarning',
+]
+
+[tool.ruff.lint]
+ignore = [
+    "RUF059",
+    "UP031",
+    "LOG015",
+    "BLE001",
+    "TRY002",
+    "B006",
+    "B023",
+    "S110",
+    "RUF012",
+    "RUF013",
+    "B017",
+    "C408",
+    "TRY201",
+    "SIM103",
+    "TRY203",
+    "SIM115",
+    "SIM118",
+    "EXE001",
+    "PT014",
+    "PLW0602",
+    "PERF402",
+    "PLR1722",
+    "PLW1510",
+    "SIM102",
+    "UP007",
+    "FURB132",
+    "SIM113",
+    "TRY004",
+    "B015",
+    "DTZ001",
+    "PERF102",
+    "PLW0127",
+    "SIM101",
+    "SIM210",
+    "UP022",
+    "B008",
+    "C417",
+    "C418",
+    "DTZ005",
+    "ISC004",
+    "N999",
+    "PLR0133",
+    "RUF015",
+    "SIM117",
+    "SIM211",
 ]
 
 [tool.ruff.lint.per-file-ignores]

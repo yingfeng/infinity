@@ -46,6 +46,7 @@ export class EMVBIndex {
     std::atomic_uint32_t n_docs_ = 0;                          // number of documents in the entire collection
     u32 n_total_embeddings_ = 0;                               // number of embeddings in the entire collection
     EMVBSharedVec<u32> doc_lens_;                              // array of document lengths
+    EMVBSharedVec<u32> doc_segment_offsets_;                   // source segment offset for each document, ordered by doc_id
     EMVBSharedVec<u32> doc_offsets_;                           // start offsets of each document in all the embeddings
     EMVBSharedVec<u32> centroid_id_assignments_;               // centroid id assignments for each embedding
     std::unique_ptr<EMVBSharedVec<u32>[]> centroids_to_docid_; // docids belonging to each centroid
@@ -59,7 +60,7 @@ public:
 
     void Train(u32 centroids_num, const f32 *embedding_data, u64 embedding_num, u32 iter_cnt = 20);
 
-    void AddOneDocEmbeddings(const f32 *embedding_data, u32 embedding_num);
+    void AddOneDocEmbeddings(const f32 *embedding_data, u32 embedding_num, SegmentOffset new_segment_offset);
 
     // return id: offset in the segment
     EMVBQueryResultType SearchWithBitmask(const f32 *query_ptr,

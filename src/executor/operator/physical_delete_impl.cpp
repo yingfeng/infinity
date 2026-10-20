@@ -69,7 +69,7 @@ bool PhysicalDelete::Execute(QueryContext *query_context, OperatorState *operato
         NewTxn *new_txn = query_context->GetNewTxn();
         Status status = new_txn->Delete(*table_info_->db_name_, *table_info_->table_name_, row_ids);
         if (!status.ok()) {
-            operator_state->status_ = status;
+            operator_state->status_ = status.clone();
             RecoverableError(status);
             return false;
         }

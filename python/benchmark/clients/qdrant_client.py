@@ -1,15 +1,17 @@
-from qdrant_client import QdrantClient as QC
-from qdrant_client import models
-from qdrant_client.models import VectorParams, Distance
+import json
+import logging
 import os
 import time
-import json
-import h5py
 from typing import Any
-import logging
+
+import h5py
+from qdrant_client import QdrantClient as QC
+from qdrant_client import models
+from qdrant_client.models import Distance, VectorParams
 
 from .base_client import BaseClient
-from .utils import  csr_read_all
+from .utils import csr_read_all
+
 
 class QdrantClient(BaseClient):
     def __init__(self, conf_path: str) -> None:

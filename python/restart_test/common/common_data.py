@@ -1,8 +1,9 @@
-from infinity.common import ConflictType
-from infinity import index
-from numpy import dtype
 import ast
 from enum import Enum
+
+from infinity import index
+from infinity.common import ConflictType
+from numpy import dtype
 
 default_url = "http://localhost:23820/"
 

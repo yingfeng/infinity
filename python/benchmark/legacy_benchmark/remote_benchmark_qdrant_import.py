@@ -1,9 +1,10 @@
 import argparse
 import os
-import time
 import struct
+import time
 
 from qdrant_client import QdrantClient, models
+
 
 class SparseMatrix:
     nrow: int

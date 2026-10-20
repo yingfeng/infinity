@@ -1,8 +1,8 @@
-import random
+import logging
 import os
+import random
 import re
 from collections import Counter
-import logging
 
 
 def generate_terms_txt(src_fp, dst_fp):
@@ -21,8 +21,7 @@ def generate_terms_txt(src_fp, dst_fp):
         f"read {i} lines {len(word_counts)} words from {src_fp} to generate terms file {dst_fp}")
     sorted_words = word_counts.most_common()        # in descending order
     with open(dst_fp, 'w', encoding='utf-8') as file:
-        for word, count in sorted_words:
-            file.write(f'{word} {count}\n')
+        file.writelines(f'{word} {count}\n' for word, count in sorted_words)
 
 
 def load_terms(terms_path):

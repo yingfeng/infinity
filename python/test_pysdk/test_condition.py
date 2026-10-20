@@ -1,11 +1,11 @@
-import pytest
-from common import common_values
-from sqlglot import condition
-from infinity.remote_thrift.table import traverse_conditions
 import infinity
+import pytest
 from infinity.errors import ErrorCode
-
 from infinity.infinity_http import infinity_http
+from infinity.remote_thrift.table import traverse_conditions
+from sqlglot import condition
+
+from common import common_values
 
 
 @pytest.mark.usefixtures("http")

@@ -1,0 +1,214 @@
+# name: test/sql/dql/embedding_null.slt
+# description: Test NULL handling in embedding columns.
+
+statement ok
+DROP TABLE IF EXISTS emb_null_test;
+
+statement ok
+CREATE TABLE emb_null_test (
+    id   INTEGER,
+    vec  EMBEDDING(FLOAT, 4),
+    vec2 EMBEDDING(INT, 2),
+    note VARCHAR
+);
+
+statement ok
+INSERT INTO emb_null_test (id, note) VALUES (1, 'only id');
+
+statement ok
+INSERT INTO emb_null_test (id, note) VALUES (2, 'only id');
+
+statement ok
+INSERT INTO emb_null_test (id, vec, note) VALUES (3, [1.0, 2.0, 3.0, 4.0], 'with vec');
+
+statement ok
+INSERT INTO emb_null_test (id, vec, vec2, note) VALUES (4, [5.0, 6.0, 7.0, 8.0], [1, 2], 'with both');
+
+query I
+SELECT * FROM emb_null_test ORDER BY id;
+----
+1 null null only id
+2 null null only id
+3 [1,2,3,4] null with vec
+4 [5,6,7,8] [1,2] with both
+
+query I
+SELECT id FROM emb_null_test WHERE vec IS NULL ORDER BY id;
+----
+1
+2
+
+query I
+SELECT id FROM emb_null_test WHERE vec IS NOT NULL ORDER BY id;
+----
+3
+4
+
+query I
+SELECT count(*) FROM emb_null_test WHERE vec2 IS NULL;
+----
+3
+
+query I
+SELECT count(*) FROM emb_null_test WHERE vec2 IS NOT NULL;
+----
+1
+
+# KNN search on column with NULL values should only return non-NULL rows
+query I
+SELECT id FROM emb_null_test SEARCH MATCH VECTOR (vec, [0.0, 0.0, 0.0, 0.0], 'float', 'l2', 4);
+----
+3
+4
+
+statement ok
+CREATE INDEX idx_ivf ON emb_null_test (vec) USING IVF WITH (metric = l2);
+
+query I
+SELECT id FROM emb_null_test SEARCH MATCH VECTOR (vec, [0.0, 0.0, 0.0, 0.0], 'float', 'l2', 4);
+----
+3
+4
+
+statement ok
+DROP INDEX idx_ivf on emb_null_test;
+
+statement ok
+CREATE INDEX idx_hnsw ON emb_null_test (vec) USING HNSW WITH (M = 16, ef_construction = 50, metric = l2);
+
+query I
+SELECT id FROM emb_null_test SEARCH MATCH VECTOR (vec, [0.0, 0.0, 0.0, 0.0], 'float', 'l2', 4);
+----
+3
+4
+
+statement ok
+DROP INDEX idx_hnsw ON emb_null_test;
+
+statement ok
+DROP TABLE emb_null_test;
+
+# ============================================================
+# BMP index on SPARSE column with NULL values
+# ============================================================
+statement ok
+DROP TABLE IF EXISTS sparse_null_test;
+
+statement ok
+CREATE TABLE sparse_null_test (
+    id   INTEGER,
+    sp   SPARSE(FLOAT, 100),
+    note VARCHAR
+);
+
+statement ok
+INSERT INTO sparse_null_test (id, note) VALUES (1, 'no sparse');
+
+statement ok
+INSERT INTO sparse_null_test (id, note) VALUES (2, 'no sparse');
+
+statement ok
+INSERT INTO sparse_null_test (id, sp, note) VALUES (3, [1:1.0, 10:2.0], 'with sparse');
+
+statement ok
+INSERT INTO sparse_null_test (id, sp, note) VALUES (4, [5:3.0, 20:4.0], 'with sparse');
+
+query I
+SELECT * FROM sparse_null_test ORDER BY id;
+----
+1 null no sparse
+2 null no sparse
+3 [1:1.000000,10:2.000000] with sparse
+4 [5:3.000000,20:4.000000] with sparse
+
+query I
+SELECT id FROM sparse_null_test WHERE sp IS NULL ORDER BY id;
+----
+1
+2
+
+query I
+SELECT id FROM sparse_null_test WHERE sp IS NOT NULL ORDER BY id;
+----
+3
+4
+
+# Brute-force sparse search on column with NULL values
+query I
+SELECT id FROM sparse_null_test SEARCH MATCH SPARSE (sp, [1:0.5, 10:0.5], 'ip', 4);
+----
+3
+4
+
+statement ok
+CREATE INDEX idx_bmp ON sparse_null_test (sp) USING BMP WITH (block_size = 8, compress_type = compress);
+
+query I
+SELECT id FROM sparse_null_test SEARCH MATCH SPARSE (sp, [1:0.5, 10:0.5], 'ip', 4);
+----
+3
+4
+
+statement ok
+DROP INDEX idx_bmp ON sparse_null_test;
+
+statement ok
+DROP TABLE sparse_null_test;
+
+# ============================================================
+# TENSOR column with NULL values
+# Note: EMVB and PLAID indexes require thousands of embeddings
+# (EMVB >= 8192, PLAID >= 256+), so they are not tested here.
+# Only brute-force tensor search is covered.
+# ============================================================
+statement ok
+DROP TABLE IF EXISTS tensor_null_test;
+
+statement ok
+CREATE TABLE tensor_null_test (
+    id   INTEGER,
+    t    TENSOR(FLOAT, 4),
+    note VARCHAR
+);
+
+statement ok
+INSERT INTO tensor_null_test (id, note) VALUES (1, 'no tensor');
+
+statement ok
+INSERT INTO tensor_null_test (id, note) VALUES (2, 'no tensor');
+
+statement ok
+INSERT INTO tensor_null_test (id, t, note) VALUES (3, [1.0, 2.0, 3.0, 4.0], 'with tensor');
+
+statement ok
+INSERT INTO tensor_null_test (id, t, note) VALUES (4, [5.0, 6.0, 7.0, 8.0], 'with tensor');
+
+query I
+SELECT * FROM tensor_null_test ORDER BY id;
+----
+1 null no tensor
+2 null no tensor
+3 [[1,2,3,4]] with tensor
+4 [[5,6,7,8]] with tensor
+
+query I
+SELECT id FROM tensor_null_test WHERE t IS NULL ORDER BY id;
+----
+1
+2
+
+query I
+SELECT id FROM tensor_null_test WHERE t IS NOT NULL ORDER BY id;
+----
+3
+4
+
+# Brute-force tensor search on column with NULL values
+query I
+SELECT id FROM tensor_null_test SEARCH MATCH TENSOR (t, [0.0, 0.0, 0.0, 0.0], 'float', 'maxsim', 'topn=4');
+----
+3
+4
+
+statement ok
+DROP TABLE tensor_null_test;

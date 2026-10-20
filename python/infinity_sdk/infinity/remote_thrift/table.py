@@ -12,36 +12,47 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import json
 import functools
 import inspect
-from typing import Optional, Union, List, Any
+import json
+from typing import Any, Union
 
 from sqlglot import condition
 
-import infinity.remote_thrift.infinity_thrift_rpc.ttypes as ttypes
-from infinity.common import INSERT_DATA, VEC, InfinityException, SparseVector
+from infinity.common import (
+    DEFAULT_MATCH_VECTOR_TOPN,
+    INSERT_DATA,
+    VEC,
+    ConflictType,
+    InfinityException,
+    SortType,
+    SparseVector,
+)
 from infinity.errors import ErrorCode
 from infinity.index import IndexInfo
-from infinity.remote_thrift.query_builder import Query, InfinityThriftQueryBuilder, ExplainQuery
+from infinity.remote_thrift.infinity_thrift_rpc import ttypes
+from infinity.remote_thrift.query_builder import (
+    ExplainQuery,
+    InfinityThriftQueryBuilder,
+    Query,
+)
 from infinity.remote_thrift.types import build_result
 from infinity.remote_thrift.utils import (
-    traverse_conditions,
-    name_validity_check,
-    select_res_to_polars,
     check_valid_name,
+    get_ordinary_info,
     get_remote_constant_expr_from_python_value,
     get_remote_function_expr_from_fde,
-    get_ordinary_info,
+    name_validity_check,
     parsed_expression_to_string,
-    search_to_string
+    search_to_string,
+    select_res_to_polars,
+    traverse_conditions,
 )
 from infinity.table import ExplainType
-from infinity.common import ConflictType, DEFAULT_MATCH_VECTOR_TOPN, SortType
 from infinity.utils import deprecated_api
 
 
-class RemoteTable():
+class RemoteTable:
 
     def __init__(self, conn, db_name, table_name):
         self._conn = conn
@@ -341,7 +352,7 @@ class RemoteTable():
         else:
             raise InfinityException(res.error_code, res.error_msg)
 
-    def delete(self, cond: Optional[str] = None):
+    def delete(self, cond: str | None = None):
         match cond:
             case None:
                 where_expr = None
@@ -384,7 +395,7 @@ class RemoteTable():
         return self.match_dense(*args, **kwargs)
 
     @params_type_check
-    def match_text(self, fields: str, matching_text: str, topn: int, extra_options: Optional[dict] = None):
+    def match_text(self, fields: str, matching_text: str, topn: int, extra_options: dict | None = None):
         self.query_builder.match_text(fields, matching_text, topn, extra_options)
         return self
 
@@ -394,51 +405,51 @@ class RemoteTable():
 
     @params_type_check
     def match_tensor(self, column_name: str, query_data: VEC, query_data_type: str, topn: int,
-                     extra_option: Optional[dict] = None):
+                     extra_option: dict | None = None):
         self.query_builder.match_tensor(column_name, query_data, query_data_type, topn, extra_option)
         return self
 
     def match_sparse(self, vector_column_name: str, sparse_data: SparseVector | dict, distance_type: str, topn: int,
-                     opt_params: Optional[dict] = None):
+                     opt_params: dict | None = None):
         self.query_builder.match_sparse(vector_column_name, sparse_data, distance_type, topn, opt_params)
         return self
 
     @params_type_check
-    def fusion(self, method: str, topn: int, fusion_params: Optional[dict] = None):
+    def fusion(self, method: str, topn: int, fusion_params: dict | None = None):
         self.query_builder.fusion(method, topn, fusion_params)
         return self
 
-    def output(self, columns: Optional[List[str]]):
+    def output(self, columns: list[str] | None):
         self.query_builder.output(columns)
         return self
 
-    def highlight(self, columns: Optional[List[str]]):
+    def highlight(self, columns: list[str] | None):
         self.query_builder.highlight(columns)
         return self
 
-    def filter(self, filter: Optional[str]):
+    def filter(self, filter: str | None):
         self.query_builder.filter(filter)
         return self
 
-    def limit(self, limit: Optional[int]):
+    def limit(self, limit: int | None):
         self.query_builder.limit(limit)
         return self
 
-    def offset(self, offset: Optional[int]):
+    def offset(self, offset: int | None):
         self.query_builder.offset(offset)
         return self
 
-    def group_by(self, group_by_expr_list: Optional[List[str]] | Optional[str]):
+    def group_by(self, group_by_expr_list: list[str] | None | str):
         if group_by_expr_list is None:
             return self
         self.query_builder.group_by(group_by_expr_list)
         return self
 
-    def having(self, having_expr: Optional[str]):
+    def having(self, having_expr: str | None):
         self.query_builder.having(having_expr)
         return self
 
-    def sort(self, order_by_expr_list: Optional[List[list[str, SortType]]]):
+    def sort(self, order_by_expr_list: list[list[str, SortType]] | None):
         for order_by_expr in order_by_expr_list:
             if len(order_by_expr) != 2:
                 raise InfinityException(ErrorCode.INVALID_PARAMETER_VALUE,

@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 from abc import ABC
-from typing import List, Optional, Any
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -24,7 +24,7 @@ import pyarrow as pa
 from pyarrow import Table
 from sqlglot import condition, maybe_parse
 
-from infinity.common import VEC, SparseVector, InfinityException, SortType, FDE
+from infinity.common import FDE, VEC, InfinityException, SortType, SparseVector
 from infinity.errors import ErrorCode
 from infinity.remote_thrift.infinity_thrift_rpc.ttypes import (
     ColumnExpr,
@@ -47,10 +47,14 @@ from infinity.remote_thrift.infinity_thrift_rpc.ttypes import (
 )
 from infinity.remote_thrift.types import (
     logic_type_to_dtype,
-    make_match_tensor_expr,
     make_match_sparse_expr,
+    make_match_tensor_expr,
 )
-from infinity.remote_thrift.utils import traverse_conditions, parse_expr, get_search_optional_filter_from_opt_params
+from infinity.remote_thrift.utils import (
+    get_search_optional_filter_from_opt_params,
+    parse_expr,
+    traverse_conditions,
+)
 
 """FIXME: How to disable validation of only the search field?"""
 
@@ -58,16 +62,16 @@ from infinity.remote_thrift.utils import traverse_conditions, parse_expr, get_se
 class Query(ABC):
     def __init__(
             self,
-            columns: Optional[List[ParsedExpr]],
-            highlight: Optional[List[ParsedExpr]],
-            search: Optional[SearchExpr],
-            filter: Optional[ParsedExpr],
-            groupby: Optional[List[ParsedExpr]],
-            having: Optional[ParsedExpr],
-            limit: Optional[ParsedExpr],
-            offset: Optional[ParsedExpr],
-            sort: Optional[List[OrderByExpr]],
-            total_hits_count: Optional[bool]
+            columns: list[ParsedExpr] | None,
+            highlight: list[ParsedExpr] | None,
+            search: SearchExpr | None,
+            filter: ParsedExpr | None,
+            groupby: list[ParsedExpr] | None,
+            having: ParsedExpr | None,
+            limit: ParsedExpr | None,
+            offset: ParsedExpr | None,
+            sort: list[OrderByExpr] | None,
+            total_hits_count: bool | None
     ):
         self.columns = columns
         self.highlight = highlight
@@ -84,16 +88,16 @@ class Query(ABC):
 class ExplainQuery(Query):
     def __init__(
             self,
-            columns: Optional[List[ParsedExpr]],
-            highlight: Optional[List[ParsedExpr]],
-            search: Optional[SearchExpr],
-            filter: Optional[ParsedExpr],
-            groupby: Optional[List[ParsedExpr]],
-            having: Optional[ParsedExpr],
-            limit: Optional[ParsedExpr],
-            offset: Optional[ParsedExpr],
-            sort: Optional[List[OrderByExpr]],
-            explain_type: Optional[ExplainType],
+            columns: list[ParsedExpr] | None,
+            highlight: list[ParsedExpr] | None,
+            search: SearchExpr | None,
+            filter: ParsedExpr | None,
+            groupby: list[ParsedExpr] | None,
+            having: ParsedExpr | None,
+            limit: ParsedExpr | None,
+            offset: ParsedExpr | None,
+            sort: list[OrderByExpr] | None,
+            explain_type: ExplainType | None,
     ):
         super().__init__(columns, highlight, search, filter, groupby, having, limit, offset, sort, False)
         self.explain_type = explain_type
@@ -153,9 +157,7 @@ class InfinityThriftQueryBuilder(ABC):
             )
 
         # type casting for regular embedding data
-        if isinstance(embedding_data, list):
-            embedding_data = embedding_data
-        elif isinstance(embedding_data, tuple):
+        if isinstance(embedding_data, list) or isinstance(embedding_data, tuple):
             embedding_data = embedding_data
         elif isinstance(embedding_data, np.ndarray):
             embedding_data = embedding_data.tolist()
@@ -264,7 +266,7 @@ class InfinityThriftQueryBuilder(ABC):
             sparse_data: SparseVector | dict,
             metric_type: str,
             topn: int,
-            opt_params: Optional[dict] = None,
+            opt_params: dict | None = None,
     ) -> InfinityThriftQueryBuilder:
         if self._search is None:
             self._search = SearchExpr()
@@ -279,7 +281,7 @@ class InfinityThriftQueryBuilder(ABC):
         return self
 
     def match_text(
-            self, fields: str, matching_text: str, topn: int, extra_options: Optional[dict]
+            self, fields: str, matching_text: str, topn: int, extra_options: dict | None
     ) -> InfinityThriftQueryBuilder:
         if self._search is None:
             self._search = SearchExpr()
@@ -303,7 +305,7 @@ class InfinityThriftQueryBuilder(ABC):
             query_data: VEC,
             query_data_type: str,
             topn: int,
-            extra_option: Optional[dict] = None,
+            extra_option: dict | None = None,
     ) -> InfinityThriftQueryBuilder:
         if self._search is None:
             self._search = SearchExpr()
@@ -326,7 +328,7 @@ class InfinityThriftQueryBuilder(ABC):
         self._search.match_exprs.append(generic_match_expr)
         return self
 
-    def fusion(self, method: str, topn: int, fusion_params: Optional[dict]) -> InfinityThriftQueryBuilder:
+    def fusion(self, method: str, topn: int, fusion_params: dict | None) -> InfinityThriftQueryBuilder:
         if self._search is None:
             self._search = SearchExpr()
         if self._search.fusion_exprs is None:
@@ -350,27 +352,27 @@ class InfinityThriftQueryBuilder(ABC):
         self._search.fusion_exprs.append(fusion_expr)
         return self
 
-    def filter(self, where: Optional[str]) -> InfinityThriftQueryBuilder:
+    def filter(self, where: str | None) -> InfinityThriftQueryBuilder:
         where_expr = traverse_conditions(condition(where))
         self._filter = where_expr
         return self
 
-    def limit(self, limit: Optional[int]) -> InfinityThriftQueryBuilder:
+    def limit(self, limit: int | None) -> InfinityThriftQueryBuilder:
         constant_exp = ConstantExpr(literal_type=LiteralType.Int64, i64_value=limit)
         expr_type = ParsedExprType(constant_expr=constant_exp)
         limit_expr = ParsedExpr(type=expr_type)
         self._limit = limit_expr
         return self
 
-    def offset(self, offset: Optional[int]) -> InfinityThriftQueryBuilder:
+    def offset(self, offset: int | None) -> InfinityThriftQueryBuilder:
         constant_exp = ConstantExpr(literal_type=LiteralType.Int64, i64_value=offset)
         expr_type = ParsedExprType(constant_expr=constant_exp)
         offset_expr = ParsedExpr(type=expr_type)
         self._offset = offset_expr
         return self
     
-    def group_by(self, columns: List[str] | str) -> InfinityThriftQueryBuilder:
-        group_by_list: List[ParsedExpr] = []
+    def group_by(self, columns: list[str] | str) -> InfinityThriftQueryBuilder:
+        group_by_list: list[ParsedExpr] = []
         if isinstance(columns, list):
             for column in columns:
                 column = column.lower()
@@ -380,14 +382,14 @@ class InfinityThriftQueryBuilder(ABC):
         self._groupby = group_by_list
         return self
     
-    def having(self, having: Optional[str]) -> InfinityThriftQueryBuilder:
+    def having(self, having: str | None) -> InfinityThriftQueryBuilder:
         having_expr = traverse_conditions(condition(having))
         self._having = having_expr
         return self
 
-    def output(self, columns: Optional[list]) -> InfinityThriftQueryBuilder:
+    def output(self, columns: list | None) -> InfinityThriftQueryBuilder:
         self._columns = columns
-        select_list: List[ParsedExpr] = []
+        select_list: list[ParsedExpr] = []
         for column in columns:
             if isinstance(column, str):
                 column = column.lower()
@@ -450,8 +452,8 @@ class InfinityThriftQueryBuilder(ABC):
         self._columns = select_list
         return self
 
-    def highlight(self, columns: Optional[list]) -> InfinityThriftQueryBuilder:
-        highlight_list: List[ParsedExpr] = []
+    def highlight(self, columns: list | None) -> InfinityThriftQueryBuilder:
+        highlight_list: list[ParsedExpr] = []
         for column in columns:
             if isinstance(column, str):
                 column = column.lower()
@@ -466,8 +468,8 @@ class InfinityThriftQueryBuilder(ABC):
                 self._total_hits_count = option_kv['total_hits_count']
         return self
 
-    def sort(self, order_by_expr_list: Optional[List[list[str, SortType]]]) -> InfinityThriftQueryBuilder:
-        sort_list: List[OrderByExpr] = []
+    def sort(self, order_by_expr_list: list[list[str, SortType]] | None) -> InfinityThriftQueryBuilder:
+        sort_list: list[OrderByExpr] = []
         for order_by_expr in order_by_expr_list:
             order_by_expr_str = str
 

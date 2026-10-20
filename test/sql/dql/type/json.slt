@@ -282,17 +282,17 @@ INSERT INTO test_json_filter VALUES (16, 'q', '{"string_number": "123", "string_
 query T
 SELECT json_extract_string(c3, '$.string_number') FROM test_json_filter WHERE c1 = 16;
 ----
-"123"
+123
 
 query T
 SELECT json_extract_string(c3, '$.string_float') FROM test_json_filter WHERE c1 = 16;
 ----
-"45.67"
+45.67
 
 query T
 SELECT json_extract_string(c3, '$.string_bool') FROM test_json_filter WHERE c1 = 16;
 ----
-"true"
+true
 
 statement ok
 INSERT INTO test_json_filter VALUES (17, 'r', '{"a": [1, 2, 3], "b": [[4, 5], [6, 7]], "c": {"d": {"e": 8}}}')
@@ -605,7 +605,7 @@ SELECT id, json_extract(tags, '$[0]') AS first_object FROM user_tags WHERE id = 
 query IT
 SELECT id, json_extract_string(tags, '$[0].name') AS first_name FROM user_tags WHERE id = 6;
 ----
-6 "张三"
+6 张三
 
 query II
 SELECT id, json_extract_int(tags, '$[0].age') AS first_age FROM user_tags WHERE id = 6;
@@ -615,7 +615,7 @@ SELECT id, json_extract_int(tags, '$[0].age') AS first_age FROM user_tags WHERE 
 query IT
 SELECT id, json_extract_string(tags, '$[1].name') AS second_name FROM user_tags WHERE id = 6;
 ----
-6 "李四"
+6 李四
 
 query II
 SELECT id, json_extract_int(tags, '$[1].age') AS second_age FROM user_tags WHERE id = 6;
@@ -651,7 +651,7 @@ SELECT id, json_extract_bool(tags, '$[1]') AS second_element FROM user_tags WHER
 query IT
 SELECT id, json_extract_string(tags, '$[0]') AS first_element FROM user_tags WHERE id = 1;
 ----
-1 "电商"
+1 电商
 
 # json_extract_bool on non-boolean elements
 query IB
@@ -731,7 +731,7 @@ SELECT id, json_extract_int(tags, '$[0]') FROM user_tags WHERE id = 10;
 query IT
 SELECT id, json_extract_string(tags, '$[1]') FROM user_tags WHERE id = 10;
 ----
-10 "two"
+10 two
 
 query IF
 SELECT id, json_extract_double(tags, '$[2]') FROM user_tags WHERE id = 10;
@@ -756,7 +756,7 @@ SELECT id, json_extract(tags, '$[5]') FROM user_tags WHERE id = 10;
 query IT
 SELECT id, json_extract_string(tags, '$[5].key') FROM user_tags WHERE id = 10;
 ----
-10 "value"
+10 value
 
 # large arrays
 statement ok
@@ -986,25 +986,25 @@ query II
 SELECT c1, CAST(json_extract_string(c2, '$.int_val') AS INTEGER)
 FROM test_json_cast WHERE c1 = 1;
 ----
-1 null
+1 42
 
 query IT
 SELECT c1, CAST(json_extract_string(c2, '$.float_val') AS DOUBLE)
 FROM test_json_cast WHERE c1 = 2;
 ----
-2 null
+2 3.140000
 
 query IB
 SELECT c1, CAST(json_extract_string(c2, '$.bool_val') AS BOOLEAN)
 FROM test_json_cast WHERE c1 = 3;
 ----
-3 null
+3 true
 
 query IT
 SELECT c1, CAST(json_extract_string(c2, '$.name') AS VARCHAR)
 FROM test_json_cast WHERE c1 = 4;
 ----
-4 "Alice"
+4 Alice
 
 # ============================================================================
 # Part 18: Edge Cases and Error Handling
@@ -1340,3 +1340,121 @@ SELECT UNNEST(c2) FROM test_unnest_json WHERE c1 = 15;
 
 statement ok
 DROP TABLE test_unnest_json;
+
+# ============================================================================
+# Part 22: JSON Extracted Values with IN / NOT IN Expressions
+# ============================================================================
+
+statement ok
+DROP TABLE IF EXISTS test_json_in;
+
+statement ok
+CREATE TABLE test_json_in (id INTEGER, meta JSON);
+
+statement ok
+INSERT INTO test_json_in VALUES
+(1, '{"department": "IB", "year": 2020, "score": 2.5}'),
+(2, '{"department": "SOC", "year": 2020, "score": 3.0}'),
+(3, '{"department": "IB", "year": 2021, "score": 1.0}'),
+(4, '{"department": "CS", "year": 2022, "score": 4.0}'),
+(5, '{"year": 2023, "score": 5.0}'),
+(6, '{"department": "IB", "year": 2024, "score": null}'),
+(7, '{"department": null, "year": 2025, "score": 6.0}'),
+(8,'{}');
+
+# json_extract_string with IN
+query I
+SELECT id FROM test_json_in WHERE json_extract_string(meta, '$.department') IN ('IB', 'SOC') ORDER BY id;
+----
+1
+2
+3
+6
+
+# json_extract_string with IN (single value)
+query I
+SELECT id FROM test_json_in WHERE json_extract_string(meta, '$.department') IN ('CS') ORDER BY id;
+----
+4
+
+# json_extract_string with NOT IN
+query I
+SELECT id FROM test_json_in WHERE json_extract_string(meta, '$.department') NOT IN ('IB', 'SOC') ORDER BY id;
+----
+4
+
+# json_extract_int with IN
+query I
+SELECT id FROM test_json_in WHERE json_extract_int(meta, '$.year') IN (2020, 2022) ORDER BY id;
+----
+1
+2
+4
+
+# json_extract_int with NOT IN
+query I
+SELECT id FROM test_json_in WHERE json_extract_int(meta, '$.year') NOT IN (2020, 2022) ORDER BY id;
+----
+3
+5
+6
+7
+
+# json_extract_double with IN
+query I
+SELECT id FROM test_json_in WHERE json_extract_double(meta, '$.score') IN (2.5, 4.0) ORDER BY id;
+----
+1
+4
+
+statement ok
+DROP TABLE test_json_in;
+
+# ============================================================================
+# Part 23: JSON Extracted Values with IS NULL / IS NOT NULL
+# ============================================================================
+
+statement ok
+DROP TABLE IF EXISTS test_json_null;
+
+statement ok
+CREATE TABLE test_json_null (id INTEGER, meta JSON);
+
+statement ok
+INSERT INTO test_json_null VALUES
+(1, '{"department": "IB", "year": 2020, "score": 2.5}'),
+(2, '{"department": "SOC", "year": 2020, "score": 3.0}'),
+(3, '{"department": "IB", "year": 2021, "score": 1.0}'),
+(4, '{"department": "CS", "year": 2022, "score": 4.0}'),
+(5, '{"year": 2023, "score": 5.0}'),
+(6, '{"department": "IB", "year": 2024, "score": null}'),
+(7, '{"department": null, "year": 2025, "score": 6.0}'),
+(8, '{}'),
+(9, null);
+
+query I
+SELECT id FROM test_json_null WHERE meta IS NULL ORDER BY id;
+----
+9
+
+# IS NULL: rows with no "department" key, department=null, or meta=NULL
+query I
+SELECT id FROM test_json_null WHERE json_extract_string(meta, '$.department') IS NULL ORDER BY id;
+----
+5
+7
+8
+9
+
+# IS NOT NULL: rows with non-null department value
+query I
+SELECT id FROM test_json_null WHERE json_extract_string(meta, '$.department') IS NOT NULL ORDER BY id;
+----
+1
+2
+3
+4
+6
+
+statement ok
+DROP TABLE test_json_null;

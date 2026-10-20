@@ -1,11 +1,11 @@
-import time
-
-import infinity.index as index
 import random
+import time
 from threading import Thread
+
+from infinity import index
 from infinity.common import ConflictType
-from infinity.errors import ErrorCode
 from infinity.connection_pool import ConnectionPool
+from infinity.errors import ErrorCode
 
 
 class TestInsertParallel:

@@ -100,8 +100,8 @@ void VectorBuffer::InitializeCompactBit(BufferObj *buffer_obj, size_t capacity) 
     if (buffer_obj == nullptr) {
         UnrecoverableError("Buffer object is nullptr.");
     }
-    if (buffer_obj->GetBufferSize() != data_size) {
-        UnrecoverableError("Buffer object size is not equal to data size.");
+    if (buffer_obj->GetBufferSize() < data_size) {
+        UnrecoverableError("Buffer object size is smaller than data size.");
     }
     ptr_ = buffer_obj->Load();
     initialized_ = true;
@@ -117,8 +117,8 @@ void VectorBuffer::Initialize(BufferObj *buffer_obj, BufferObj *outline_buffer_o
     if (buffer_obj == nullptr) {
         UnrecoverableError("Buffer object is nullptr.");
     }
-    if (buffer_obj->GetBufferSize() != data_size) {
-        UnrecoverableError("Buffer object size is not equal to data size.");
+    if (buffer_obj->GetBufferSize() < data_size) {
+        UnrecoverableError("Buffer object size is smaller than data size.");
     }
     ptr_ = buffer_obj->Load();
     if (buffer_type_ == VectorBufferType::kVarBuffer) {
@@ -141,6 +141,22 @@ void VectorBuffer::SetToCatalog(BufferObj *buffer_obj, BufferObj *outline_buffer
     if (buffer_type_ == VectorBufferType::kVarBuffer) {
         var_buffer_mgr_->SetToCatalog(outline_buffer_obj);
     }
+}
+
+void VectorBuffer::ExpandForNullBitmap(size_t null_size) {
+    if (!std::holds_alternative<std::unique_ptr<char[]>>(ptr_)) {
+        UnrecoverableError("Cannot expand non-owned buffer for null bitmap");
+    }
+    if (null_bitmap_appended_) {
+        return;
+    }
+    size_t new_size = data_size_ + null_size;
+    auto new_ptr = std::make_unique_for_overwrite<char[]>(new_size);
+    std::memcpy(new_ptr.get(), std::get<std::unique_ptr<char[]>>(ptr_).get(), data_size_);
+    std::memset(new_ptr.get() + data_size_, 0, null_size);
+    ptr_ = std::move(new_ptr);
+    data_size_ = new_size;
+    null_bitmap_appended_ = true;
 }
 
 void VectorBuffer::ResetToInit(VectorBufferType type) {

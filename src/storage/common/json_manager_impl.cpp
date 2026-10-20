@@ -270,6 +270,39 @@ std::tuple<bool, std::string> JsonManager::json_extract(const JsonTypeDef &data,
     return {true, current->dump()};
 }
 
+std::tuple<bool, std::string> JsonManager::json_extract_string(const JsonTypeDef &data, const std::vector<JsonTokenInfo> &tokens) {
+    const JsonTypeDef *current = &data;
+    for (const auto &token : tokens) {
+        const auto &token_type = token.first;
+        const auto &token_value = token.second;
+        if (current->is_array() && token_type == JsonType::kJsonArray) {
+            try {
+                size_t index = std::stoul(token_value);
+                if (index < current->size()) {
+                    current = &(*current)[index];
+                } else {
+                    return {false, ""};
+                }
+            } catch (const std::exception &) {
+                return {false, ""};
+            }
+        } else if (current->is_object() && token_type == JsonType::kJsonObject && current->contains(token_value)) {
+            current = &(*current)[token_value];
+        } else {
+            return {false, ""};
+        }
+    }
+    // Return the raw (unquoted) string value for string leaves; for other JSON types,
+    // fall back to the JSON text representation.
+    if (current->is_string()) {
+        return {true, current->get<std::string>()};
+    }
+    if (current->is_null()) {
+        return {false, ""};
+    }
+    return {true, current->dump()};
+}
+
 std::tuple<bool, BigIntT> JsonManager::json_extract_int(const JsonTypeDef &data, const std::vector<JsonTokenInfo> &tokens) {
     const JsonTypeDef *current = &data;
     for (const auto &token : tokens) {

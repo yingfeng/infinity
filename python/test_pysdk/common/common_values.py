@@ -1,6 +1,6 @@
+import numpy as np
 from infinity import NetworkAddress
 from infinity.common import ConflictType
-import numpy as np
 
 TEST_LOCAL_HOST = NetworkAddress("127.0.0.1", 23817)
 # TEST_LOCAL_HOST = NetworkAddress("192.168.200.151", 23817)
@@ -34,7 +34,7 @@ types_example_array = [
     1, 127, 32767, 2147483647, pow(2, 63) - 1, 10,
     # pow(2, 127) - 1,
     # float
-    float(1.1), np.float32(1/3), np.double(1/3), np.float64(1/3),
+    1.1, np.float32(1/3), np.double(1/3), np.float64(1/3),
     # string
     "^789$ test insert varchar",
     # bool

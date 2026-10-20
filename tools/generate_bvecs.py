@@ -1,7 +1,8 @@
-import numpy as np
-import random
-import os
 import argparse
+import os
+import random
+
+import numpy as np
 from generate_util.format_data import format_float1
 
 
@@ -20,30 +21,26 @@ def generate(generate_if_exists: bool, copy_dir: str):
     os.makedirs(slt_dir, exist_ok=True)
     if os.path.exists(bvecs_path) and os.path.exists(slt_path) and not generate_if_exists:
         print(
-            "File {} and {} already existed exists. Skip Generating.".format(
-                slt_path, bvecs_path
-            )
+            f"File {slt_path} and {bvecs_path} already existed exists. Skip Generating."
         )
         return
     with open(bvecs_path, "wb") as bvecs_file, open(slt_path, "w") as slt_file:
         slt_file.write("statement ok\n")
-        slt_file.write("DROP TABLE IF EXISTS {};\n".format(table_name))
+        slt_file.write(f"DROP TABLE IF EXISTS {table_name};\n")
         slt_file.write("\n")
         slt_file.write("statement ok\n")
         slt_file.write(
-            "CREATE TABLE {} ( c1 embedding(unsigned tinyint, {}));\n".format(table_name, dim)
+            f"CREATE TABLE {table_name} ( c1 embedding(unsigned tinyint, {dim}));\n"
         )
         slt_file.write("\n")
         slt_file.write("query I\n")
         slt_file.write(
-            "COPY {} FROM '{}' WITH ( DELIMITER ',', FORMAT bvecs);\n".format(
-                table_name, copy_path
-            )
+            f"COPY {table_name} FROM '{copy_path}' WITH ( DELIMITER ',', FORMAT bvecs);\n"
         )
         slt_file.write("----\n")
         slt_file.write("\n")
         slt_file.write("query I\n")
-        slt_file.write("SELECT c1 FROM {};\n".format(table_name))
+        slt_file.write(f"SELECT c1 FROM {table_name};\n")
         slt_file.write("----\n")
         for _ in range(row_n):
             bvecs_file.write((dim).to_bytes(4, byteorder="little"))
@@ -58,7 +55,7 @@ def generate(generate_if_exists: bool, copy_dir: str):
             slt_file.write("\n")
         slt_file.write("\n")
         slt_file.write("statement ok\n")
-        slt_file.write("DROP TABLE {};\n".format(table_name))
+        slt_file.write(f"DROP TABLE {table_name};\n")
     random.random()
 
 

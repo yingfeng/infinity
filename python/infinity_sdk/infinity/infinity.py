@@ -14,7 +14,6 @@
 from abc import ABC, abstractmethod
 
 
-
 # abstract class
 class InfinityConnection(ABC):
     def __init__(self, uri):

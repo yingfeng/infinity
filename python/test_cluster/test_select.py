@@ -1,9 +1,10 @@
 import time
-from numpy import dtype
+
 import pandas as pd
-from infinity_cluster import InfinityCluster
 from infinity.common import ConflictType
 from infinity.errors import ErrorCode
+from infinity_cluster import InfinityCluster
+from numpy import dtype
 
 
 class TestSelect:

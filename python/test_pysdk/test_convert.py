@@ -1,10 +1,12 @@
-import pytest
-from infinity.errors import ErrorCode
-from common import common_values
 import infinity
-from infinity.remote_thrift.query_builder import InfinityThriftQueryBuilder
+import pytest
 from infinity.common import ConflictType, InfinityException
+from infinity.errors import ErrorCode
 from infinity.infinity_http import infinity_http
+from infinity.remote_thrift.query_builder import InfinityThriftQueryBuilder
+
+from common import common_values
+
 
 @pytest.mark.usefixtures("http")
 @pytest.mark.usefixtures("suffix")

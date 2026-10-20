@@ -1,12 +1,20 @@
 import os
-import pytest
-from common import common_values
-import infinity
-from infinity.errors import ErrorCode
-from infinity.common import ConflictType, InfinityException
 
-from common.utils import generate_big_int_csv, copy_data, generate_big_rows_csv, generate_big_columns_csv, generate_fvecs
+import infinity
+import pytest
+from common.utils import (
+    copy_data,
+    generate_big_columns_csv,
+    generate_big_int_csv,
+    generate_big_rows_csv,
+    generate_fvecs,
+)
+from infinity.common import ConflictType, InfinityException
+from infinity.errors import ErrorCode
 from infinity.infinity_http import infinity_http
+
+from common import common_values
+
 
 @pytest.fixture(scope="class")
 def http(request):
@@ -396,11 +404,17 @@ class TestInfinity:
         table_obj = db_obj.create_table("test_table_with_not_matched_columns"+suffix, columns)
 
         test_csv_dir = common_values.TEST_TMP_DIR + "pysdk_test_commas.csv"
-        with pytest.raises(InfinityException) as e:
-            table_obj.import_data(test_csv_dir)
 
-        assert e.type == InfinityException
-        assert e.value.args[0] == ErrorCode.COLUMN_COUNT_MISMATCH or e.value.args[0] == ErrorCode.IMPORT_FILE_FORMAT_ERROR
+        # CSV has 2 columns. When table has fewer columns than CSV (extra CSV columns), raise.
+        # When table has more columns than CSV, missing columns fill with NULL (no longer raises).
+        if len(columns) < 2:
+            with pytest.raises(InfinityException) as e:
+                table_obj.import_data(test_csv_dir)
+            assert e.type == InfinityException
+            assert e.value.args[0] == ErrorCode.COLUMN_COUNT_MISMATCH or e.value.args[0] == ErrorCode.IMPORT_FILE_FORMAT_ERROR
+        else:
+            res = table_obj.import_data(test_csv_dir, {"file_type": "csv", "delimiter": ",", "header": False})
+            assert res.error_code == ErrorCode.OK
 
         res, extra_result = table_obj.output(["*"]).to_df()
         print(res)

@@ -1,14 +1,15 @@
 import os
+
+import infinity
 import pandas as pd
 import pytest
-from common import common_values
-import infinity
-import infinity.index as index
-from infinity.errors import ErrorCode
-from infinity.common import ConflictType
-
-from infinity.infinity_http import infinity_http
 from common.utils import copy_data
+from infinity import index
+from infinity.common import ConflictType
+from infinity.errors import ErrorCode
+from infinity.infinity_http import infinity_http
+
+from common import common_values
 
 test_csv_file = "embedding_int_dim3.csv"
 test_export_csv_file = "export_embedding_int_dim3.csv"

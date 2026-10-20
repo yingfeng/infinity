@@ -90,9 +90,6 @@ public:
                 return;
             }
             case ColumnVectorType::kConstant: {
-                if (count != 1) {
-                    UnrecoverableError("Attempting to execute more than one row of the constant column vector.");
-                }
                 if (nullable && !(input_null->IsAllTrue())) {
                     result_null->SetFalse(0);
                 } else {
@@ -123,7 +120,11 @@ public:
                                                                           state_ptr);
                     }
                 }
-                result->Finalize(1);
+                // A constant vector represents the same value for all rows. The
+                // operation is applied once on index 0 and finalize broadcasts the
+                // result to count rows (count may be > 1, e.g. when a literal
+                // constant is cast within a multi-row expression evaluation).
+                result->Finalize(count);
                 return;
             }
             case ColumnVectorType::kHeterogeneous: {

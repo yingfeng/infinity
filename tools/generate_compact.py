@@ -1,7 +1,7 @@
 # generate 'test/sql/dml/compact/test_compact_big.slt' and 'test/data/csv/test_compact_big.csv'
 
-import os
 import argparse
+import os
 import random
 
 
@@ -11,8 +11,8 @@ def generate(generate_if_exists: bool, copy_dir: str):
 
     csv_dir = "./test/data/csv"
     slt_dir = "./test/sql/dml/compact"
-    csv_name = "/{}.csv".format(table_name)
-    slt_name = "/{}.slt".format(table_name)
+    csv_name = f"/{table_name}.csv"
+    slt_name = f"/{table_name}.slt"
 
     csv_path = csv_dir + csv_name
     slt_path = slt_dir + slt_name
@@ -21,9 +21,7 @@ def generate(generate_if_exists: bool, copy_dir: str):
     os.makedirs(slt_dir, exist_ok=True)
     if os.path.exists(csv_path) and os.path.exists(slt_path) and not generate_if_exists:
         print(
-            "File {} and {} already existed exists. Skip Generating.".format(
-                slt_path, csv_path
-            )
+            f"File {slt_path} and {csv_path} already existed exists. Skip Generating."
         )
         return
 
@@ -34,52 +32,48 @@ def generate(generate_if_exists: bool, copy_dir: str):
     true_num = sum(y)
 
     with open(csv_path, "w") as csv_file:
-        for x1, y1 in zip(x, y):
-            csv_file.write("{},{}\n".format(x1, y1))
+        csv_file.writelines(f"{x1},{y1}\n" for x1, y1 in zip(x, y))
 
     with open(slt_path, "w") as slt_file:
         slt_file.write("statement ok\n")
-        slt_file.write("DROP TABLE IF EXISTS {};\n".format(table_name))
+        slt_file.write(f"DROP TABLE IF EXISTS {table_name};\n")
         slt_file.write("\n")
 
         slt_file.write("statement ok\n")
         slt_file.write(
-            "CREATE TABLE {} (c1 INTEGER, c2 BOOLEAN);\n".format(table_name))
+            f"CREATE TABLE {table_name} (c1 INTEGER, c2 BOOLEAN);\n")
         slt_file.write("\n")
 
         slt_file.write("query I\n")
         slt_file.write(
-            "COPY {} FROM '{}/{}' WITH ( DELIMITER ',', FORMAT CSV );\n".format(
-                table_name, copy_dir, csv_name
-            )
+            f"COPY {table_name} FROM '{copy_dir}/{csv_name}' WITH ( DELIMITER ',', FORMAT CSV );\n"
         )
         slt_file.write("----\n")
         slt_file.write("\n")
 
         slt_file.write("statement ok\n")
-        slt_file.write("DELETE FROM {} WHERE c2 = False;\n".format(table_name))
+        slt_file.write(f"DELETE FROM {table_name} WHERE c2 = False;\n")
         slt_file.write("\n")
 
         slt_file.write("statement ok\n")
-        slt_file.write("COMPACT TABLE {};\n".format(table_name))
+        slt_file.write(f"COMPACT TABLE {table_name};\n")
         slt_file.write("\n")
 
         slt_file.write("query I\n")
-        slt_file.write("SELECT COUNT(*) FROM {};\n".format(table_name))
+        slt_file.write(f"SELECT COUNT(*) FROM {table_name};\n")
         slt_file.write("----\n")
-        slt_file.write("{}\n".format(true_num))
+        slt_file.write(f"{true_num}\n")
         slt_file.write("\n")
 
         slt_file.write("query I\n")
-        slt_file.write("SELECT c1 FROM {} WHERE c2 = False;\n".format(table_name))
+        slt_file.write(f"SELECT c1 FROM {table_name} WHERE c2 = False;\n")
         slt_file.write("----\n")
         slt_file.write("\n")
 
         slt_file.write("statement ok\n")
-        slt_file.write("DROP TABLE {};\n".format(table_name))
+        slt_file.write(f"DROP TABLE {table_name};\n")
         slt_file.write("\n")
 
-    pass
 
 
 if __name__ == "__main__":

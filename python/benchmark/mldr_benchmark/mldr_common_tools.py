@@ -1,11 +1,12 @@
 import json
 import struct
-import numpy as np
-from tqdm import tqdm
-import datasets
 from dataclasses import dataclass, field
-from pyserini.output_writer import get_output_writer, OutputFormat
+
+import datasets
+import numpy as np
 from infinity.common import SparseVector
+from pyserini.output_writer import OutputFormat, get_output_writer
+from tqdm import tqdm
 
 
 @dataclass
@@ -110,7 +111,7 @@ def fvecs_read_yield(filename):
         while True:
             try:
                 dims = struct.unpack('i', f.read(4))[0]
-                vec = struct.unpack('{}f'.format(dims), f.read(4 * dims))
+                vec = struct.unpack(f'{dims}f', f.read(4 * dims))
                 assert dims == len(vec)
                 yield list(vec)
             except struct.error:
@@ -214,7 +215,7 @@ def read_colbert_data_yield(file_path: str):
                 one_tensor = []
                 for i in range(tensor_len):
                     dim = struct.unpack('<i', f.read(4))[0]
-                    vec = struct.unpack('{}f'.format(dim), f.read(4 * dim))
+                    vec = struct.unpack(f'{dim}f', f.read(4 * dim))
                     assert dim == len(vec)
                     one_tensor.append(list(vec))
                 yield one_tensor
@@ -287,8 +288,8 @@ apply_funcs = {'bm25': apply_bm25, 'dense': apply_dense, 'sparse': apply_sparse,
 
 class FakeBGEM3FlagModelColBERTV2:
     def __init__(self):
-        from colbert.modeling.checkpoint import Checkpoint
         from colbert.infra import ColBERTConfig
+        from colbert.modeling.checkpoint import Checkpoint
         self.ckpt = Checkpoint("colbert-ir/colbertv2.0", colbert_config=ColBERTConfig(root="experiments"))
         from langchain.text_splitter import RecursiveCharacterTextSplitter
         self.text_splitter = RecursiveCharacterTextSplitter(chunk_size=512, chunk_overlap=0, length_function=len,
@@ -318,8 +319,8 @@ class FakeBGEM3FlagModelColBERTV2:
 
 class FakeBGEM3FlagModelJinaColBERT:
     def __init__(self):
-        from colbert.modeling.checkpoint import Checkpoint
         from colbert.infra import ColBERTConfig
+        from colbert.modeling.checkpoint import Checkpoint
         self.ckpt = Checkpoint("jinaai/jina-colbert-v1-en", colbert_config=ColBERTConfig(doc_maxlen=8192))
 
     def encode(self, text: list[str], batch_size: int, max_length: int, return_dense: bool, return_sparse: bool,

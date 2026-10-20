@@ -13,10 +13,11 @@ Usage:  uv run scripts/download_deps_infinity_builder_ubuntu20.py
 # ///
 
 import os
-import sys
-import ssl
 import pathlib
-from urllib import request, parse, error
+import ssl
+import sys
+from urllib import error, parse, request
+
 import nltk
 
 

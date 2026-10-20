@@ -1,8 +1,9 @@
-from common import common_values
-from infinity_runner import InfinityRunner, infinity_runner_decorator_factory
 from infinity import index
 from infinity.common import ConflictType, SparseVector
 from infinity.errors import ErrorCode
+from infinity_runner import InfinityRunner, infinity_runner_decorator_factory
+
+from common import common_values
 
 
 class TestDatabaseSnapshotRestart:

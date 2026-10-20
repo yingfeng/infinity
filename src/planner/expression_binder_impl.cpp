@@ -456,6 +456,10 @@ std::shared_ptr<BaseExpression> ExpressionBinder::BuildFuncExpr(const FunctionEx
 
     // Check if it is count(*)
     bool is_count_star = false;
+    // For count(*) we must count every row, even when the actual columns are NULL.
+    // Bind it to the always non-null RowID pseudo column instead of the first column
+    // (which could be NULL, and COUNT would then skip those rows when counting non-null).
+    std::shared_ptr<BaseExpression> count_star_rowid_arg = nullptr;
     if (function_set_ptr->name() == "COUNT") {
         if (!expr.arguments_ || expr.arguments_->empty()) {
             RecoverableError(Status::SyntaxError("No arguments for COUNT function found."));
@@ -466,9 +470,15 @@ std::shared_ptr<BaseExpression> ExpressionBinder::BuildFuncExpr(const FunctionEx
                 if (col_expr->star_) {
                     is_count_star = true;
                     std::string &table_name = bind_context_ptr->table_names_[0];
+                    u64 table_index = bind_context_ptr->table_name2table_index_[table_name];
                     TableInfo *table_info = bind_context_ptr->binding_by_name_[table_name]->table_info_.get();
-                    col_expr->names_.clear();
-                    col_expr->names_.emplace_back(table_info->GetColumnDefByID(0)->name_);
+                    count_star_rowid_arg = ColumnExpression::Make(DataType(LogicalType::kRowID),
+                                                                  table_name,
+                                                                  table_index,
+                                                                  std::string(COLUMN_NAME_ROW_ID),
+                                                                  static_cast<i64>(table_info->column_count_),
+                                                                  depth,
+                                                                  SpecialType::kRowID);
                 }
             }
         }
@@ -477,10 +487,21 @@ std::shared_ptr<BaseExpression> ExpressionBinder::BuildFuncExpr(const FunctionEx
     std::vector<std::shared_ptr<BaseExpression>> arguments;
     if (expr.arguments_ != nullptr) {
         arguments.reserve(expr.arguments_->size());
+        bool count_star_arg_used = false;
         for (const auto *arg_expr : *expr.arguments_) {
+            if (count_star_rowid_arg != nullptr && !count_star_arg_used) {
+                // The count(*) argument has been resolved to the RowID pseudo column above.
+                count_star_arg_used = true;
+                arguments.emplace_back(count_star_rowid_arg);
+                continue;
+            }
             // The argument expression isn't root expression.
             // std::shared_ptr<BaseExpression> expr_ptr
             auto expr_ptr = BuildExpression(*arg_expr, bind_context_ptr, depth, false);
+            if (expr_ptr.get() == nullptr) {
+                Status status = Status::SyntaxError(fmt::format("Fail to bind the expression: {}", arg_expr->GetName()));
+                RecoverableError(status);
+            }
             arguments.emplace_back(expr_ptr);
         }
     }
@@ -489,7 +510,31 @@ std::shared_ptr<BaseExpression> ExpressionBinder::BuildFuncExpr(const FunctionEx
         case FunctionType::kScalar: {
             // std::shared_ptr<ScalarFunctionSet> scalar_function_set_ptr
             auto scalar_function_set_ptr = static_pointer_cast<ScalarFunctionSet>(function_set_ptr);
+
+            // is_null / is_not_null check the null bitmap directly; they work with
+            // any argument type including parametric types (embedding, tensor, etc.)
+            if (scalar_function_set_ptr->name() == "is_null" || scalar_function_set_ptr->name() == "is_not_null") {
+                if (arguments.size() != 1) {
+                    RecoverableError(Status::SyntaxError(
+                        fmt::format("{} requires exactly 1 argument, got {}", scalar_function_set_ptr->name(), arguments.size())));
+                }
+                ScalarFunction scalar_function = scalar_function_set_ptr->GetAllScalarFunctions()[0];
+                scalar_function.parameter_types_[0] = arguments[0]->Type();
+                return std::make_shared<FunctionExpression>(scalar_function, arguments);
+            }
+
             ScalarFunction scalar_function = scalar_function_set_ptr->GetMostMatchFunction(arguments);
+
+            // NULL propagation: if any argument is a NULL literal, the function result is NULL.
+            // AND / OR use three-valued logic: NULL AND false = false, NULL OR true = true.
+            if (scalar_function.name() != "coalesce" && scalar_function.name() != "ifnull" && scalar_function.name() != "nullif" &&
+                scalar_function.name() != "AND" && scalar_function.name() != "OR") {
+                for (size_t idx = 0; idx < arguments.size(); ++idx) {
+                    if (arguments[idx]->Type().type() == LogicalType::kNull) {
+                        return std::make_shared<ValueExpression>(Value::MakeNull());
+                    }
+                }
+            }
 
             for (size_t idx = 0; idx < arguments.size(); ++idx) {
                 // Check if the argument is an embedding type but the function doesn't expect it
@@ -660,14 +705,23 @@ std::shared_ptr<BaseExpression> ExpressionBinder::BuildInExpr(const InExpr &expr
     std::vector<std::shared_ptr<BaseExpression>> arguments;
     arguments.reserve(argument_count);
 
-    // in operator, all data type shouhld be the same
+    // in operator, all data type should be the same
     std::shared_ptr<DataType> arguments_type = nullptr;
+    bool has_null_in_list = false;
 
     for (size_t idx = 0; idx < argument_count; ++idx) {
         if (expr.arguments_->at(idx)->type_ != ParsedExprType::kConstant) {
             RecoverableError(Status::SyntaxError("In expression now only supports constant list!"));
         }
         auto bound_argument_expr = BuildExpression(*expr.arguments_->at(idx), bind_context_ptr, depth, false);
+
+        // NULL in IN list: for IN, it's a no-op (never matches). For NOT IN,
+        // per SQL standard x NOT IN (..., NULL, ...) can never be true, so we
+        // track its presence and handle in the evaluator.
+        if (bound_argument_expr->Type().type() == LogicalType::kNull) {
+            has_null_in_list = true;
+            continue;
+        }
 
         if (arguments_type != nullptr && bound_argument_expr->Type() != *arguments_type) {
             RecoverableError(Status::SyntaxError("Expressions in In expression must be of the same data type!"));
@@ -687,9 +741,23 @@ std::shared_ptr<BaseExpression> ExpressionBinder::BuildInExpr(const InExpr &expr
 
     std::shared_ptr<InExpression> in_expression_ptr = std::make_shared<InExpression>(in_type, bound_left_expr, arguments);
 
+    // If NOT IN list contains NULL, per SQL standard x NOT IN (..., NULL, ...)
+    // expands to x <> v1 AND ... AND x <> NULL AND ... = never true.
+    if (in_type == InType::kNotIn && has_null_in_list) {
+        in_expression_ptr->set_has_null_in_list(true);
+    }
+
+    // If all arguments were NULL (skipped), use left operand's type as the set type.
+    // An empty set means Exist() always returns false, which is correct behavior.
+    if (arguments_type == nullptr) {
+        arguments_type = std::make_shared<DataType>(bound_left_expr->Type());
+    }
+
+    size_t valid_count = arguments.size();
+
     // if match
     if (arguments_type->type() == bound_left_expr->Type().type()) {
-        for (size_t idx = 0; idx < argument_count; idx++) {
+        for (size_t idx = 0; idx < valid_count; idx++) {
             auto *val_expr = static_cast<ValueExpression *>(arguments[idx].get());
             Value val = val_expr->GetValue();
             in_expression_ptr->TryPut(std::move(val));
@@ -701,7 +769,7 @@ std::shared_ptr<BaseExpression> ExpressionBinder::BuildInExpr(const InExpr &expr
         std::shared_ptr<ColumnVector> argument_column_vector = std::make_shared<ColumnVector>(arguments_type);
         argument_column_vector->Initialize(ColumnVectorType::kFlat, DEFAULT_VECTOR_SIZE);
 
-        for (size_t idx = 0; idx < argument_count; idx++) {
+        for (size_t idx = 0; idx < valid_count; idx++) {
             auto *val_expr = static_cast<ValueExpression *>(arguments[idx].get());
             argument_column_vector->AppendValue(val_expr->GetValue());
         }
@@ -710,9 +778,9 @@ std::shared_ptr<BaseExpression> ExpressionBinder::BuildInExpr(const InExpr &expr
         // will overflow when passing argument_count
         cast_column_vector->Initialize(ColumnVectorType::kFlat, DEFAULT_VECTOR_SIZE);
         CastParameters cast_parameters;
-        cast.function(argument_column_vector, cast_column_vector, argument_count, cast_parameters);
+        cast.function(argument_column_vector, cast_column_vector, valid_count, cast_parameters);
 
-        for (size_t idx = 0; idx < argument_count; idx++) {
+        for (size_t idx = 0; idx < valid_count; idx++) {
             Value val = cast_column_vector->GetValueByIndex(idx);
             in_expression_ptr->TryPut(std::move(val));
         }

@@ -374,6 +374,12 @@ void Connection::SendTableDescription(const std::shared_ptr<DataTable> &result_t
                 }
                 break;
             }
+            case LogicalType::kNull: {
+                // NULL literals produce no typed value — report as text (PG UNKNOWN-equiv).
+                object_id = 25;
+                object_width = -1;
+                break;
+            }
             default: {
                 LOG_ERROR("Unexpected type");
                 UnrecoverableError("Unexpected type");

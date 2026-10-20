@@ -1,6 +1,6 @@
+import argparse
 import os
 import random
-import argparse
 
 
 def generate_test_varchar(
@@ -13,34 +13,31 @@ def generate_test_varchar(
 ):
     if os.path.exists(slt_path) and os.path.exists(csv_path) and not generate_if_exists:
         print(
-            "File {} and {} already existed exists. Skip Generating.".format(
-                slt_path, csv_path
-            )
+            f"File {slt_path} and {csv_path} already existed exists. Skip Generating."
         )
         return
     low, high = 0, 100
     table_name = "big_varchar_table"
     with open(slt_path, "w") as slt_file, open(csv_path, "w") as csv_file:
         slt_file.write("statement ok\n")
-        slt_file.write("DROP TABLE IF EXISTS {};\n".format(table_name))
+        slt_file.write(f"DROP TABLE IF EXISTS {table_name};\n")
         slt_file.write("\n")
 
         slt_file.write("statement ok\n")
         slt_file.write(
-            "CREATE TABLE {} ( c1 int, c2 varchar);\n".format(table_name)
+            f"CREATE TABLE {table_name} ( c1 int, c2 varchar);\n"
         )
         slt_file.write("\n")
 
         slt_file.write("query I\n")
         slt_file.write(
-            "COPY {} FROM '{}' WITH ( DELIMITER ',', FORMAT CSV );\n".format(
-                table_name, copy_path)
+            f"COPY {table_name} FROM '{copy_path}' WITH ( DELIMITER ',', FORMAT CSV );\n"
         )
         slt_file.write("----\n")
         slt_file.write("\n")
 
         slt_file.write("query II\n")
-        slt_file.write("SELECT c1, c2 FROM {};\n".format(table_name))
+        slt_file.write(f"SELECT c1, c2 FROM {table_name};\n")
         slt_file.write("----\n")
         for _i in range(num):
             integer = random.randint(low, high)
@@ -53,7 +50,7 @@ def generate_test_varchar(
         slt_file.write("\n")
 
         slt_file.write("statement ok\n")
-        slt_file.write("DROP TABLE {};\n".format(table_name))
+        slt_file.write(f"DROP TABLE {table_name};\n")
 
 
 def generate_test_embedding(
@@ -66,36 +63,31 @@ def generate_test_embedding(
 ):
     if os.path.exists(slt_path) and os.path.exists(csv_path) and not generate_if_exists:
         print(
-            "File {} and {} already existed exists. Skip Generating.".format(
-                slt_path, csv_path
-            )
+            f"File {slt_path} and {csv_path} already existed exists. Skip Generating."
         )
         return
     low, high = 0, 1000
     table_name = "big_embedding_table"
     with open(slt_path, "w") as slt_file, open(csv_path, "w") as csv_file:
         slt_file.write("statement ok\n")
-        slt_file.write("DROP TABLE IF EXISTS {};\n".format(table_name))
+        slt_file.write(f"DROP TABLE IF EXISTS {table_name};\n")
         slt_file.write("\n")
 
         slt_file.write("statement ok\n")
         slt_file.write(
-            "CREATE TABLE {} ( c1 int, c2 embedding(int, {}));\n".format(
-                table_name, dim
-            )
+            f"CREATE TABLE {table_name} ( c1 int, c2 embedding(int, {dim}));\n"
         )
         slt_file.write("\n")
 
         slt_file.write("query I\n")
         slt_file.write(
-            "COPY {} FROM '{}' WITH ( DELIMITER ',', FORMAT CSV );\n".format(
-                table_name, copy_path)
+            f"COPY {table_name} FROM '{copy_path}' WITH ( DELIMITER ',', FORMAT CSV );\n"
         )
         slt_file.write("----\n")
         slt_file.write("\n")
 
         slt_file.write("query II\n")
-        slt_file.write("SELECT c1, c2 FROM {};\n".format(table_name))
+        slt_file.write(f"SELECT c1, c2 FROM {table_name};\n")
         slt_file.write("----\n")
         for _i in range(num):
             integer = random.randint(low, high)
@@ -110,7 +102,7 @@ def generate_test_embedding(
         slt_file.write("\n")
 
         slt_file.write("statement ok\n")
-        slt_file.write("DROP TABLE {};\n".format(table_name))
+        slt_file.write(f"DROP TABLE {table_name};\n")
 
 
 def generate(generate_if_exists, copy_dir: str):

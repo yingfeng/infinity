@@ -44,17 +44,26 @@ SELECT * FROM test_default1;
 3 4 test_str
 5 6 abcdefghijklmnopqrstuvwxyz
 
-query I
+statement ok
 INSERT INTO test_default1(product_no) VALUES (7);
-----
 
-statement error
+statement ok
 INSERT INTO test_default1(price) VALUES (7);
+
+query II rowsort
+SELECT * FROM test_default1;
+----
+1 9 test_str
+10 9 test_str
+3 4 test_str
+5 6 abcdefghijklmnopqrstuvwxyz
+7 9 test_str
+null 7 test_str
 
 query II
 SELECT count(*) FROM test_default1;
 ----
-5
+6
 
 # Clean up
 statement ok
@@ -64,18 +73,25 @@ statement ok
 DROP TABLE IF EXISTS test_default2;
 
 statement ok
-CREATE TABLE test_default2 (col1 int, col2 int, col3 int default 8);
+CREATE TABLE test_default2 (col1 int, col2 int, col3 int default 8, col4 int not null);
 
 statement error
 INSERT INTO test_default2 VALUES (1);
 
+statement error
+INSERT INTO test_default2 VALUES (1, 2, null);
+
 statement ok
-INSERT INTO test_default2 VALUES (1, 2);
+INSERT INTO test_default2(col1, col4) VALUES (1, 4);
+
+statement ok
+INSERT INTO test_default2(col1, col2, col4) VALUES (1, 2, 4);
 
 query I
 SELECT * FROM test_default2;
 ----
-1 2 8
+1 null 8 4
+1 2 8 4
 
 statement ok
 DROP TABLE test_default2;
@@ -129,3 +145,61 @@ SELECT * FROM test_default_embedding;
 
 statement ok
 DROP TABLE test_default_embedding;
+
+# Test embedding column with NULL value
+statement ok
+DROP TABLE IF EXISTS test_embedding_null;
+
+statement ok
+CREATE TABLE test_embedding_null (col1 INT, col2 EMBEDDING(FLOAT,4));
+
+query I
+INSERT INTO test_embedding_null VALUES (1, NULL);
+----
+
+query I
+INSERT INTO test_embedding_null VALUES (2, [1, 2, 3, 4]);
+----
+
+query II
+SELECT * FROM test_embedding_null ORDER BY col1;
+----
+1 null
+2 [1,2,3,4]
+
+query II
+SELECT col1, col2 FROM test_embedding_null WHERE col2 IS NULL;
+----
+1 null
+
+query II
+SELECT col1, col2 FROM test_embedding_null WHERE col2 IS NOT NULL;
+----
+2 [1,2,3,4]
+
+statement ok
+DROP TABLE test_embedding_null;
+
+# Test embedding column with DEFAULT and explicit NULL
+statement ok
+DROP TABLE IF EXISTS test_embedding_null_default;
+
+statement ok
+CREATE TABLE test_embedding_null_default (col1 INT, col2 EMBEDDING(FLOAT,4) DEFAULT [9.0, 8.0, 7.0, 6.0]);
+
+query I
+INSERT INTO test_embedding_null_default VALUES (1, NULL);
+----
+
+query I
+INSERT INTO test_embedding_null_default VALUES (2);
+----
+
+query II
+SELECT * FROM test_embedding_null_default ORDER BY col1;
+----
+1 null
+2 [9,8,7,6]
+
+statement ok
+DROP TABLE test_embedding_null_default;

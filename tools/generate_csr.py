@@ -2,8 +2,9 @@
 
 import argparse
 import os
-from generate_util.generate_sparse_data import generate_sparse_data
+
 from generate_util.format_data import sparse_format_float
+from generate_util.generate_sparse_data import generate_sparse_data
 
 
 def generate(generate_if_exists: bool, copy_dir: str):
@@ -22,9 +23,7 @@ def generate(generate_if_exists: bool, copy_dir: str):
     os.makedirs(slt_dir, exist_ok=True)
     if os.path.exists(csr_path) and os.path.exists(slt_path) and not generate_if_exists:
         print(
-            "File {} and {} already existed exists. Skip Generating.".format(
-                slt_path, csr_path
-            )
+            f"File {slt_path} and {csr_path} already existed exists. Skip Generating."
         )
         return
 
@@ -34,39 +33,37 @@ def generate(generate_if_exists: bool, copy_dir: str):
 
     with open(slt_path, "w") as slt_file:
         slt_file.write("statement ok\n")
-        slt_file.write("DROP TABLE IF EXISTS {};\n".format(table_name))
+        slt_file.write(f"DROP TABLE IF EXISTS {table_name};\n")
         slt_file.write("\n")
 
         slt_file.write("statement ok\n")
         slt_file.write(
-            "CREATE TABLE {} ( c1 SPARSE(FLOAT, {}));\n".format(table_name, max_dim)
+            f"CREATE TABLE {table_name} ( c1 SPARSE(FLOAT, {max_dim}));\n"
         )
         slt_file.write("\n")
 
         slt_file.write("statement ok\n")
         slt_file.write(
-            "COPY {} FROM '{}' WITH ( DELIMITER ',', FORMAT csr);\n".format(
-                table_name, copy_path
-            )
+            f"COPY {table_name} FROM '{copy_path}' WITH ( DELIMITER ',', FORMAT csr);\n"
         )
         slt_file.write("\n")
 
         slt_file.write("query I\n")
-        slt_file.write("SELECT c1 FROM {};\n".format(table_name))
+        slt_file.write(f"SELECT c1 FROM {table_name};\n")
         slt_file.write("----\n")
         for row_id in range(row_n):
             start, end = indptr[row_id], indptr[row_id + 1]
             slt_file.write("[")
             for j in range(start, end):
                 slt_file.write(
-                    "{}:{}".format(indices[j], sparse_format_float(data[j])),
+                    f"{indices[j]}:{sparse_format_float(data[j])}",
                 )
                 if j != end - 1:
                     slt_file.write(",")
             slt_file.write("]\n")
         slt_file.write("\n")
         slt_file.write("statement ok\n")
-        slt_file.write("DROP TABLE {};\n".format(table_name))
+        slt_file.write(f"DROP TABLE {table_name};\n")
         slt_file.write("\n")
 
     with open(csr_path, "wb") as csr_file:

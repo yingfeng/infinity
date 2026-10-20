@@ -48,7 +48,12 @@ public:
         set_.emplace(std::move(val));
     }
 
-    inline bool Exist(const Value &val) const { return set_.contains(val); }
+    inline bool Exist(const Value &val) const {
+        if (val.IsNull()) {
+            return false;
+        }
+        return set_.contains(val);
+    }
     inline DataType Type() const { return data_type_; }
 
     // constructor will throw when illegal type is passed
@@ -145,6 +150,10 @@ public:
 
     inline DataType TypeOfArguments() const { return set_.Type(); }
 
+    inline void set_has_null_in_list(bool v) { has_null_in_list_ = v; }
+
+    inline bool has_null_in_list() const { return has_null_in_list_; }
+
     u64 Hash() const override;
 
     bool Eq(const BaseExpression &other) const override;
@@ -153,6 +162,7 @@ private:
     std::shared_ptr<BaseExpression> left_operand_ptr_;
     InType in_type_;
     ValueSet set_;
+    bool has_null_in_list_{false};
 };
 
 } // namespace infinity

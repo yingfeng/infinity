@@ -1,0 +1,280 @@
+# name: test/sql/dql/select_null.slt
+# description: Test NULL usage in SQL statements and expressions.
+# group: [dql]
+
+statement ok
+DROP TABLE IF EXISTS test_null;
+
+statement ok
+CREATE TABLE test_null (id INTEGER, name VARCHAR, score INTEGER);
+
+statement ok
+INSERT INTO test_null(id) VALUES (1);
+
+statement ok
+INSERT INTO test_null(id, name, score) VALUES (2, 'alice', 100);
+
+statement ok
+INSERT INTO test_null(id, name, score) VALUES (3, 'bob', 200);
+
+statement ok
+INSERT INTO test_null VALUES (NULL, NULL, NULL);
+
+query ITI
+SELECT * FROM test_null;
+----
+1 null null
+2 alice 100
+3 bob 200
+null null null
+
+query ITI
+SELECT id, name, score FROM test_null WHERE name IS NULL ORDER BY id;
+----
+null null null
+1 null null
+
+query ITI
+SELECT id, name, score FROM test_null WHERE name IS NULL ORDER BY id DESC;
+----
+1 null null
+null null null
+
+query ITI
+SELECT id, name, score FROM test_null WHERE name IS NOT NULL ORDER BY id;
+----
+2 alice 100
+3 bob 200
+
+query ITI
+SELECT id, name, score FROM test_null WHERE score IS NULL ORDER BY id;
+----
+null null null
+1 null null
+
+query ITI
+SELECT id, name, score FROM test_null WHERE score IS NOT NULL ORDER BY id;
+----
+2 alice 100
+3 bob 200
+
+query I
+SELECT count(*) FROM test_null WHERE name IS NULL;
+----
+2
+
+query I
+SELECT count(*) FROM test_null WHERE name IS NOT NULL;
+----
+2
+
+query IRIIII
+SELECT SUM(score), AVG(score), MIN(score), MAX(score), COUNT(score), COUNT(*) FROM test_null;
+----
+300 150.000000 100 200 2 4
+
+query T rowsort
+SELECT NULL FROM test_null;
+----
+null
+null
+null
+null
+
+query T rowsort
+SELECT NOT NULL FROM test_null;
+----
+null
+null
+null
+null
+
+query IT rowsort
+SELECT id, name, name IS NULL FROM test_null;
+----
+1 null true
+2 alice false
+3 bob false
+null null true
+
+query IT rowsort
+SELECT id, name, name IS NOT NULL FROM test_null;
+----
+1 null false
+2 alice true
+3 bob true
+null null false
+
+# Test DISTINCT: NULLs are treated as one group
+query T rowsort
+SELECT DISTINCT name FROM test_null;
+----
+alice
+bob
+null
+
+query I rowsort
+SELECT DISTINCT score FROM test_null;
+----
+100
+200
+null
+
+# Test GROUP BY with NULL: NULLs are treated as one group
+query II rowsort
+SELECT score, count(*) FROM test_null GROUP BY score;
+----
+100 1
+200 1
+null 2
+
+statement ok
+DROP TABLE test_null;
+
+statement ok
+DROP TABLE IF EXISTS test_null_in;
+
+statement ok
+CREATE TABLE test_null_in (a INTEGER, b INTEGER, c INTEGER);
+
+statement ok
+INSERT INTO test_null_in VALUES (1, 0, 0);
+
+statement ok
+INSERT INTO test_null_in VALUES (2, 0, 1);
+
+statement ok
+INSERT INTO test_null_in VALUES (3, 1, 0);
+
+statement ok
+INSERT INTO test_null_in VALUES (4, 1, 1);
+
+statement ok
+INSERT INTO test_null_in VALUES (5, NULL, 0);
+
+statement ok
+INSERT INTO test_null_in VALUES (6, NULL, 1);
+
+statement ok
+INSERT INTO test_null_in VALUES (7, NULL, NULL);
+
+query III
+SELECT a, b FROM test_null_in WHERE b IN (0) ORDER BY a;
+----
+1 0
+2 0
+
+query III
+SELECT a, b FROM test_null_in WHERE b NOT IN (0) ORDER BY a;
+----
+3 1
+4 1
+
+query III
+SELECT a, b FROM test_null_in WHERE b IN (0, 1) ORDER BY a;
+----
+1 0
+2 0
+3 1
+4 1
+
+# b IN (0, null): NULL in IN list is a no-op, same as b IN (0)
+query III
+SELECT a, b FROM test_null_in WHERE b IN (0, NULL) ORDER BY a;
+----
+1 0
+2 0
+
+# b IN (null): all-NULL IN list returns no rows
+query III
+SELECT * FROM test_null_in WHERE b IN (NULL) ORDER BY a;
+----
+
+# b NOT IN (null): all-NULL NOT IN list — never true
+query III
+SELECT * FROM test_null_in WHERE b NOT IN (NULL) ORDER BY a;
+----
+
+# b NOT IN (0, null): per SQL standard, NULL in NOT IN list makes the condition
+# never true (x <> 0 AND x <> NULL = x <> 0 AND NULL = never true).
+query III
+SELECT * FROM test_null_in WHERE b NOT IN (0, NULL) ORDER BY a;
+----
+
+statement ok
+DROP TABLE test_null_in;
+
+# Test NULL in arithmetic and boolean expressions
+
+statement ok
+DROP TABLE IF EXISTS test_null_bool;
+
+statement ok
+CREATE TABLE test_null_bool (id INTEGER, flag BOOLEAN);
+
+statement ok
+INSERT INTO test_null_bool VALUES (1, true);
+
+statement ok
+INSERT INTO test_null_bool VALUES (2, false);
+
+statement ok
+INSERT INTO test_null_bool VALUES (3, NULL);
+
+# NULL AND true = NULL
+# NULL AND false = false (false dominates AND)
+query IT rowsort
+SELECT id, NULL AND flag FROM test_null_bool;
+----
+1 null
+2 false
+3 null
+
+# NULL OR true = true (true dominates OR)
+# NULL OR false = NULL
+query IT rowsort
+SELECT id, NULL OR flag FROM test_null_bool;
+----
+1 true
+2 null
+3 null
+
+query I rowsort
+SELECT NULL + id FROM test_null_bool;
+----
+null
+null
+null
+
+# NULL AND NULL = NULL
+query T rowsort
+SELECT NULL AND NULL FROM test_null_bool;
+----
+null
+null
+null
+
+# NULL OR NULL = NULL
+query T rowsort
+SELECT NULL OR NULL FROM test_null_bool;
+----
+null
+null
+null
+
+query IT rowsort
+SELECT id, flag = NULL FROM test_null_bool;
+----
+1 null
+2 null
+3 null
+
+query IT rowsort
+SELECT id, flag != NULL FROM test_null_bool;
+----
+1 null
+2 null
+3 null
+
+statement ok
+DROP TABLE test_null_bool;

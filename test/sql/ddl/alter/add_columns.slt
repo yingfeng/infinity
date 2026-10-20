@@ -15,16 +15,33 @@ SELECT * FROM table1;
 statement error
 ALTER TABLE table1 ADD COLUMN (column2 varchar DEFAULT 'default');
 
-statement error
-ALTER TABLE table1 ADD COLUMN (column3 varchar);
-
 statement ok
 ALTER TABLE table1 ADD COLUMN (column3 varchar DEFAULT 'default');
+
+statement ok
+ALTER TABLE table1 ADD COLUMN (column4 int);
+
+statement ok
+INSERT INTO table1(column1, column2) VALUES (2, 2);
+
+statement error
+ALTER TABLE table1 ADD COLUMN (column5 varchar NOT NULL);
+
+statement ok
+ALTER TABLE table1 ADD COLUMN (column5 varchar NOT NULL DEFAULT 'default');
+
+statement error
+INSERT INTO table1 VALUES (3, 2, 'hello', 4, null);
+
+statement ok
+INSERT INTO table1 VALUES (3, 2, 'hello', 4, 'world');
 
 query II
 SELECT * FROM table1;
 ----
-1 2 default
+1 2 default null default
+2 2 default null default
+3 2 hello 4 world
 
 statement ok
 DROP TABLE table1;

@@ -98,10 +98,10 @@ func exampleCustomConfig() {
 	config := infinity.ConnectionPoolConfig{
 		URI:                 infinity.LocalHost,
 		InitialSize:         2,
+		MaxOpen:             4,
+		MaxIdle:             2,
 		MaxIdleTime:         10 * time.Minute,
 		HealthCheckInterval: 1 * time.Minute,
-		WaitTimeout:         10 * time.Second,
-		BlockWhenExhausted:  true,
 	}
 
 	pool, err := infinity.NewConnectionPool(config, func(uri infinity.URI) (*infinity.InfinityConnection, error) {
@@ -117,8 +117,9 @@ func exampleCustomConfig() {
 
 	fmt.Printf("Pool created with custom config:\n")
 	fmt.Printf("  Initial Size: %d\n", config.InitialSize)
+	fmt.Printf("  Max Open: %d\n", config.MaxOpen)
+	fmt.Printf("  Max Idle: %d\n", config.MaxIdle)
 	fmt.Printf("  Max Idle Time: %v\n", config.MaxIdleTime)
-	fmt.Printf("  Wait Timeout: %v\n", config.WaitTimeout)
 
 	// Get multiple connections to see initial connections being used
 	for i := 0; i < 3; i++ {
@@ -139,10 +140,10 @@ func exampleConcurrentAccess() {
 	fmt.Println("--- Example 3: Concurrent Pool Access ---")
 
 	config := infinity.ConnectionPoolConfig{
-		URI:                 infinity.LocalHost,
-		InitialSize:         1,
-		BlockWhenExhausted:  true,
-		WaitTimeout:         5 * time.Second,
+		URI:         infinity.LocalHost,
+		InitialSize: 1,
+		MaxOpen:     2,
+		MaxIdle:     1,
 	}
 
 	pool, err := infinity.NewConnectionPool(config, nil)
@@ -152,7 +153,7 @@ func exampleConcurrentAccess() {
 	}
 	defer pool.Close()
 
-	fmt.Printf("Pool initial size: %d, simulating %d concurrent workers\n", config.InitialSize, 5)
+	fmt.Printf("Pool initial size: %d, max open: %d, simulating %d concurrent workers\n", config.InitialSize, config.MaxOpen, 5)
 
 	var wg sync.WaitGroup
 	for i := 0; i < 5; i++ {
@@ -160,8 +161,10 @@ func exampleConcurrentAccess() {
 		go func(workerID int) {
 			defer wg.Done()
 
-			// Get connection from pool
-			conn, err := pool.Get()
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			defer cancel()
+
+			conn, err := pool.GetContext(ctx)
 			if err != nil {
 				fmt.Printf("  Worker %d: Failed to get connection: %v\n", workerID, err)
 				return
@@ -244,12 +247,11 @@ func printStats(stats infinity.PoolStats) {
 func exampleContextTimeout() {
 	fmt.Println("--- Example 5: Context Timeout ---")
 
-	// Create a pool with only 1 connection
 	config := infinity.ConnectionPoolConfig{
-		URI:                 infinity.LocalHost,
-		InitialSize:         1,
-		BlockWhenExhausted:  true,
-		WaitTimeout:         2 * time.Second,
+		URI:         infinity.LocalHost,
+		InitialSize: 1,
+		MaxOpen:     1,
+		MaxIdle:     1,
 	}
 
 	pool, err := infinity.NewConnectionPool(config, nil)

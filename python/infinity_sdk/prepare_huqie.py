@@ -5,7 +5,9 @@ Run 'uv run prepare_huqie.py' before running 'uv build'
 
 import shutil
 from pathlib import Path
+
 from infinity import rag_tokenizer
+
 
 def prepare_huqie_file(source_file, target_dir):
     if not source_file.exists():

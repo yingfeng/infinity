@@ -4,10 +4,11 @@ Stress test script for snapshot functionality.
 Runs the specified test 100 times and stops if it fails.
 """
 
+import os
 import subprocess
 import sys
 import time
-import os
+
 
 def run_test(test_command, max_iterations=100):
     """

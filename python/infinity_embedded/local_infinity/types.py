@@ -12,16 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import struct
 import json
+import struct
 from collections import defaultdict
+from datetime import date, datetime, time, timedelta
 from typing import Any
+
 import numpy as np
 from numpy import dtype
-from infinity_embedded.common import VEC, SparseVector, InfinityException
+
+from infinity_embedded.common import VEC, InfinityException, SparseVector
 from infinity_embedded.embedded_infinity_ext import *
 from infinity_embedded.errors import ErrorCode
-from datetime import date, time, datetime, timedelta
+
 
 def logic_type_to_dtype(ttype: WrapDataType):
     match ttype.logical_type:
@@ -82,7 +85,7 @@ def bf16_bytes_to_float32_list(binary_data):
 def tensor_to_list(column_data_type, binary_data) -> list[list[Any]]:
     dimension = column_data_type.embedding_type.dimension
     if column_data_type.embedding_type.element_type == EmbeddingDataType.kElemBit:
-        all_list = list(struct.unpack('<{}B'.format(len(binary_data)), binary_data))
+        all_list = list(struct.unpack(f'<{len(binary_data)}B', binary_data))
         result = []
         if dimension % 8 != 0:
             raise ValueError(f"Unsupported dimension {dimension}")
@@ -95,28 +98,28 @@ def tensor_to_list(column_data_type, binary_data) -> list[list[Any]]:
             result.append([f"\u007b0:0{dimension}b\u007d".format(mid_res_int)[::-1]])
         return result
     elif column_data_type.embedding_type.element_type == EmbeddingDataType.kElemUInt8:
-        all_list = list(struct.unpack('<{}B'.format(len(binary_data)), binary_data))
+        all_list = list(struct.unpack(f'<{len(binary_data)}B', binary_data))
         return [all_list[i:i + dimension] for i in range(0, len(all_list), dimension)]
     elif column_data_type.embedding_type.element_type == EmbeddingDataType.kElemInt8:
-        all_list = list(struct.unpack('<{}b'.format(len(binary_data)), binary_data))
+        all_list = list(struct.unpack(f'<{len(binary_data)}b', binary_data))
         return [all_list[i:i + dimension] for i in range(0, len(all_list), dimension)]
     elif column_data_type.embedding_type.element_type == EmbeddingDataType.kElemInt16:
-        all_list = list(struct.unpack('<{}h'.format(len(binary_data) // 2), binary_data))
+        all_list = list(struct.unpack(f'<{len(binary_data) // 2}h', binary_data))
         return [all_list[i:i + dimension] for i in range(0, len(all_list), dimension)]
     elif column_data_type.embedding_type.element_type == EmbeddingDataType.kElemInt32:
-        all_list = list(struct.unpack('<{}i'.format(len(binary_data) // 4), binary_data))
+        all_list = list(struct.unpack(f'<{len(binary_data) // 4}i', binary_data))
         return [all_list[i:i + dimension] for i in range(0, len(all_list), dimension)]
     elif column_data_type.embedding_type.element_type == EmbeddingDataType.kElemInt64:
-        all_list = list(struct.unpack('<{}q'.format(len(binary_data) // 8), binary_data))
+        all_list = list(struct.unpack(f'<{len(binary_data) // 8}q', binary_data))
         return [all_list[i:i + dimension] for i in range(0, len(all_list), dimension)]
     elif column_data_type.embedding_type.element_type == EmbeddingDataType.kElemFloat:
-        all_list = list(struct.unpack('<{}f'.format(len(binary_data) // 4), binary_data))
+        all_list = list(struct.unpack(f'<{len(binary_data) // 4}f', binary_data))
         return [all_list[i:i + dimension] for i in range(0, len(all_list), dimension)]
     elif column_data_type.embedding_type.element_type == EmbeddingDataType.kElemDouble:
-        all_list = list(struct.unpack('<{}d'.format(len(binary_data) // 8), binary_data))
+        all_list = list(struct.unpack(f'<{len(binary_data) // 8}d', binary_data))
         return [all_list[i:i + dimension] for i in range(0, len(all_list), dimension)]
     elif column_data_type.embedding_type.element_type == EmbeddingDataType.kElemFloat16:
-        all_list = list(struct.unpack('<{}e'.format(len(binary_data) // 2), binary_data))
+        all_list = list(struct.unpack(f'<{len(binary_data) // 2}e', binary_data))
         return [all_list[i:i + dimension] for i in range(0, len(all_list), dimension)]
     elif column_data_type.embedding_type.element_type == EmbeddingDataType.kElemBFloat16:
         all_list = bf16_bytes_to_float32_list(binary_data)
@@ -266,57 +269,57 @@ def column_vector_to_list(column_type, column_data_type, column_vectors) -> \
     column_vector = b''.join(column_vectors)
     match column_type:
         case LogicalType.kInteger:
-            return list(struct.unpack('<{}i'.format(len(column_vector) // 4), column_vector))
+            return list(struct.unpack(f'<{len(column_vector) // 4}i', column_vector))
         case LogicalType.kBigInt:
-            return list(struct.unpack('<{}q'.format(len(column_vector) // 8), column_vector))
+            return list(struct.unpack(f'<{len(column_vector) // 8}q', column_vector))
         case LogicalType.kFloat:
-            return list(struct.unpack('<{}f'.format(len(column_vector) // 4), column_vector))
+            return list(struct.unpack(f'<{len(column_vector) // 4}f', column_vector))
         case LogicalType.kDouble:
-            return list(struct.unpack('<{}d'.format(len(column_vector) // 8), column_vector))
+            return list(struct.unpack(f'<{len(column_vector) // 8}d', column_vector))
         case LogicalType.kFloat16:
-            return list(struct.unpack('<{}e'.format(len(column_vector) // 2), column_vector))
+            return list(struct.unpack(f'<{len(column_vector) // 2}e', column_vector))
         case LogicalType.kBFloat16:
             return bf16_bytes_to_float32_list(column_vector)
         case LogicalType.kVarchar:
             return list(parse_bytes(column_vector))
         case LogicalType.kBoolean:
-            return list(struct.unpack('<{}?'.format(len(column_vector)), column_vector))
+            return list(struct.unpack(f'<{len(column_vector)}?', column_vector))
         case LogicalType.kTinyInt:
-            return list(struct.unpack('<{}b'.format(len(column_vector)), column_vector))
+            return list(struct.unpack(f'<{len(column_vector)}b', column_vector))
         case LogicalType.kSmallInt:
-            return list(struct.unpack('<{}h'.format(len(column_vector) // 2), column_vector))
+            return list(struct.unpack(f'<{len(column_vector) // 2}h', column_vector))
         case LogicalType.kRowID:
-            all_list = list(struct.unpack('<{}i'.format(len(column_vector) // 4), column_vector))
+            all_list = list(struct.unpack(f'<{len(column_vector) // 4}i', column_vector))
             return [all_list[i:i + 2] for i in range(0, len(all_list), 2)]
         case LogicalType.kEmbedding:
             dimension = column_data_type.embedding_type.dimension
             element_type = column_data_type.embedding_type.element_type
             if element_type == EmbeddingDataType.kElemUInt8:
-                all_list = list(struct.unpack('<{}B'.format(len(column_vector)), column_vector))
+                all_list = list(struct.unpack(f'<{len(column_vector)}B', column_vector))
                 return [all_list[i:i + dimension] for i in range(0, len(all_list), dimension)]
             elif element_type == EmbeddingDataType.kElemInt8:
-                all_list = list(struct.unpack('<{}b'.format(len(column_vector)), column_vector))
+                all_list = list(struct.unpack(f'<{len(column_vector)}b', column_vector))
                 return [all_list[i:i + dimension] for i in range(0, len(all_list), dimension)]
             elif element_type == EmbeddingDataType.kElemInt16:
-                all_list = list(struct.unpack('<{}h'.format(len(column_vector) // 2), column_vector))
+                all_list = list(struct.unpack(f'<{len(column_vector) // 2}h', column_vector))
                 return [all_list[i:i + dimension] for i in range(0, len(all_list), dimension)]
             elif element_type == EmbeddingDataType.kElemInt32:
-                all_list = list(struct.unpack('<{}i'.format(len(column_vector) // 4), column_vector))
+                all_list = list(struct.unpack(f'<{len(column_vector) // 4}i', column_vector))
                 return [all_list[i:i + dimension] for i in range(0, len(all_list), dimension)]
             elif element_type == EmbeddingDataType.kElemFloat:
-                all_list = list(struct.unpack('<{}f'.format(len(column_vector) // 4), column_vector))
+                all_list = list(struct.unpack(f'<{len(column_vector) // 4}f', column_vector))
                 return [all_list[i:i + dimension] for i in range(0, len(all_list), dimension)]
             elif element_type == EmbeddingDataType.kElemDouble:
-                all_list = list(struct.unpack('<{}d'.format(len(column_vector) // 8), column_vector))
+                all_list = list(struct.unpack(f'<{len(column_vector) // 8}d', column_vector))
                 return [all_list[i:i + dimension] for i in range(0, len(all_list), dimension)]
             elif element_type == EmbeddingDataType.kElemFloat16:
-                all_list = list(struct.unpack('<{}e'.format(len(column_vector) // 2), column_vector))
+                all_list = list(struct.unpack(f'<{len(column_vector) // 2}e', column_vector))
                 return [all_list[i:i + dimension] for i in range(0, len(all_list), dimension)]
             elif element_type == EmbeddingDataType.kElemBFloat16:
                 all_list = bf16_bytes_to_float32_list(column_vector)
                 return [all_list[i:i + dimension] for i in range(0, len(all_list), dimension)]
             elif element_type == EmbeddingDataType.kElemBit:
-                all_list = list(struct.unpack('<{}B'.format(len(column_vector)), column_vector))
+                all_list = list(struct.unpack(f'<{len(column_vector)}B', column_vector))
                 result = []
                 if dimension % 8 != 0:
                     raise ValueError(f"Unsupported dimension {dimension}")
@@ -356,7 +359,7 @@ def column_vector_to_list(column_type, column_data_type, column_vectors) -> \
 
 
 def parse_date_bytes(column_vector):
-    parsed_list = list(struct.unpack('<{}i'.format(len(column_vector) // 4), column_vector))
+    parsed_list = list(struct.unpack(f'<{len(column_vector) // 4}i', column_vector))
     date_list = []
     epoch = date(1970, 1, 1)
     for value in parsed_list: 
@@ -365,7 +368,7 @@ def parse_date_bytes(column_vector):
 
 
 def parse_time_bytes(column_vector):
-    parsed_list = list(struct.unpack('<{}i'.format(len(column_vector) // 4), column_vector))
+    parsed_list = list(struct.unpack(f'<{len(column_vector) // 4}i', column_vector))
     time_list = []
     for value in parsed_list:
         hours = (value // 3600) % 24
@@ -376,7 +379,7 @@ def parse_time_bytes(column_vector):
 
 
 def parse_datetime_bytes(column_vector):
-    parsed_list = list(struct.unpack('<{}i'.format(len(column_vector) // 4), column_vector))
+    parsed_list = list(struct.unpack(f'<{len(column_vector) // 4}i', column_vector))
     datetime_list = []
     epoch = datetime(1970, 1, 1)
     for i in range(0, len(parsed_list), 2):
@@ -386,7 +389,7 @@ def parse_datetime_bytes(column_vector):
 
 
 def parse_interval_bytes(column_vector):
-    parsed_list = list(struct.unpack('<{}i'.format(len(column_vector) // 4), column_vector))
+    parsed_list = list(struct.unpack(f'<{len(column_vector) // 4}i', column_vector))
     interval_list = []
     for value in parsed_list:
         interval_list.append(timedelta(seconds=value))
@@ -411,43 +414,43 @@ def parse_single_sparse_bytes(column_data_type: WrapDataType, column_vector, off
     values = []
     match index_type:
         case EmbeddingDataType.kElemInt8:
-            indices = struct.unpack('<{}b'.format(nnz), column_vector[offset:offset + nnz])
+            indices = struct.unpack(f'<{nnz}b', column_vector[offset:offset + nnz])
             offset += nnz
         case EmbeddingDataType.kElemInt16:
-            indices = struct.unpack('<{}h'.format(nnz), column_vector[offset:offset + nnz * 2])
+            indices = struct.unpack(f'<{nnz}h', column_vector[offset:offset + nnz * 2])
             offset += nnz * 2
         case EmbeddingDataType.kElemInt32:
-            indices = struct.unpack('<{}i'.format(nnz), column_vector[offset:offset + nnz * 4])
+            indices = struct.unpack(f'<{nnz}i', column_vector[offset:offset + nnz * 4])
             offset += nnz * 4
         case EmbeddingDataType.kElemInt64:
-            indices = struct.unpack('<{}q'.format(nnz), column_vector[offset:offset + nnz * 8])
+            indices = struct.unpack(f'<{nnz}q', column_vector[offset:offset + nnz * 8])
             offset += nnz * 8
         case _:
             raise NotImplementedError(f"Unsupported type {index_type}")
     match element_type:
         case EmbeddingDataType.kElemUInt8:
-            values = struct.unpack('<{}B'.format(nnz), column_vector[offset:offset + nnz])
+            values = struct.unpack(f'<{nnz}B', column_vector[offset:offset + nnz])
             offset += nnz
         case EmbeddingDataType.kElemInt8:
-            values = struct.unpack('<{}b'.format(nnz), column_vector[offset:offset + nnz])
+            values = struct.unpack(f'<{nnz}b', column_vector[offset:offset + nnz])
             offset += nnz
         case EmbeddingDataType.kElemInt16:
-            values = struct.unpack('<{}h'.format(nnz), column_vector[offset:offset + nnz * 2])
+            values = struct.unpack(f'<{nnz}h', column_vector[offset:offset + nnz * 2])
             offset += nnz * 2
         case EmbeddingDataType.kElemInt32:
-            values = struct.unpack('<{}i'.format(nnz), column_vector[offset:offset + nnz * 4])
+            values = struct.unpack(f'<{nnz}i', column_vector[offset:offset + nnz * 4])
             offset += nnz * 4
         case EmbeddingDataType.kElemInt64:
-            values = struct.unpack('<{}q'.format(nnz), column_vector[offset:offset + nnz * 8])
+            values = struct.unpack(f'<{nnz}q', column_vector[offset:offset + nnz * 8])
             offset += nnz * 8
         case EmbeddingDataType.kElemFloat:
-            values = struct.unpack('<{}f'.format(nnz), column_vector[offset:offset + nnz * 4])
+            values = struct.unpack(f'<{nnz}f', column_vector[offset:offset + nnz * 4])
             offset += nnz * 4
         case EmbeddingDataType.kElemDouble:
-            values = struct.unpack('<{}d'.format(nnz), column_vector[offset:offset + nnz * 8])
+            values = struct.unpack(f'<{nnz}d', column_vector[offset:offset + nnz * 8])
             offset += nnz * 8
         case EmbeddingDataType.kElemFloat16:
-            values = struct.unpack('<{}e'.format(nnz), column_vector[offset:offset + nnz * 2])
+            values = struct.unpack(f'<{nnz}e', column_vector[offset:offset + nnz * 2])
             offset += nnz * 2
         case EmbeddingDataType.kElemBFloat16:
             values = bf16_bytes_to_float32_list(column_vector[offset:offset + nnz * 2])

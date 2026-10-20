@@ -1,7 +1,8 @@
-from concurrent import futures
-from run_pytest_parallel import run_command
-import time
 import argparse
+import time
+from concurrent import futures
+
+from run_pytest_parallel import run_command
 
 commands = [
     "python3 tools/run_pysdk_remote_infinity_test.py --pytest_mark='not complex'",

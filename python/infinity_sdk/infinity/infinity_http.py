@@ -1,28 +1,45 @@
+import ast
+import logging
 import re
 import time
+from collections import namedtuple
+from dataclasses import dataclass
+from typing import Any
 
-import requests
-import logging
-import ast
-from numpy import dtype
-from .http_utils import (
-    baseHeader, baseResponse, baseData, default_url, baseCreateOptions, baseDropOptions,
-    index_type_transfrom, ExplainType_transfrom, is_list, is_date, is_time, is_datetime,
-    is_sparse, str2sparse, type_to_dtype, function_return_type, is_float, functions, bool_functions
-)
-
-from infinity.common import ConflictType, InfinityException, SparseVector, SortType, FDE
-from typing import Optional, Any
-from infinity.errors import ErrorCode
-from infinity.utils import deprecated_api
 import numpy as np
 import pandas as pd
 import polars as pl
 import pyarrow as pa
+import requests
+from numpy import dtype
+
+from infinity.common import FDE, ConflictType, InfinityException, SortType, SparseVector
+from infinity.errors import ErrorCode
 from infinity.table import ExplainType
-from typing import List
-from dataclasses import dataclass
-from collections import namedtuple
+from infinity.utils import deprecated_api
+
+from .http_utils import (
+    ExplainType_transfrom,
+    baseCreateOptions,
+    baseData,
+    baseDropOptions,
+    baseHeader,
+    baseResponse,
+    bool_functions,
+    default_url,
+    function_return_type,
+    functions,
+    index_type_transfrom,
+    is_date,
+    is_datetime,
+    is_float,
+    is_list,
+    is_sparse,
+    is_time,
+    str2sparse,
+    type_to_dtype,
+)
+
 
 def is_json_function(col_name: str) -> bool:
     """Check if column name is a JSON extraction function"""
@@ -40,7 +57,7 @@ def is_json_function(col_name: str) -> bool:
     return any(col_name_lower.startswith(func) for func in json_functions)
 
 
-def _parse_cast_target_type(cast_expr: str) -> Optional[str]:
+def _parse_cast_target_type(cast_expr: str) -> str | None:
     if not cast_expr.lower().startswith("cast("):
         return None
 
@@ -180,7 +197,6 @@ class http_network_util:
                 pass
 
         logging.debug("----------------------------------------------")
-        return
 
     def get_database_result(self, resp, expect={}):
         try:
@@ -778,6 +794,8 @@ class table_http:
                         for idx in range(len(value[key])):
                             if isinstance(value[key][idx], np.ndarray):
                                 value[key][idx] = value[key][idx].tolist()
+                            elif isinstance(value[key][idx], (np.integer, np.floating, np.longdouble)):
+                                value[key][idx] = value[key][idx].item()
                     elif isinstance(value[key], SparseVector):
                         value[key] = value[key].to_dict()
 
@@ -1044,7 +1062,7 @@ class table_http_result:
         self._highlight = highlight
         return self
 
-    def sort(self, order_by_expr_list: Optional[List[list[str, SortType]]]):
+    def sort(self, order_by_expr_list: list[list[str, SortType]] | None):
         for order_by_expr in order_by_expr_list:
             tmp = {}
             if len(order_by_expr) != 2:
@@ -1084,7 +1102,7 @@ class table_http_result:
         self._option = option
         return self
 
-    def match_text(self, fields: str, query: str, topn: int, opt_params: Optional[dict] = None):
+    def match_text(self, fields: str, query: str, topn: int, opt_params: dict | None = None):
         tmp_match_expr = {"match_method": "text", "fields": fields, "matching_text": query, "topn": topn}
         if opt_params is not None:
             tmp_match_expr["params"] = opt_params
@@ -1096,7 +1114,7 @@ class table_http_result:
         return self.match_text(*args, **kwargs)
 
     def match_tensor(self, column_name: str, query_data, query_data_type: str, topn: int,
-                     extra_option: Optional[dict] = None):
+                     extra_option: dict | None = None):
         tmp_match_tensor = {"match_method": "tensor", "field": column_name, "query_tensor": query_data,
                             "element_type": query_data_type, "topn": topn}
         if extra_option is not None:
@@ -1105,7 +1123,7 @@ class table_http_result:
         return self
 
     def match_sparse(self, vector_column_name: str, sparse_data: SparseVector | dict, distance_type: str, topn: int,
-                     opt_params: Optional[dict] = None):
+                     opt_params: dict | None = None):
         tmp_match_sparse = {"match_method": "sparse", "fields": vector_column_name,
                             "query_vector": sparse_data.to_dict(), "metric_type": distance_type, "topn": topn}
         if opt_params is not None:
@@ -1118,7 +1136,7 @@ class table_http_result:
         return self
 
     def match_dense(self, fields: str, query_vector: list, element_type: str, metric_type: str, top_k: int,
-                    opt_params: Optional[dict] = None):
+                    opt_params: dict | None = None):
         tmp_match_dense = {"match_method": "dense", "fields": fields, "query_vector": query_vector,
                            "element_type": element_type, "metric_type": metric_type, "topn": top_k}
         if opt_params is not None:
@@ -1130,7 +1148,7 @@ class table_http_result:
         deprecated_api("knn is deprecated, please use match_dense instead")
         return self.match_dense(*args, **kwargs)
 
-    def fusion(self, method: str, topn: int, fusion_params: Optional[dict] = None):
+    def fusion(self, method: str, topn: int, fusion_params: dict | None = None):
         tmp_fusion_expr = {"fusion_method": method, "topn": topn}
         if method == "match_tensor":
             tmp_new_params = {"field": fusion_params["field"], "query_tensor": fusion_params["query_tensor"],
@@ -1184,18 +1202,12 @@ class table_http_result:
                 if len(tup) == line_i + 1:
                     continue
 
-                if v is None:
-                    new_tup = tup + (v,)
-                elif isinstance(v, (int, float)):
+                if v is None or isinstance(v, (int, float)):
                     new_tup = tup + (v,)
                 elif is_list(v) and not is_json_function(col_name):
                     # Don't parse lists for JSON extraction functions - keep them as strings
                     new_tup = tup + (ast.literal_eval(v),)
-                elif is_date(v):
-                    new_tup = tup + (v,)
-                elif is_time(v):
-                    new_tup = tup + (v,)
-                elif is_datetime(v):
+                elif is_date(v) or is_time(v) or is_datetime(v):
                     new_tup = tup + (v,)
                 elif is_sparse(v):  # sparse vector
                     sparse_vec = str2sparse(v)
@@ -1312,7 +1324,7 @@ class table_http_result:
 
 
 @dataclass
-class database_result():
+class database_result:
     def __init__(self, list=[], database_name: str = "", error_code=ErrorCode.OK, columns=[], index_names=[],
                  node_name="", node_role="", node_status="", index_type=None, index_comment=None, deleted_rows=0,
                  data={}, nodes=[], error_msg="", snapshots=[], config_value: Any = None):

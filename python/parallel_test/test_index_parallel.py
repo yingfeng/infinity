@@ -2,16 +2,15 @@ import logging
 import os
 import random
 import time
+from multiprocessing import Lock, Value
 from threading import Thread
-from multiprocessing import Value, Lock
 
-import infinity.index as index
 import pandas
 import pytest
+from infinity import index
 from infinity.common import ConflictType, SparseVector
 from infinity.connection_pool import ConnectionPool
 from infinity.errors import ErrorCode
-
 from test_sdkbase import TestSdk
 from util import RtnThread
 

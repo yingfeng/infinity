@@ -1,10 +1,10 @@
+import infinity
 import pytest
-from common import common_values
 from infinity.common import InfinityException
 from infinity.errors import ErrorCode
-import infinity
-
 from infinity.infinity_http import infinity_http
+
+from common import common_values
 
 
 @pytest.fixture(scope="class")

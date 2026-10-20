@@ -4,9 +4,8 @@
 # - https://en.wikipedia.org/wiki/AOL_search_log_release
 # - https://www.kaggle.com/datasets/dineshydv/aol-user-session-collection-500k
 
-import sys
 import json
-
+import sys
 
 if __name__ == "__main__":
     if len(sys.argv) != 4:

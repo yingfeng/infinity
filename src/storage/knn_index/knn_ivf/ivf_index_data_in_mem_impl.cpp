@@ -134,36 +134,72 @@ public:
     InsertBlockData(const SegmentOffset block_offset, const ColumnVector &column_vector, BlockOffset row_offset, BlockOffset row_count) override {
         std::unique_lock lock(rw_mutex_);
         size_t mem1 = MemoryUsed();
+        const auto *nulls_ptr = column_vector.nulls_ptr_.get();
         if (have_ivf_index_.test(std::memory_order_acquire)) {
             if constexpr (column_logical_type == LogicalType::kEmbedding) {
                 const auto *column_embedding_ptr = reinterpret_cast<const ColumnEmbeddingElementT *>(column_vector.data());
-                ivf_index_storage_->AddEmbeddingBatch(block_offset + row_offset,
-                                                      column_embedding_ptr + row_offset * embedding_dimension(),
-                                                      row_count);
-                input_embedding_count_ += row_count;
+                if (nulls_ptr) {
+                    for (u32 i = 0; i < row_count; ++i) {
+                        if (!nulls_ptr->IsTrue(row_offset + i)) {
+                            continue;
+                        }
+                        ivf_index_storage_->AddEmbeddingBatch(block_offset + row_offset + i,
+                                                              column_embedding_ptr + (row_offset + i) * embedding_dimension(),
+                                                              1);
+                        ++input_embedding_count_;
+                        ++input_row_count_;
+                    }
+                } else {
+                    ivf_index_storage_->AddEmbeddingBatch(block_offset + row_offset,
+                                                          column_embedding_ptr + row_offset * embedding_dimension(),
+                                                          row_count);
+                    input_embedding_count_ += row_count;
+                    input_row_count_ += row_count;
+                }
             } else if constexpr (column_logical_type == LogicalType::kMultiVector) {
                 for (u32 i = 0; i < row_count; ++i) {
+                    if (nulls_ptr && !nulls_ptr->IsTrue(row_offset + i)) {
+                        continue;
+                    }
                     auto [raw_data, embedding_num] = column_vector.GetMultiVectorRaw(row_offset + i);
                     ivf_index_storage_->AddMultiVector(block_offset + row_offset + i, raw_data.data(), embedding_num);
                     input_embedding_count_ += embedding_num;
+                    ++input_row_count_;
                 }
             } else {
                 static_assert(false);
             }
-            input_row_count_ += row_count;
         } else {
             // no index now
             if constexpr (column_logical_type == LogicalType::kEmbedding) {
                 const auto *column_embedding_ptr = reinterpret_cast<const ColumnEmbeddingElementT *>(column_vector.data());
-                in_mem_storage_.raw_source_data_.insert(in_mem_storage_.raw_source_data_.end(),
-                                                        column_embedding_ptr + row_offset * embedding_dimension(),
-                                                        column_embedding_ptr + (row_offset + row_count) * embedding_dimension());
-                const auto old_size = in_mem_storage_.source_offsets_.size();
-                in_mem_storage_.source_offsets_.resize(old_size + row_count);
-                std::iota(in_mem_storage_.source_offsets_.begin() + old_size, in_mem_storage_.source_offsets_.end(), block_offset + row_offset);
-                input_embedding_count_ += row_count;
+                if (nulls_ptr) {
+                    for (u32 i = 0; i < row_count; ++i) {
+                        if (!nulls_ptr->IsTrue(row_offset + i)) {
+                            continue;
+                        }
+                        in_mem_storage_.raw_source_data_.insert(in_mem_storage_.raw_source_data_.end(),
+                                                                column_embedding_ptr + (row_offset + i) * embedding_dimension(),
+                                                                column_embedding_ptr + (row_offset + i + 1) * embedding_dimension());
+                        in_mem_storage_.source_offsets_.push_back(block_offset + row_offset + i);
+                        ++input_embedding_count_;
+                        ++input_row_count_;
+                    }
+                } else {
+                    in_mem_storage_.raw_source_data_.insert(in_mem_storage_.raw_source_data_.end(),
+                                                            column_embedding_ptr + row_offset * embedding_dimension(),
+                                                            column_embedding_ptr + (row_offset + row_count) * embedding_dimension());
+                    const auto old_size = in_mem_storage_.source_offsets_.size();
+                    in_mem_storage_.source_offsets_.resize(old_size + row_count);
+                    std::iota(in_mem_storage_.source_offsets_.begin() + old_size, in_mem_storage_.source_offsets_.end(), block_offset + row_offset);
+                    input_embedding_count_ += row_count;
+                    input_row_count_ += row_count;
+                }
             } else if constexpr (column_logical_type == LogicalType::kMultiVector) {
                 for (u32 i = 0; i < row_count; ++i) {
+                    if (nulls_ptr && !nulls_ptr->IsTrue(row_offset + i)) {
+                        continue;
+                    }
                     auto [raw_data, embedding_num] = column_vector.GetMultiVectorRaw(row_offset + i);
                     const auto *mv_ptr = reinterpret_cast<const ColumnEmbeddingElementT *>(raw_data.data());
                     in_mem_storage_.multi_vector_data_start_pos_.push_back(in_mem_storage_.raw_source_data_.size());
@@ -173,11 +209,11 @@ public:
                     in_mem_storage_.source_offsets_.push_back(block_offset + row_offset + i);
                     in_mem_storage_.multi_vector_embedding_num_.push_back(embedding_num);
                     input_embedding_count_ += embedding_num;
+                    ++input_row_count_;
                 }
             } else {
                 static_assert(false);
             }
-            input_row_count_ += row_count;
             if (input_embedding_count_ >= build_index_bar_embedding_num_) {
                 BuildIndex();
             }

@@ -1,10 +1,10 @@
 import time
 
-from numpy import dtype
 import pandas as pd
-from infinity_cluster import InfinityCluster
+from infinity import index
 from infinity.common import ConflictType
-import infinity.index as index
+from infinity_cluster import InfinityCluster
+from numpy import dtype
 
 
 class TestIndex:

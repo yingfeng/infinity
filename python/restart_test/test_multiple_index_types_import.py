@@ -1,14 +1,21 @@
+import logging
 import os
 import random
-import pytest
-import logging
 import time
 from threading import Thread
-from infinity_runner import InfinityRunner, infinity_runner_decorator_factory, infinity_runner_decorator_factory2
-from restart_util import MultiIndexTypesGenerator
-from common import common_values
+
+import pytest
 from infinity.common import ConflictType, SparseVector
 from infinity.connection_pool import ConnectionPool
+from infinity_runner import (
+    InfinityRunner,
+    infinity_runner_decorator_factory,
+    infinity_runner_decorator_factory2,
+)
+from restart_util import MultiIndexTypesGenerator
+
+from common import common_values
+
 
 class TestMultipleIndexTypesImport:
     @pytest.mark.parametrize(

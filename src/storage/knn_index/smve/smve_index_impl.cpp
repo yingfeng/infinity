@@ -90,13 +90,33 @@ SMVEIndexInMem::~SMVEIndexInMem() {
 }
 
 void SMVEIndexInMem::BuildFromColumn(const ColumnVector &col, SegmentOffset block_offset, BlockOffset offset, BlockOffset row_count) {
+    // Count non-NULL rows first so we can pre-allocate sparse_col correctly
+    u32 non_null_count = 0;
+    const auto *nulls_ptr = col.nulls_ptr_.get();
+    if (nulls_ptr) {
+        for (BlockOffset i = 0; i < row_count; ++i) {
+            if (nulls_ptr->IsTrue(offset + i)) {
+                ++non_null_count;
+            }
+        }
+    } else {
+        non_null_count = row_count;
+    }
+
+    if (non_null_count == 0) {
+        return;
+    }
+
     auto sparse_type = std::make_shared<DataType>(
         LogicalType::kSparse,
         std::make_shared<SparseInfo>(EmbeddingDataType::kElemFloat, EmbeddingDataType::kElemInt32, width_, SparseStoreType::kSorted));
     auto sparse_col = ColumnVector::Make(sparse_type);
-    sparse_col->Initialize(ColumnVectorType::kFlat, row_count);
+    sparse_col->Initialize(ColumnVectorType::kFlat, non_null_count);
 
     for (BlockOffset i = 0; i < row_count; ++i) {
+        if (nulls_ptr && !nulls_ptr->IsTrue(offset + i)) {
+            continue;
+        }
         auto [tensor_span, tensor_size] = col.GetTensorRaw(offset + i);
         const f32 *tensor_ptr = reinterpret_cast<const f32 *>(tensor_span.data());
         u32 n_tokens = static_cast<u32>(tensor_size) / (embedding_dim_ * sizeof(f32));
@@ -111,10 +131,10 @@ void SMVEIndexInMem::BuildFromColumn(const ColumnVector &col, SegmentOffset bloc
                                                  reinterpret_cast<const i32 *>(smve.indices.data()));
         }
     }
-    size_t mem_delta = bmp_handler_->AddDocs(block_offset, *sparse_col, 0, static_cast<BlockOffset>(row_count));
+    size_t mem_delta = bmp_handler_->AddDocs(block_offset, *sparse_col, 0, static_cast<BlockOffset>(non_null_count));
     IncreaseMemoryUsageBase(mem_delta);
-    n_docs_ += row_count;
-    LOG_TRACE(fmt::format("SMVEIndexInMem::BuildFromColumn: Added {} docs (total {}), width={}, topk={}", row_count, n_docs_, width_, topk_));
+    n_docs_ += non_null_count;
+    LOG_TRACE(fmt::format("SMVEIndexInMem::BuildFromColumn: Added {} docs (total {}), width={}, topk={}", non_null_count, n_docs_, width_, topk_));
 }
 
 void SMVEIndexInMem::Dump(BufferObj *buffer_obj, size_t *dump_size_ptr) {

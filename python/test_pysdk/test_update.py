@@ -1,13 +1,14 @@
 import time
+
+import infinity
 import pandas as pd
 import pytest
-from common import common_values
-import infinity
-from infinity.errors import ErrorCode
-from infinity.common import ConflictType, InfinityException, SparseVector
 from common.utils import trace_expected_exceptions
-
+from infinity.common import ConflictType, InfinityException, SparseVector
+from infinity.errors import ErrorCode
 from infinity.infinity_http import infinity_http
+
+from common import common_values
 
 
 @pytest.fixture(scope="class")
@@ -148,7 +149,7 @@ class TestInfinity:
             try:
                 tb_obj.update("1=0", {"c2": common_values.types_example_array[i]})
                 res, extra_result = tb_obj.output(["*"]).to_df()
-                print("update type: {} \n {}".format(common_values.types_array[i], res))
+                print(f"update type: {common_values.types_array[i]} \n {res}")
 
             except Exception as e:
                 print(e)
@@ -183,7 +184,7 @@ class TestInfinity:
                 tb_obj.update("c1 = " + str(common_values.types_example_array[i]),
                               {"c2": common_values.types_example_array[i]})
                 res, extra_result = tb_obj.output(["*"]).to_df()
-                print("update type: {} \n {}".format(common_values.types_array[i], res))
+                print(f"update type: {common_values.types_array[i]} \n {res}")
 
             except Exception as e:
                 print(e)

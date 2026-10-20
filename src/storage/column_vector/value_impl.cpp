@@ -1070,6 +1070,26 @@ bool Value::operator==(const Value &other) const {
     return true;
 }
 
+bool Value::IsNull() const {
+    switch (type_.type()) {
+        case LogicalType::kNull:
+        case LogicalType::kMissing:
+            return true;
+        // Value-carrying types represent NULL by a null ExtraValueInfo pointer.
+        case LogicalType::kVarchar:
+        case LogicalType::kJson:
+        case LogicalType::kEmbedding:
+        case LogicalType::kMultiVector:
+        case LogicalType::kTensor:
+        case LogicalType::kTensorArray:
+        case LogicalType::kSparse:
+        case LogicalType::kArray:
+            return value_info_ == nullptr;
+        default:
+            return false;
+    }
+}
+
 void Value::CopyUnionValue(const Value &other) {
     this->type_ = other.type_;
     switch (type_.type()) {
@@ -1378,6 +1398,9 @@ f64 Value::ToDouble() const {
 }
 
 std::string Value::ToString() const {
+    if (this->IsNull()) {
+        return "null";
+    }
     switch (type_.type()) {
         case LogicalType::kBoolean: {
             return value_.boolean ? "true" : "false";

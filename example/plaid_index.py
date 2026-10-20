@@ -17,9 +17,11 @@ This example demonstrates PLAID index creation and search for multi-vector (tens
 PLAID is an IVF-based index with residual quantization optimized for tensor search.
 '''
 
-import infinity
 import sys
+
+import infinity
 import numpy as np
+
 
 def generate_random_tensors(n_docs, n_tokens_per_doc, dim):
     """Generate random tensor data for testing."""
@@ -101,7 +103,7 @@ try:
     sys.exit(0)
 
 except Exception as e:
-    print(f"Error: {str(e)}")
+    print(f"Error: {e!s}")
     import traceback
     traceback.print_exc()
     sys.exit(-1)

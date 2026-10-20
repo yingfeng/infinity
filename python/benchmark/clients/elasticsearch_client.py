@@ -1,12 +1,12 @@
-from typing import Any
-from elasticsearch import Elasticsearch, helpers
 import json
-from typing import List
-import os
-import h5py
-import uuid
 import logging
+import os
 import re
+import uuid
+from typing import Any
+
+import h5py
+from elasticsearch import Elasticsearch, helpers
 
 from .base_client import BaseClient
 
@@ -24,7 +24,7 @@ class ElasticsearchClient(BaseClient):
         self.path_prefix = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         logging.getLogger("elastic_transport").setLevel(logging.WARNING)
 
-    def upload_batch(self, actions: List):
+    def upload_batch(self, actions: list):
         helpers.bulk(self.client, actions)
 
     def upload(self):

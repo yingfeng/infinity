@@ -454,6 +454,14 @@ void PhysicalMatchSparseScan::ExecuteInnerT(DistFunc *dist_func,
             UnrecoverableError(status.message());
         }
 
+        if (column_vector.nulls_ptr_) {
+            for (BlockOffset i = 0; i < row_cnt; ++i) {
+                if (!column_vector.nulls_ptr_->IsTrue(i)) {
+                    bitmask.SetFalse(i);
+                }
+            }
+        }
+
         for (size_t query_id = 0; query_id < query_n; ++query_id) {
             auto query_sparse = get_ele(query_vector, query_id);
             for (BlockOffset i = 0; i < row_cnt; ++i) {

@@ -1,13 +1,12 @@
 import argparse
+import json
 import os
 import time
-import json
 
 import infinity
 from infinity import index
-from infinity.common import LOCAL_HOST
+from infinity.common import LOCAL_HOST, ConflictType
 from infinity.errors import ErrorCode
-from infinity.common import ConflictType
 
 
 def import_data(path):

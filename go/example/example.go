@@ -289,6 +289,8 @@ func main() {
 		infinity.ConnectionPoolConfig{
 			URI:         infinity.LocalHost,
 			InitialSize: 10,
+			MaxOpen:     10,
+			MaxIdle:     10,
 		},
 		func(uri infinity.URI) (*infinity.InfinityConnection, error) {
 			return infinity.Connect(uri)

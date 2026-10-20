@@ -40,37 +40,37 @@ TEST_F(NullValueTest, null_value_test1) {
     }
     {
         auto null_value = NullValue<TinyIntT>();
-        EXPECT_EQ(null_value, std::numeric_limits<TinyIntT>::infinity());
+        EXPECT_EQ(null_value, std::numeric_limits<i8>::lowest());
     }
     {
         auto null_value = NullValue<SmallIntT>();
-        EXPECT_EQ(null_value, std::numeric_limits<SmallIntT>::infinity());
+        EXPECT_EQ(null_value, std::numeric_limits<i16>::lowest());
     }
     {
         auto null_value = NullValue<IntegerT>();
-        EXPECT_EQ(null_value, std::numeric_limits<IntegerT>::infinity());
+        EXPECT_EQ(null_value, std::numeric_limits<i32>::lowest());
     }
     {
         auto null_value = NullValue<BigIntT>();
-        EXPECT_EQ(null_value, std::numeric_limits<BigIntT>::infinity());
+        EXPECT_EQ(null_value, std::numeric_limits<i64>::lowest());
     }
     {
         auto null_value = NullValue<HugeIntT>();
-        EXPECT_EQ(null_value.lower, std::numeric_limits<BigIntT>::infinity());
-        EXPECT_EQ(null_value.upper, std::numeric_limits<BigIntT>::infinity());
+        EXPECT_EQ(null_value.lower, std::numeric_limits<i64>::lowest());
+        EXPECT_EQ(null_value.upper, std::numeric_limits<i64>::lowest());
     }
     {
         auto null_value = NullValue<FloatT>();
-        EXPECT_EQ(null_value, std::numeric_limits<FloatT>::infinity());
+        EXPECT_EQ(null_value, -std::numeric_limits<f32>::infinity());
     }
     {
         auto null_value = NullValue<DoubleT>();
-        EXPECT_EQ(null_value, std::numeric_limits<DoubleT>::infinity());
+        EXPECT_EQ(null_value, -std::numeric_limits<f64>::infinity());
     }
     {
         auto null_value = NullValue<DecimalT>();
-        EXPECT_EQ(null_value.upper, std::numeric_limits<i64>::infinity());
-        EXPECT_EQ(null_value.lower, std::numeric_limits<i64>::infinity());
+        EXPECT_EQ(null_value.upper, std::numeric_limits<i64>::lowest());
+        EXPECT_EQ(null_value.lower, std::numeric_limits<i64>::lowest());
     }
     /*
      * using DateT = DateType;
@@ -83,51 +83,51 @@ using IntervalT = IntervalType;
 
     {
         auto null_value = NullValue<DateT>();
-        EXPECT_EQ(null_value.value, std::numeric_limits<i32>::infinity());
+        EXPECT_EQ(null_value.value, std::numeric_limits<i32>::lowest());
     }
     {
         auto null_value = NullValue<TimeT>();
-        EXPECT_EQ(null_value.value, std::numeric_limits<i32>::infinity());
+        EXPECT_EQ(null_value.value, std::numeric_limits<i32>::lowest());
     }
     {
         auto null_value = NullValue<DateTimeT>();
-        EXPECT_EQ(null_value.date, std::numeric_limits<i32>::infinity());
-        EXPECT_EQ(null_value.time, std::numeric_limits<i32>::infinity());
+        EXPECT_EQ(null_value.date, std::numeric_limits<i32>::lowest());
+        EXPECT_EQ(null_value.time, std::numeric_limits<i32>::lowest());
     }
     {
         auto null_value = NullValue<TimestampT>();
-        EXPECT_EQ(null_value.date, std::numeric_limits<i32>::infinity());
-        EXPECT_EQ(null_value.time, std::numeric_limits<i32>::infinity());
+        EXPECT_EQ(null_value.date, std::numeric_limits<i32>::lowest());
+        EXPECT_EQ(null_value.time, std::numeric_limits<i32>::lowest());
     }
     {
         auto null_value = NullValue<IntervalT>();
         EXPECT_EQ(null_value.unit, TimeUnit::kInvalidUnit);
-        EXPECT_EQ(null_value.value, std::numeric_limits<i32>::infinity());
+        EXPECT_EQ(null_value.value, std::numeric_limits<i32>::lowest());
     }
     {
         auto null_value = NullValue<PointT>();
-        EXPECT_EQ(null_value.x, std::numeric_limits<f64>::infinity());
-        EXPECT_EQ(null_value.y, std::numeric_limits<f64>::infinity());
+        EXPECT_EQ(null_value.x, -std::numeric_limits<f64>::infinity());
+        EXPECT_EQ(null_value.y, -std::numeric_limits<f64>::infinity());
     }
     {
         auto null_value = NullValue<LineT>();
-        EXPECT_EQ(null_value.a, std::numeric_limits<f64>::infinity());
-        EXPECT_EQ(null_value.b, std::numeric_limits<f64>::infinity());
-        EXPECT_EQ(null_value.c, std::numeric_limits<f64>::infinity());
+        EXPECT_EQ(null_value.a, -std::numeric_limits<f64>::infinity());
+        EXPECT_EQ(null_value.b, -std::numeric_limits<f64>::infinity());
+        EXPECT_EQ(null_value.c, -std::numeric_limits<f64>::infinity());
     }
     {
         auto null_value = NullValue<LineSegT>();
-        EXPECT_EQ(null_value.point1.x, std::numeric_limits<f64>::infinity());
-        EXPECT_EQ(null_value.point1.y, std::numeric_limits<f64>::infinity());
-        EXPECT_EQ(null_value.point2.x, std::numeric_limits<f64>::infinity());
-        EXPECT_EQ(null_value.point2.y, std::numeric_limits<f64>::infinity());
+        EXPECT_EQ(null_value.point1.x, -std::numeric_limits<f64>::infinity());
+        EXPECT_EQ(null_value.point1.y, -std::numeric_limits<f64>::infinity());
+        EXPECT_EQ(null_value.point2.x, -std::numeric_limits<f64>::infinity());
+        EXPECT_EQ(null_value.point2.y, -std::numeric_limits<f64>::infinity());
     }
     {
         auto null_value = NullValue<BoxT>();
-        EXPECT_EQ(null_value.lower_right.x, std::numeric_limits<f64>::infinity());
-        EXPECT_EQ(null_value.lower_right.y, std::numeric_limits<f64>::infinity());
-        EXPECT_EQ(null_value.upper_left.x, std::numeric_limits<f64>::infinity());
-        EXPECT_EQ(null_value.upper_left.y, std::numeric_limits<f64>::infinity());
+        EXPECT_EQ(null_value.lower_right.x, -std::numeric_limits<f64>::infinity());
+        EXPECT_EQ(null_value.lower_right.y, -std::numeric_limits<f64>::infinity());
+        EXPECT_EQ(null_value.upper_left.x, -std::numeric_limits<f64>::infinity());
+        EXPECT_EQ(null_value.upper_left.y, -std::numeric_limits<f64>::infinity());
     }
     //    {
     //        auto null_value = NullValue<PathT>();
@@ -146,9 +146,9 @@ using IntervalT = IntervalType;
     //    }
     {
         auto null_value = NullValue<CircleT>();
-        EXPECT_EQ(null_value.radius, std::numeric_limits<f64>::infinity());
-        EXPECT_EQ(null_value.center.x, std::numeric_limits<f64>::infinity());
-        EXPECT_EQ(null_value.center.y, std::numeric_limits<f64>::infinity());
+        EXPECT_EQ(null_value.radius, -std::numeric_limits<f64>::infinity());
+        EXPECT_EQ(null_value.center.x, -std::numeric_limits<f64>::infinity());
+        EXPECT_EQ(null_value.center.y, -std::numeric_limits<f64>::infinity());
     }
     {
         auto null_value = NullValue<MixedT>();

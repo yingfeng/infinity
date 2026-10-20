@@ -122,6 +122,7 @@ struct NewTxnCompactState {
         if (block_meta_) {
             block_row_cnts_.push_back(cur_block_row_cnt_);
             segment_row_cnt_ += cur_block_row_cnt_;
+            size_t null_size = (block_meta_->block_capacity() + 7) / 8;
             for (ColumnID i = 0; i < column_cnt_; ++i) {
                 ColumnMeta column_meta(i, *block_meta_);
                 BufferObj *buffer_obj = nullptr;
@@ -136,6 +137,21 @@ struct NewTxnCompactState {
                 if (!status2.ok()) {
                     return status;
                 }
+
+                // Write null bitmap at offset data_cap_size in the buffer before saving.
+                // The buffer's null bitmap region was allocated but never populated during
+                // compact's AppendWith, so we must explicitly write the bits from the
+                // in-memory nulls_ptr_.  Otherwise all bits remain zero (= all rows NULL),
+                // causing PopulateSecondaryIndexInner to skip every row.
+                size_t data_cap_size = data_size - null_size;
+                u8 *null_bitmap = reinterpret_cast<u8 *>(column_vectors_[i].buffer_->GetDataMut()) + data_cap_size;
+                std::memset(null_bitmap, 0, null_size);
+                for (size_t j = 0; j < cur_block_row_cnt_; ++j) {
+                    if (column_vectors_[i].nulls_ptr_->IsTrue(j)) {
+                        null_bitmap[j / 8] |= static_cast<u8>(1u << (j % 8));
+                    }
+                }
+
                 buffer_obj->SetDataSize(data_size);
 
                 buffer_obj->Save();
@@ -505,6 +521,23 @@ Status NewTxn::AppendInner(const std::string &db_name,
         if (*column_types.back() != *input_block->column_vectors_[col_id]->data_type()) {
             LOG_ERROR(fmt::format("Attempt to insert different type data into transaction table store"));
             return Status::DataTypeMismatch(column_types.back()->ToString(), input_block->column_vectors_[col_id]->data_type()->ToString());
+        }
+    }
+
+    // Check NOT NULL constraints
+    size_t row_count = input_block->row_count();
+    for (size_t col_id = 0; col_id < column_count; ++col_id) {
+        const auto &col_def = (*column_defs)[col_id];
+        if (col_def->constraints_.contains(ConstraintType::kNotNull)) {
+            const auto &col_vector = input_block->column_vectors_[col_id];
+            for (size_t row = 0; row < row_count; ++row) {
+                if (col_vector->IsNullAt(row)) {
+                    return Status::NotSupport(fmt::format("NOT NULL constraint violation: Column '{}' in table '{}.{}' does not allow NULL values.",
+                                                          col_def->name(),
+                                                          db_name,
+                                                          table_name));
+                }
+            }
         }
     }
 
@@ -945,10 +978,37 @@ NewTxn::AppendInColumn(ColumnMeta &column_meta, size_t dest_offset, size_t appen
         return status;
     }
 
+    size_t row_count = dest_vec.Size();
+    auto col_type = dest_vec.data_type()->type();
+    size_t data_cap_size = col_type == LogicalType::kBoolean ? (DEFAULT_VECTOR_SIZE + 7) / 8 : DEFAULT_VECTOR_SIZE * dest_vec.data_type_size_;
+    size_t null_size = (DEFAULT_VECTOR_SIZE + 7) / 8;
+
+    // Old-format .col files (written before the null-bitmap-in-buffer format)
+    // have a payload of exactly `data_cap_size` bytes and no trailing null
+    // bitmap. For those, write only the data region to avoid overrunning the
+    // buffer; they fall back to "all non-null" on read.
+    bool has_null_region = buffer_obj->GetBufferSize() >= data_cap_size + null_size;
+
     auto [data_size, status2] = column_meta.GetColumnSize(dest_vec.Size(), column_meta.get_column_def());
     if (!status2.ok()) {
-        return status;
+        return status2;
     }
+    if (!has_null_region) {
+        data_size = data_cap_size;
+    }
+
+    // Write null bitmap at the end of data buffer before SetDataSize
+    if (has_null_region) {
+        size_t null_byte_count = (row_count + 7) / 8;
+        u8 *null_data = reinterpret_cast<u8 *>(dest_vec.buffer_->GetDataMut() + data_cap_size);
+        std::memset(null_data, 0xFF, null_byte_count);
+        for (size_t i = 0; i < row_count; ++i) {
+            if (!dest_vec.nulls_ptr_->IsTrue(i)) {
+                null_data[i / 8] &= ~(1u << (i % 8));
+            }
+        }
+    }
+
     buffer_obj->SetDataSize(data_size);
 
     if (VarBufferManager *var_buffer_mgr = dest_vec.buffer_->var_buffer_mgr(); var_buffer_mgr != nullptr) {
@@ -1150,16 +1210,29 @@ NewTxn::AddColumnsData(TableMeta &table_meta, const std::vector<std::shared_ptr<
     std::vector<Value> default_values;
     ExpressionBinder tmp_binder(nullptr);
     for (const auto &column_def : column_defs) {
-        if (!column_def->default_value()) {
-            return Status::NotSupport(fmt::format("Column {} has no default value", column_def->name()));
-        }
         std::shared_ptr<ConstantExpr> default_expr = column_def->default_value();
+        if (default_expr == nullptr || default_expr->literal_type_ == LiteralType::kNull) {
+            // No explicit non-NULL DEFAULT clause. For nullable columns, the implicit
+            // default is NULL. A NOT NULL column has no usable default, so the ALTER
+            // must fail (it would otherwise fill existing rows with NULL).
+            if (!column_def->has_default_value()) {
+                return Status::NotSupport(fmt::format("Column {} has no default value", column_def->name()));
+            }
+            default_values.push_back(Value::MakeNull());
+            continue;
+        }
         auto expr = tmp_binder.BuildValueExpr(*default_expr, nullptr, 0, false);
         auto *value_expr = static_cast<ValueExpression *>(expr.get());
 
         const std::shared_ptr<DataType> &column_type = column_def->type();
         if (value_expr->Type() == *column_type) {
             default_values.push_back(value_expr->GetValue());
+        } else if (value_expr->Type().type() == LogicalType::kNull) {
+            // The default is a NULL literal, which happens when a nullable column is
+            // added without an explicit DEFAULT. Use Value::MakeNull() so that
+            // AppendValue/SetValueByIndex will mark the null bitmap correctly
+            // for the existing rows.
+            default_values.push_back(Value::MakeNull());
         } else {
             BoundCastFunc cast = CastFunction::GetBoundFunc(value_expr->Type(), *column_type);
             std::shared_ptr<BaseExpression> cast_expr = std::make_shared<CastExpression>(cast, expr, *column_type);
@@ -1243,9 +1316,31 @@ Status NewTxn::AddColumnsDataInBlock(BlockMeta &block_meta,
             return status;
         }
 
-        auto [data_size, status2] = column_meta->GetColumnSize(column_vector.Size(), column_def);
+        size_t row_count = column_vector.Size();
+        auto col_type = column_def->type()->type();
+        size_t data_cap_size =
+            col_type == LogicalType::kBoolean ? (DEFAULT_VECTOR_SIZE + 7) / 8 : DEFAULT_VECTOR_SIZE * column_vector.data_type_size_;
+        size_t null_size = (DEFAULT_VECTOR_SIZE + 7) / 8;
+
+        // Write null bitmap at the end of data buffer before SetDataSize
+        bool has_null_region = buffer_obj->GetBufferSize() >= data_cap_size + null_size;
+        if (has_null_region) {
+            size_t null_byte_count = (row_count + 7) / 8;
+            u8 *null_data = reinterpret_cast<u8 *>(column_vector.buffer_->GetDataMut() + data_cap_size);
+            std::memset(null_data, 0xFF, null_byte_count);
+            for (size_t j = 0; j < row_count; ++j) {
+                if (!column_vector.nulls_ptr_->IsTrue(j)) {
+                    null_data[j / 8] &= ~(1u << (j % 8));
+                }
+            }
+        }
+
+        auto [data_size, status2] = column_meta->GetColumnSize(row_count, column_def);
         if (!status2.ok()) {
-            return status;
+            return status2;
+        }
+        if (!has_null_region) {
+            data_size = data_cap_size;
         }
         buffer_obj->SetDataSize(data_size);
 
@@ -1616,11 +1711,12 @@ Status NewTxn::CreateTableSnapshotFile(std::shared_ptr<TableSnapshotInfo> table_
 Status NewTxn::PrepareCommitImport(WalCmdImportV2 *import_cmd) {
     TxnTimeStamp commit_ts = txn_context_ptr_->commit_ts_;
     const std::string &db_id_str = import_cmd->db_id_;
+    const std::string &db_name = import_cmd->db_name_;
     const std::string &table_id_str = import_cmd->table_id_;
     const std::string &table_name = import_cmd->table_name_;
 
     WalSegmentInfo &segment_info = import_cmd->segment_info_;
-    TableMeta table_meta(db_id_str, table_id_str, table_name, this);
+    TableMeta table_meta(db_id_str, db_name, table_id_str, table_name, this);
     SegmentMeta segment_meta(segment_info.segment_id_, table_meta);
 
     Status status = table_meta.CommitSegment(segment_info.segment_id_, commit_ts);
@@ -1656,11 +1752,12 @@ Status NewTxn::PrepareCommitImport(WalCmdImportV2 *import_cmd) {
 Status NewTxn::PrepareCommitReplayImport(WalCmdImportV2 *import_cmd) {
     TxnTimeStamp commit_ts = txn_context_ptr_->commit_ts_;
     const std::string &db_id_str = import_cmd->db_id_;
+    const std::string &db_name = import_cmd->db_name_;
     const std::string &table_id_str = import_cmd->table_id_;
     const std::string &table_name = import_cmd->table_name_;
 
     WalSegmentInfo &segment_info = import_cmd->segment_info_;
-    TableMeta table_meta(db_id_str, table_id_str, table_name, this);
+    TableMeta table_meta(db_id_str, db_name, table_id_str, table_name, this);
     SegmentMeta segment_meta(segment_info.segment_id_, table_meta);
 
     Status status = table_meta.CommitSegment(segment_info.segment_id_, commit_ts);
@@ -1695,8 +1792,7 @@ Status NewTxn::CommitBottomAppend(WalCmdAppendV2 *append_cmd) {
     const std::string &db_id_str = append_cmd->db_id_;
     const std::string &table_id_str = append_cmd->table_id_;
     TxnTimeStamp commit_ts = CommitTS();
-    TableMeta table_meta(db_id_str, table_id_str, table_name, this);
-    table_meta.SetDBTableName(db_name, table_name);
+    TableMeta table_meta(db_id_str, db_name, table_id_str, table_name, this);
     std::optional<SegmentMeta> segment_meta;
     std::optional<BlockMeta> block_meta;
     size_t copied_row_cnt = 0;
@@ -1814,10 +1910,11 @@ Status NewTxn::CommitBottomAppend(WalCmdAppendV2 *append_cmd) {
 
 Status NewTxn::PrepareCommitDelete(const WalCmdDeleteV2 *delete_cmd) {
     const std::string &db_id_str = delete_cmd->db_id_;
+    const std::string &db_name = delete_cmd->db_name_;
     const std::string &table_id_str = delete_cmd->table_id_;
     const std::string &table_name = delete_cmd->table_name_;
 
-    TableMeta table_meta(db_id_str, table_id_str, table_name, this);
+    TableMeta table_meta(db_id_str, db_name, table_id_str, table_name, this);
 
     std::optional<SegmentMeta> segment_meta;
     std::optional<BlockMeta> block_meta;
@@ -1852,9 +1949,10 @@ Status NewTxn::PrepareCommitDelete(const WalCmdDeleteV2 *delete_cmd) {
 Status NewTxn::CommitBottomDelete(const WalCmdDeleteV2 *delete_cmd) {
     TxnTimeStamp commit_ts = txn_context_ptr_->commit_ts_;
     const std::string &db_id_str = delete_cmd->db_id_;
+    const std::string &db_name = delete_cmd->db_name_;
     const std::string &table_id_str = delete_cmd->table_id_;
     const std::string &table_name = delete_cmd->table_name_;
-    TableMeta table_meta(db_id_str, table_id_str, table_name, this);
+    TableMeta table_meta(db_id_str, db_name, table_id_str, table_name, this);
 
     NewTxnTableStore1 *txn_table_store = txn_store_.GetNewTxnTableStore1(db_id_str, table_id_str);
     DeleteState &delete_state = txn_table_store->delete_state();
@@ -1880,10 +1978,11 @@ Status NewTxn::CommitBottomDelete(const WalCmdDeleteV2 *delete_cmd) {
 
 Status NewTxn::RollbackDelete(const DeleteTxnStore *delete_txn_store) {
     const std::string &db_id_str = delete_txn_store->db_id_str_;
+    const std::string &db_name = delete_txn_store->db_name_;
     const std::string &table_id_str = delete_txn_store->table_id_str_;
     const std::string &table_name = delete_txn_store->table_name_;
 
-    TableMeta table_meta(db_id_str, table_id_str, table_name, this);
+    TableMeta table_meta(db_id_str, db_name, table_id_str, table_name, this);
 
     std::optional<SegmentMeta> segment_meta;
     std::optional<BlockMeta> block_meta;
@@ -1914,6 +2013,7 @@ Status NewTxn::RollbackDelete(const DeleteTxnStore *delete_txn_store) {
 Status NewTxn::PrepareCommitCompact(WalCmdCompactV2 *compact_cmd) {
     Status status;
     const std::string &db_id_str = compact_cmd->db_id_;
+    const std::string &db_name = compact_cmd->db_name_;
     const std::string &table_id_str = compact_cmd->table_id_;
     const std::string &table_name = compact_cmd->table_name_;
     TxnTimeStamp commit_ts = txn_context_ptr_->commit_ts_;
@@ -1928,7 +2028,7 @@ Status NewTxn::PrepareCommitCompact(WalCmdCompactV2 *compact_cmd) {
     WalSegmentInfo &segment_info = segment_infos[0];
     std::vector<SegmentID> new_segment_ids{segment_info.segment_id_};
 
-    TableMeta table_meta(db_id_str, table_id_str, table_name, this);
+    TableMeta table_meta(db_id_str, db_name, table_id_str, table_name, this);
     SegmentMeta segment_meta(segment_info.segment_id_, table_meta);
 
     status = table_meta.CommitSegment(segment_info.segment_id_, commit_ts);
@@ -2211,12 +2311,14 @@ Status NewTxn::WriteDataBlockToFile(const std::string &db_name,
         ColumnID column_id = col_def->id();
         std::shared_ptr<std::string> col_filename = std::make_shared<std::string>(fmt::format("{}.col", column_id));
 
-        size_t total_data_size = 0;
+        size_t null_size = (DEFAULT_BLOCK_CAPACITY + 7) / 8;
+        size_t data_cap_size = 0;
         if (col_def->type()->type() == LogicalType::kBoolean) {
-            total_data_size = (DEFAULT_BLOCK_CAPACITY + 7) / 8;
+            data_cap_size = (DEFAULT_BLOCK_CAPACITY + 7) / 8;
         } else {
-            total_data_size = DEFAULT_BLOCK_CAPACITY * col_def->type()->Size();
+            data_cap_size = DEFAULT_BLOCK_CAPACITY * col_def->type()->Size();
         }
+        size_t total_data_size = data_cap_size + null_size;
 
         std::shared_ptr<std::string> block_dir = std::make_shared<std::string>(
             fmt::format("db_{}/tbl_{}/seg_{}/blk_{}", table_info->db_id_, table_info->table_id_, segment_idx, block_idx));
@@ -2251,15 +2353,26 @@ Status NewTxn::WriteDataBlockToFile(const std::string &db_name,
             outline_buffer_obj = buffer_mgr->AllocateBufferObject(std::move(file_worker2));
         }
 
+        // Expand the ColumnVector's internal buffer to include null bitmap
+        // space BEFORE SetToCatalog, so the transferred buffer already has
+        // room for the null bitmap region that NewCatalog::GetColumnVector
+        // expects at offset data_cap_size.
+        col->buffer_->ExpandForNullBitmap(null_size);
+
+        // Write null bitmap at data_cap_size offset.
+        // Bit set = non-null, bit clear = null.  Null bitmap region was
+        // zero-initialised by ExpandForNullBitmap so only non-null bits
+        // need to be explicitly set.
+        u8 *null_region = reinterpret_cast<u8 *>(col->buffer_->GetDataMut() + data_cap_size);
+        for (size_t i = 0; i < row_cnt; ++i) {
+            if (col->nulls_ptr_->IsTrue(i)) {
+                null_region[i / 8] |= static_cast<u8>(1u << (i % 8));
+            }
+        }
+
         col->SetToCatalog(buffer_obj, outline_buffer_obj, ColumnVectorMode::kReadWrite);
 
-        size_t data_size = 0;
-        if (col_def->type()->type() == LogicalType::kBoolean) {
-            data_size = (row_cnt + 7) / 8;
-        } else {
-            data_size = row_cnt * col_def->type()->Size();
-        }
-        buffer_obj->SetDataSize(data_size);
+        buffer_obj->SetDataSize(data_cap_size + null_size);
 
         buffer_obj->Save();
         if (outline_buffer_obj) {

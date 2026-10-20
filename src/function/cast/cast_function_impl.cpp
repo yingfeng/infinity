@@ -113,8 +113,37 @@ BoundCastFunc CastFunction::GetBoundFunc(const DataType &source, const DataType 
         case LogicalType::kCircle:
         case LogicalType::kUuid:
         case LogicalType::kRowID:
-        case LogicalType::kMixed:
-        case LogicalType::kNull:
+        case LogicalType::kMixed: {
+            UnrecoverableError(fmt::format("Can't cast from {} to {}", source.ToString(), target.ToString()));
+            break;
+        }
+        case LogicalType::kNull: {
+            // Null can be cast to any type by setting all result rows to null.
+            return BoundCastFunc([](const std::shared_ptr<ColumnVector> &source,
+                                    std::shared_ptr<ColumnVector> &result,
+                                    size_t count,
+                                    CastParameters &parameters) -> bool {
+                switch (source->vector_type()) {
+                    case ColumnVectorType::kConstant: {
+                        result->nulls_ptr_->SetFalse(0);
+                        result->Finalize(count);
+                        break;
+                    }
+                    case ColumnVectorType::kFlat: {
+                        auto dest_nulls = result->nulls_ptr_.get();
+                        for (size_t i = 0; i < count; ++i) {
+                            dest_nulls->SetFalse(i);
+                        }
+                        result->Finalize(count);
+                        break;
+                    }
+                    default: {
+                        UnrecoverableError("Unsupported vector type for null cast");
+                    }
+                }
+                return true;
+            });
+        }
         case LogicalType::kMissing:
         case LogicalType::kInvalid: {
             UnrecoverableError(fmt::format("Can't cast from {} to {}", source.ToString(), target.ToString()));

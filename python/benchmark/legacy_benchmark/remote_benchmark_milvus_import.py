@@ -2,10 +2,9 @@ import argparse
 import os
 import time
 
-
-from pymilvus import MilvusClient, DataType
-
+from pymilvus import DataType, MilvusClient
 from utils import csr_read_all
+
 
 def import_data(
     data_set: str,

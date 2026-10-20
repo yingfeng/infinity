@@ -1,18 +1,20 @@
 import os
+import pathlib
 import time
-from infinity_runner import InfinityRunner, infinity_runner_decorator_factory
+
+import infinity
 import pytest
-from common import common_values
+from infinity import index
 from infinity.common import ConflictType
+from infinity.errors import ErrorCode
+from infinity_runner import InfinityRunner, infinity_runner_decorator_factory
 from restart_util import (
     SimpleEmbeddingGenerator,
-    SimpleVarcharGenerator,
     SimpleTensorGenerator,
+    SimpleVarcharGenerator,
 )
-from infinity import index
-import infinity
-import pathlib
-from infinity.errors import ErrorCode
+
+from common import common_values
 
 
 # Test with cleanuped data but meta data not cleanuped

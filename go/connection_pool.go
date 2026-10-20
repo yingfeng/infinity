@@ -24,22 +24,22 @@ import (
 // ConnectionPoolConfig contains configuration for the connection pool
 type ConnectionPoolConfig struct {
 	URI                 URI
-	InitialSize         int           // Initial number of connections to create
-	MaxIdleTime         time.Duration // Maximum time a connection can be idle
-	HealthCheckInterval time.Duration // Interval for health checks (ignored)
-	WaitTimeout         time.Duration // Maximum time to wait for a connection from the pool (ignored)
-	BlockWhenExhausted  bool          // Whether to block when pool is exhausted (ignored)
+	InitialSize         int           // Initial number of idle connections to create.
+	MaxOpen             int           // Maximum total open connections.
+	MaxIdle             int           // Maximum number of idle connections kept in the pool.
+	MaxIdleTime         time.Duration // Maximum time a connection can be idle.
+	HealthCheckInterval time.Duration // Interval for health checks (ignored).
 }
 
 // DefaultConnectionPoolConfig returns a default configuration
 func DefaultConnectionPoolConfig(uri URI) ConnectionPoolConfig {
 	return ConnectionPoolConfig{
 		URI:                 uri,
-		InitialSize:         10,
+		InitialSize:         0,
+		MaxOpen:             10,
+		MaxIdle:             2,
 		MaxIdleTime:         30 * time.Minute,
 		HealthCheckInterval: 5 * time.Minute,
-		WaitTimeout:         30 * time.Second,
-		BlockWhenExhausted:  true,
 	}
 }
 
@@ -48,6 +48,7 @@ type PooledConnection struct {
 	conn       *InfinityConnection
 	createdAt  time.Time
 	lastUsedAt time.Time
+	inUse      bool
 }
 
 // ConnectionPool manages a pool of Infinity connections
@@ -56,9 +57,11 @@ type ConnectionPool struct {
 	config       ConnectionPoolConfig
 	factory      func(URI) (*InfinityConnection, error)
 	mu           sync.Mutex
+	cond         *sync.Cond
 	closed       bool
 	available    []*PooledConnection
 	createdCount int
+	openingCount int
 	connToPooled map[*InfinityConnection]*PooledConnection
 }
 
@@ -70,6 +73,22 @@ func NewConnectionPool(config ConnectionPoolConfig, factory func(URI) (*Infinity
 	if config.MaxIdleTime <= 0 {
 		config.MaxIdleTime = 30 * time.Minute
 	}
+	if config.MaxOpen <= 0 {
+		if config.InitialSize > 0 {
+			config.MaxOpen = config.InitialSize
+		} else {
+			config.MaxOpen = 10
+		}
+	}
+	if config.MaxIdle < 0 {
+		config.MaxIdle = 0
+	}
+	if config.MaxIdle > config.MaxOpen {
+		config.MaxIdle = config.MaxOpen
+	}
+	if config.InitialSize > config.MaxIdle {
+		config.InitialSize = config.MaxIdle
+	}
 	if factory == nil {
 		factory = Connect
 	}
@@ -78,27 +97,34 @@ func NewConnectionPool(config ConnectionPoolConfig, factory func(URI) (*Infinity
 		uri:          config.URI,
 		config:       config,
 		factory:      factory,
-		available:    make([]*PooledConnection, 0, config.InitialSize),
+		available:    make([]*PooledConnection, 0, config.MaxIdle),
 		connToPooled: make(map[*InfinityConnection]*PooledConnection),
 	}
+	pool.cond = sync.NewCond(&pool.mu)
 
 	// Create initial connections
 	pool.mu.Lock()
-	defer pool.mu.Unlock()
 	for i := 0; i < config.InitialSize; i++ {
 		pooledConn, err := pool.createConnection()
 		if err != nil {
-			pool.Close()
+			for conn := range pool.connToPooled {
+				conn.Disconnect()
+			}
+			pool.connToPooled = make(map[*InfinityConnection]*PooledConnection)
+			pool.available = nil
+			pool.createdCount = 0
+			pool.mu.Unlock()
 			return nil, fmt.Errorf("failed to create initial connection %d: %w", i, err)
 		}
+		pool.registerConnection(pooledConn)
 		pool.available = append(pool.available, pooledConn)
 	}
+	pool.mu.Unlock()
 
 	return pool, nil
 }
 
-// createConnection creates a new pooled connection
-// Caller must hold p.mu lock
+// createConnection creates a new pooled connection without registering it
 func (p *ConnectionPool) createConnection() (*PooledConnection, error) {
 	conn, err := p.factory(p.uri)
 	if err != nil {
@@ -106,19 +132,32 @@ func (p *ConnectionPool) createConnection() (*PooledConnection, error) {
 	}
 
 	now := time.Now()
-	pooledConn := &PooledConnection{
+	return &PooledConnection{
 		conn:       conn,
 		createdAt:  now,
 		lastUsedAt: now,
-	}
-
-	p.connToPooled[conn] = pooledConn
-	p.createdCount++
-
-	return pooledConn, nil
+	}, nil
 }
 
-// Get gets a connection from the pool
+// registerConnection adds a newly created connection to pool accounting.
+// Caller must hold p.mu lock.
+func (p *ConnectionPool) registerConnection(pooledConn *PooledConnection) {
+	p.connToPooled[pooledConn.conn] = pooledConn
+	p.createdCount++
+}
+
+// reserveOpenSlot claims capacity for a connection that will be opened outside the lock.
+// Caller must hold p.mu lock.
+func (p *ConnectionPool) reserveOpenSlot() bool {
+	if p.createdCount+p.openingCount >= p.config.MaxOpen {
+		return false
+	}
+	p.openingCount++
+	return true
+}
+
+// Get gets a connection from the pool.
+// It blocks until a connection is available or the pool is closed.
 func (p *ConnectionPool) Get() (*InfinityConnection, error) {
 	return p.GetContext(context.Background())
 }
@@ -133,42 +172,77 @@ func (p *ConnectionPool) GetContext(ctx context.Context) (*InfinityConnection, e
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	if p.closed {
-		return nil, NewInfinityException(int(ErrorCodeClientClose), "Connection pool is closed")
-	}
-
-	// Clean up idle or invalid connections from available slice
-	valid := p.available[:0]
-	for _, pooledConn := range p.available {
-		// Check if connection is still alive
-		if !pooledConn.conn.IsConnected() {
-			p.removeConnection(pooledConn)
-			continue
+	done := make(chan struct{})
+	defer close(done)
+	go func() {
+		select {
+		case <-ctx.Done():
+			p.mu.Lock()
+			p.cond.Broadcast()
+			p.mu.Unlock()
+		case <-done:
 		}
-		// Check if connection has been idle too long
-		if time.Since(pooledConn.lastUsedAt) > p.config.MaxIdleTime {
-			p.removeConnection(pooledConn)
-			continue
+	}()
+
+	for {
+		if p.closed {
+			return nil, NewInfinityException(int(ErrorCodeClientClose), "Connection pool is closed")
 		}
-		valid = append(valid, pooledConn)
-	}
-	p.available = valid
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 
-	// If there are available connections, take the last one
-	if len(p.available) > 0 {
-		pooledConn := p.available[len(p.available)-1]
-		p.available = p.available[:len(p.available)-1]
-		pooledConn.lastUsedAt = time.Now()
-		conn := pooledConn.conn
-		return conn, nil
-	}
+		valid := p.available[:0]
+		for _, pooledConn := range p.available {
+			if !pooledConn.conn.IsConnected() {
+				p.removeConnection(pooledConn)
+				continue
+			}
+			if time.Since(pooledConn.lastUsedAt) > p.config.MaxIdleTime {
+				p.removeConnection(pooledConn)
+				continue
+			}
+			valid = append(valid, pooledConn)
+		}
+		p.available = valid
 
-	// No available connections, create a new one
-	pooledConn, err := p.createConnection()
-	if err != nil {
-		return nil, err
+		if len(p.available) > 0 {
+			pooledConn := p.available[len(p.available)-1]
+			p.available = p.available[:len(p.available)-1]
+			pooledConn.lastUsedAt = time.Now()
+			pooledConn.inUse = true
+			return pooledConn.conn, nil
+		}
+
+		if p.reserveOpenSlot() {
+			p.mu.Unlock()
+			pooledConn, err := p.createConnection()
+			p.mu.Lock()
+			p.openingCount--
+			if err != nil {
+				p.cond.Signal()
+				return nil, err
+			}
+			if p.closed {
+				pooledConn.conn.Disconnect()
+				p.cond.Signal()
+				return nil, NewInfinityException(int(ErrorCodeClientClose), "Connection pool is closed")
+			}
+			if err := ctx.Err(); err != nil {
+				pooledConn.conn.Disconnect()
+				p.cond.Signal()
+				return nil, err
+			}
+			p.registerConnection(pooledConn)
+			pooledConn.inUse = true
+			return pooledConn.conn, nil
+		}
+
+		p.cond.Wait()
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 	}
-	return pooledConn.conn, nil
 }
 
 // Put returns a connection to the pool
@@ -198,26 +272,37 @@ func (p *ConnectionPool) Put(conn *InfinityConnection) error {
 		return NewInfinityException(int(ErrorCodeClientClose), "Connection is dead, removed from pool")
 	}
 
-	// Check if connection is already in available list (double release)
-	for _, available := range p.available {
-		if available.conn == conn {
-			return NewInfinityException(int(ErrorCodeInvalidParameterValue), "Connection is already in pool (double release)")
-		}
+	if !pooledConn.inUse {
+		return NewInfinityException(int(ErrorCodeInvalidParameterValue), "Connection is already in pool (double release)")
 	}
 
-	// Always return connection to pool (no max size limit)
+	// Release the connection back to the pool; if the idle list is at
+	// MaxIdle capacity, close the excess connection instead of keeping it.
 	pooledConn.lastUsedAt = time.Now()
-	p.available = append(p.available, pooledConn)
+	pooledConn.inUse = false
+	if len(p.available) < p.config.MaxIdle {
+		p.available = append(p.available, pooledConn)
+		p.cond.Signal()
+		return nil
+	}
+
+	p.removeConnection(pooledConn)
 	return nil
 }
 
 // removeConnection closes a pooled connection and removes it from tracking
 func (p *ConnectionPool) removeConnection(pooledConn *PooledConnection) {
-	if pooledConn.conn != nil {
-		delete(p.connToPooled, pooledConn.conn)
-		pooledConn.conn.Disconnect()
-		p.createdCount--
+	if pooledConn.conn == nil {
+		return
 	}
+
+	conn := pooledConn.conn
+	pooledConn.conn = nil
+	pooledConn.inUse = false
+	delete(p.connToPooled, conn)
+	conn.Disconnect()
+	p.createdCount--
+	p.cond.Signal()
 }
 
 // isClosed checks if the pool is closed
@@ -245,6 +330,7 @@ func (p *ConnectionPool) Close() error {
 	p.available = nil
 	p.createdCount = 0
 
+	p.cond.Broadcast()
 	p.mu.Unlock()
 	return nil
 }

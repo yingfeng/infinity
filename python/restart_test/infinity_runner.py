@@ -1,12 +1,13 @@
 import logging
 import os
 import subprocess
-import psutil
 import time
+
 import infinity
+import psutil
 from infinity.common import InfinityException
-from infinity.errors import ErrorCode
 from infinity.connection_pool import ConnectionPool
+from infinity.errors import ErrorCode
 
 
 class InfinityRunner:

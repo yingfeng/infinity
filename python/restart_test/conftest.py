@@ -1,7 +1,6 @@
-from infinity_runner import InfinityRunner
-
-
 import logging
+
+from infinity_runner import InfinityRunner
 
 
 def pytest_configure():

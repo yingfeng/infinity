@@ -70,6 +70,8 @@ public:
         return {};
     }
 
+    bool IsNull(size_t offset) override { return false; }
+
     size_t size() const { return embeddings_.size(); }
 
 private:

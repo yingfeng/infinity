@@ -14,17 +14,16 @@
 
 from abc import ABC
 
-import infinity.remote_thrift.infinity_thrift_rpc.ttypes as ttypes
+from infinity.common import ConflictType, InfinityException
 from infinity.db import Database
 from infinity.errors import ErrorCode
+from infinity.remote_thrift.infinity_thrift_rpc import ttypes
 from infinity.remote_thrift.table import RemoteTable
 from infinity.remote_thrift.utils import (
     check_valid_name,
-    name_validity_check,
     get_ordinary_info,
+    name_validity_check,
 )
-from infinity.common import ConflictType
-from infinity.common import InfinityException
 
 
 class RemoteDatabase(Database, ABC):

@@ -328,14 +328,15 @@ EMVBSearch<FIXED_QUERY_TOKEN_NUM>::EMVBSearch(const u32 embedding_dimension,
                                               const u32 n_docs,
                                               const u32 n_centroids, // need to be a multiple of 8
                                               const u32 *doc_lens,
+                                              const u32 *doc_segment_offsets,
                                               const u32 *doc_offsets,
                                               const u32 *centroid_id_assignments,
                                               const f32 *centroids_data,
                                               const EMVBSharedVec<u32> *centroids_to_docid,
                                               const EMVBProductQuantizer *product_quantizer)
-    : embedding_dimension_(embedding_dimension), n_docs_(n_docs), n_centroids_(n_centroids), doc_lens_(doc_lens), doc_offsets_(doc_offsets),
-      centroid_id_assignments_(centroid_id_assignments), centroids_data_(centroids_data), centroids_to_docid_(centroids_to_docid),
-      product_quantizer_(product_quantizer) {}
+    : embedding_dimension_(embedding_dimension), n_docs_(n_docs), n_centroids_(n_centroids), doc_lens_(doc_lens),
+      doc_segment_offsets_(doc_segment_offsets), doc_offsets_(doc_offsets), centroid_id_assignments_(centroid_id_assignments),
+      centroids_data_(centroids_data), centroids_to_docid_(centroids_to_docid), product_quantizer_(product_quantizer) {}
 
 // return docid: start from 0
 template <u32 FIXED_QUERY_TOKEN_NUM>
@@ -362,10 +363,15 @@ std::tuple<u32, std::unique_ptr<f32[]>, std::unique_ptr<u32[]>> EMVBSearch<FIXED
         second_stage_filtering(std::move(selected_cnt_and_docs), out_second_stage, std::move(query_token_centroids_scores));
     auto query_res = compute_topk_documents_selected(query_ptr, std::move(selected_docs_centroid_scores), k, thresh_query);
     static_assert(std::is_same_v<decltype(query_res), std::tuple<u32, std::unique_ptr<f32[]>, std::unique_ptr<u32[]>>>);
+    // convert internal doc IDs to source segment offsets
+    auto &[doc_num, scores, doc_ids] = query_res;
+    for (u32 i = 0; i < doc_num; ++i) {
+        doc_ids[i] = doc_segment_offsets_[doc_ids[i]];
+    }
     return query_res;
 }
 
-// return docid: start from start_segment_offset
+// return docid: source segment offset
 template <u32 FIXED_QUERY_TOKEN_NUM>
 std::tuple<u32, std::unique_ptr<f32[]>, std::unique_ptr<u32[]>> EMVBSearch<FIXED_QUERY_TOKEN_NUM>::GetQueryResult(const f32 *query_ptr,
                                                                                                                   const u32 nprobe,
@@ -390,10 +396,10 @@ std::tuple<u32, std::unique_ptr<f32[]>, std::unique_ptr<u32[]>> EMVBSearch<FIXED
     assert(real_nprobe > 0);
     auto [candidate_docs, centroid_q_token_sim] = find_candidate_docs(query_token_centroids_scores.get(), real_nprobe, thresh);
     std::vector<u32> candidate_docs_filtered;
-    auto filter_doc = [&candidate_docs_filtered, &candidate_docs, start_segment_offset](auto &&filter) {
+    auto filter_doc = [&candidate_docs_filtered, &candidate_docs, this](auto &&filter) {
         candidate_docs_filtered.reserve(candidate_docs.size());
         for (const auto doc_id : candidate_docs) {
-            if (filter(doc_id + start_segment_offset)) {
+            if (filter(doc_segment_offsets_[doc_id])) {
                 candidate_docs_filtered.push_back(doc_id);
             }
         }
@@ -410,10 +416,10 @@ std::tuple<u32, std::unique_ptr<f32[]>, std::unique_ptr<u32[]>> EMVBSearch<FIXED
         second_stage_filtering(std::move(selected_cnt_and_docs), out_second_stage, std::move(query_token_centroids_scores));
     auto query_res = compute_topk_documents_selected(query_ptr, std::move(selected_docs_centroid_scores), k, thresh_query);
     static_assert(std::is_same_v<decltype(query_res), std::tuple<u32, std::unique_ptr<f32[]>, std::unique_ptr<u32[]>>>);
-    // consider start_segment_offset
+    // convert internal doc IDs to source segment offsets
     auto &[doc_num, scores, doc_ids] = query_res;
     for (u32 i = 0; i < doc_num; ++i) {
-        doc_ids[i] += start_segment_offset;
+        doc_ids[i] = doc_segment_offsets_[doc_ids[i]];
     }
     return query_res;
 }

@@ -13,14 +13,14 @@
 # limitations under the License.
 
 import argparse
-import os
-import time
 import multiprocessing
+import os
 import struct
+import time
 
 import infinity
-from infinity.remote_thrift.query_builder import InfinityThriftQueryBuilder
 from infinity.common import LOCAL_HOST, LOCAL_INFINITY_PATH, SparseVector
+from infinity.remote_thrift.query_builder import InfinityThriftQueryBuilder
 
 
 class SparseMatrix:
@@ -95,7 +95,7 @@ def work(remote, queries, topk, alpha, beta):
         query_builder.output(["_row_id"])
         query_builder.match_sparse(
             "col1",
-            SparseVector(**{"indices": indices, "values": value}),
+            SparseVector(indices=indices, values=value),
             "ip",
             topk,
             {"alpha": str(alpha), "beta": str(beta)},
@@ -164,7 +164,7 @@ def one_thread(remote, rounds, query_path, gt_path, alpha, beta):
             query_builder.output(["_row_id"])
             query_builder.match_sparse(
                 "col1",
-                SparseVector(**{"indices": indices, "values": values}),
+                SparseVector(indices=indices, values=values),
                 "ip",
                 topk,
                 {"alpha": str(alpha), "beta": str(beta)},

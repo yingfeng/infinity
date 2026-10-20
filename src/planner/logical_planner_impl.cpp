@@ -391,8 +391,13 @@ Status LogicalPlanner::BuildInsertValue(const InsertStatement *statement, std::s
                     RecoverableError(Status::SyntaxError(fmt::format("INSERT: No default value found for column {}.", column_def->ToString())));
                 }
                 auto &dst_value = rewrite_value_list[column_idx];
+                if (column_def->default_expr_ == nullptr) {
+                    // Nullable column without explicit DEFAULT — use NULL as the default value.
+                    dst_value = std::make_shared<ValueExpression>(Value::MakeNull());
+                    continue;
+                }
                 auto default_value_expr =
-                    bind_context_ptr->expression_binder_->BuildExpression(*column_def->default_expr_.get(), bind_context_ptr.get(), 0, true);
+                    bind_context_ptr->expression_binder_->BuildExpression(*column_def->default_expr_, bind_context_ptr.get(), 0, true);
                 const std::shared_ptr<DataType> &table_column_type = column_def->column_type_;
                 DataType value_type = default_value_expr->Type();
                 if ((*table_column_type != value_type) && LogicalInsert::NeedCastInInsert(value_type, *table_column_type)) {
@@ -413,9 +418,14 @@ Status LogicalPlanner::BuildInsertValue(const InsertStatement *statement, std::s
             for (size_t column_idx = dst_value_list.size(); column_idx < table_column_count; ++column_idx) {
                 const ColumnDef *column_def = table_info->GetColumnDefByIdx(column_idx);
                 if (column_def->has_default_value()) {
-                    auto value_expr =
-                        bind_context_ptr->expression_binder_->BuildExpression(*column_def->default_expr_.get(), bind_context_ptr.get(), 0, true);
-                    dst_value_list.emplace_back(std::move(value_expr));
+                    if (column_def->default_expr_ == nullptr) {
+                        // Nullable column without explicit DEFAULT — use NULL as the default value.
+                        dst_value_list.emplace_back(std::make_shared<ValueExpression>(Value::MakeNull()));
+                    } else {
+                        auto value_expr =
+                            bind_context_ptr->expression_binder_->BuildExpression(*column_def->default_expr_, bind_context_ptr.get(), 0, true);
+                        dst_value_list.emplace_back(std::move(value_expr));
+                    }
                 } else {
                     RecoverableError(Status::SyntaxError(fmt::format("INSERT: No default value found for column {}.", column_def->ToString())));
                 }
@@ -640,10 +650,15 @@ Status LogicalPlanner::BuildCreateTable(const CreateStatement *statement, std::s
             return Status::NotSupport(err_msg);
         }
 
+        auto column_constraints = create_table_info->column_defs_[idx]->constraints_;
+        if (column_constraints.contains(ConstraintType::kPrimaryKey)) {
+            column_constraints.insert(ConstraintType::kNotNull);
+            column_constraints.insert(ConstraintType::kUnique);
+        }
         std::shared_ptr<ColumnDef> column_def = std::make_shared<ColumnDef>(idx,
                                                                             create_table_info->column_defs_[idx]->type(),
                                                                             column_name,
-                                                                            create_table_info->column_defs_[idx]->constraints_,
+                                                                            std::move(column_constraints),
                                                                             column_comment,
                                                                             create_table_info->column_defs_[idx]->default_expr_);
         columns.emplace_back(column_def);

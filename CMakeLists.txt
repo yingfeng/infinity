@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.0.3...4.2.5)
+cmake_minimum_required(VERSION 4.0.3...4.3.4)
 
 cmake_policy(SET CMP0167 OLD)
 
@@ -6,6 +6,10 @@ set(CMAKE_SUPPRESS_DEVELOPER_WARNINGS TRUE)
 
 if (CMAKE_VERSION GREATER_EQUAL 4.0.3 AND CMAKE_VERSION LESS_EQUAL 4.2.5)
     set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD "d0edc3af-4c50-42ea-a356-e2862fe7a444")
+else (CMAKE_VERSION GREATER 4.2.5 AND CMAKE_VERSION LESS_EQUAL 4.3.4)
+    set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD "451f2fe2-a8a2-47c3-bc32-94786d8fc91b")
+    # we use clang
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-reserved-module-identifier")
 endif ()
 
 # Auto-detect and set vcpkg toolchain if not already set
@@ -26,7 +30,7 @@ endif ()
 # Overlay ports for patches not yet upstreamed in vcpkg
 set(VCPKG_OVERLAY_PORTS "${CMAKE_CURRENT_SOURCE_DIR}/ports")
 
-project(infinity VERSION 0.7.0)
+project(infinity VERSION 0.7.4)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -289,20 +293,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -Wno-asm-operand-widths -W
 
 MESSAGE(STATUS "C++ Compilation flags: " ${CMAKE_CXX_FLAGS})
 
-option(IS_CI_TEST_PIPELINE "is ci test pipeline: " OFF)
-
-if (IS_CI_TEST_PIPELINE)
-    if (X86_64)
-        set(VCPKG_CHAINLOAD_TOOLCHAIN_FILE "cmake/toolchains/x86_64-v2.cmake")
-    elseif (ARM64)
-        set(VCPKG_CHAINLOAD_TOOLCHAIN_FILE "cmake/toolchains/arm64-linux.cmake")
-    else ()
-        message(FATAL_ERROR "Not support your arch yet.")
-    endif ()
-else ()
-    if (NOT CMAKE_CROSSCOMPILING)
-        add_compile_options(-march=native)
-    endif ()
+if (NOT CMAKE_CROSSCOMPILING)
+    add_compile_options(-march=native)
 endif ()
 
 execute_process(
@@ -352,48 +344,4 @@ if (SKBUILD)
     return()
 endif ()
 
-# CPack settings
-set(CPACK_PACKAGE_NAME "infinity")
-# dpkg requires version to be starting with number
-if (DEFINED CPACK_PACKAGE_VERSION)
-    string(REGEX REPLACE "^[^0-9]+" "" CPACK_PACKAGE_VERSION "${CPACK_PACKAGE_VERSION}")
-    string(REPLACE "-" "." CPACK_PACKAGE_VERSION "${CPACK_PACKAGE_VERSION}")
-endif ()
-if (NOT DEFINED CPACK_PACKAGE_VERSION OR CPACK_PACKAGE_VERSION STREQUAL "")
-    set(CPACK_PACKAGE_VERSION "${GIT_COMMIT_ID}")
-endif ()
-set(CPACK_PACKAGE_RELEASE 1)
-set(CPACK_PACKAGE_CONTACT "Zhichang Yu <yuzhichang@gmail.com>")
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "The AI-native database built for LLM applications, offering incredibly fast vector and full-text search.")
-set(CPACK_PACKAGE_VENDOR "infiniflow")
-set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${CMAKE_HOST_SYSTEM_PROCESSOR}")
-
-# https://cmake.org/cmake/help/latest/command/install.html
-# Install target
-# WANNING: If an absolute path is given, cpack will install the specific files on the host system (requires root permission) and then included in the package.
-# If an relative path (interpreted relative to the value of the CMAKE_INSTALL_PREFIX variable) is given, cpack include specific files in the package without actually installing them on the host system.
-# CMAKE_INSTALL_PREFIX defaults to "/usr/local"
-set(CMAKE_INSTALL_PREFIX /usr)
-install(TARGETS infinity DESTINATION bin)
-install(FILES conf/infinity.service DESTINATION lib/systemd/system)
-install(FILES conf/infinity_conf.toml DESTINATION etc)
-
-# https://cmake.org/cmake/help/latest/cpack_gen/rpm.html
-# Specify the post-install script for RPM
-# CPackRPM needs the absolute path of the file as CPack does not know that script is relative to source tree.
-set(CPACK_RPM_POST_INSTALL_SCRIPT_FILE "${CMAKE_CURRENT_SOURCE_DIR}/conf/postinst")
-
-# https://cmake.org/cmake/help/latest/cpack_gen/deb.html
-# Add custom script to the control.tar.gz. Typical usage is for conffiles, postinst, postrm, prerm.
-# Note: DEB requires the file name be one of postinst, postrm, prerm and the "+x" permission, while rpm doesn't require that.
-set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_CURRENT_SOURCE_DIR}/conf/postinst")
-
-# Specify the package generators
-set(CPACK_GENERATOR "RPM;DEB;TGZ")
-
-# Enable CPack debug output
-set(CPACK_PACKAGE_DEBUG True)
-
-# https://cmake.org/cmake/help/latest/variable/CPACK_ERROR_ON_ABSOLUTE_INSTALL_DESTINATION.html
-set(CPACK_ERROR_ON_ABSOLUTE_INSTALL_DESTINATION "ON")
-include(CPack)
+include(Packaging)

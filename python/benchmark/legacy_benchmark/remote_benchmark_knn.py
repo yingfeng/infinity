@@ -21,8 +21,8 @@ import time
 import traceback
 
 import infinity
-from infinity.remote_thrift.query_builder import InfinityThriftQueryBuilder
 from infinity.common import LOCAL_HOST
+from infinity.remote_thrift.query_builder import InfinityThriftQueryBuilder
 
 
 def fvecs_read_all(filename):
@@ -31,7 +31,7 @@ def fvecs_read_all(filename):
         while True:
             try:
                 dims = struct.unpack('i', f.read(4))[0]
-                vec = struct.unpack('{}f'.format(dims), f.read(4 * dims))
+                vec = struct.unpack(f'{dims}f', f.read(4 * dims))
                 assert dims == len(vec)
                 vectors.append(list(vec))
             except struct.error:
@@ -45,7 +45,7 @@ def read_groundtruth(filename):
         while True:
             try:
                 dims = struct.unpack('i', f.read(4))[0]
-                vec = struct.unpack('{}i'.format(dims), f.read(4 * dims))
+                vec = struct.unpack(f'{dims}i', f.read(4 * dims))
                 assert dims == len(vec)
                 vectors.append(list(vec))
             except struct.error:
@@ -129,7 +129,7 @@ def fvecs_read(filename):
         while True:
             try:
                 dims = struct.unpack('i', f.read(4))[0]
-                vec = struct.unpack('{}f'.format(dims), f.read(4 * dims))
+                vec = struct.unpack(f'{dims}f', f.read(4 * dims))
                 assert dims == len(vec)
                 yield list(vec)
             except struct.error:
@@ -242,19 +242,7 @@ def benchmark(threads, rounds, data_set, ef: int, path):
             print("Single-thread")
             print(f"Rounds: {rounds}")
             one_thread(rounds, query_path, ground_truth_path, ef, "sift_benchmark")
-    elif data_set == "sift_10k":
-        query_path = path + "/sift10k_query.fvecs"
-        ground_truth_path = path + "/sift10k_groundtruth.ivecs"
-        if threads > 1:
-            print(f"Multi-threads: {threads}")
-            print(f"Rounds: {rounds}")
-            process_pool(threads, rounds, query_path, ef, "sift_benchmark")
-
-        else:
-            print("Single-thread")
-            print(f"Rounds: {rounds}")
-            one_thread(rounds, query_path, ground_truth_path, ef, "sift_benchmark")
-    elif data_set == "sift_10k":
+    elif data_set == "sift_10k" or data_set == "sift_10k":
         query_path = path + "/sift10k_query.fvecs"
         ground_truth_path = path + "/sift10k_groundtruth.ivecs"
         if threads > 1:

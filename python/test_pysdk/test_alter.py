@@ -1,11 +1,11 @@
-import pytest
-from common import common_values
 import infinity
 import pandas as pd
+import pytest
+from infinity import index
 from infinity.common import ConflictType
-import infinity.index as index
-
 from infinity.infinity_http import infinity_http
+
+from common import common_values
 
 
 class TestInfinity:
@@ -52,16 +52,16 @@ class TestInfinity:
         assert res.error_code == infinity.ErrorCode.DUPLICATE_COLUMN_NAME
 
         res = table_obj.add_columns({"c3": {"type": "varchar"}})
-        assert res.error_code == infinity.ErrorCode.NOT_SUPPORTED
+        assert res.error_code == infinity.ErrorCode.OK
 
-        res = table_obj.add_columns({"c3": {"type": "varchar", "default": "default"}})
+        res = table_obj.add_columns({"c4": {"type": "varchar", "default": "default"}})
         assert res.error_code == infinity.ErrorCode.OK
 
         res, extra_result = table_obj.output(["*"]).to_df()
         pd.testing.assert_frame_equal(
             res,
-            pd.DataFrame({"c1": [1], "c2": [2], "c3": ["default"]}).astype(
-                {"c1": 'Int32', "c2": 'Int32', "c3": 'string'}
+            pd.DataFrame({"c1": [1], "c2": [2], "c3": [None], "c4": ["default"]}).astype(
+                {"c1": 'Int32', "c2": 'Int32', "c3": 'string', "c4": 'string'}
             )
         )
 
@@ -71,11 +71,59 @@ class TestInfinity:
         pd.testing.assert_frame_equal(
             res,
             pd.DataFrame(
-                {"c1": [1, 2], "c2": [2, 3], "c3": ["default", "test"]}
+                {"c1": [1, 2], "c2": [2, 3], "c3": [None, "test"], "c4": ["default", "default"]}
             ).astype(
-                {"c1": 'Int32', "c2": 'Int32', "c3": 'string'}
+                {"c1": 'Int32', "c2": 'Int32', "c3": 'string', "c4": 'string'}
             ),
         )
+
+        db_obj.drop_table(table_name)
+
+    def test_add_column_not_null(self):
+        """
+        target: test ALTER TABLE ADD COLUMN with NOT NULL constraint
+        method:
+        1. Create table with data, add a NOT NULL column with default — succeeds, existing rows get the default value
+        2. Add a NOT NULL column without default on a table with data — fails (existing rows would be NULL)
+        3. Add a NOT NULL column without default on an empty table — succeeds
+        """
+        table_name = "test_add_column_not_null" + self.suffix
+        db_obj = self.infinity_obj.get_database("default_db")
+        db_obj.drop_table(table_name, ConflictType.Ignore)
+
+        # 1. Create table with data
+        table_obj = db_obj.create_table(
+            table_name,
+            {
+                "c1": {"type": "int"},
+                "c2": {"type": "varchar"},
+            },
+        )
+        assert table_obj is not None
+
+        res = table_obj.insert([
+            {"c1": 1, "c2": "hello"},
+            {"c1": 2, "c2": "world"},
+        ])
+        assert res.error_code == infinity.ErrorCode.OK
+
+        # 2. Add NOT NULL column with default — succeeds, existing rows get default
+        res = table_obj.add_columns({"c3": {"type": "varchar", "constraints": ["not null"], "default": "default_val"}})
+        assert res.error_code == infinity.ErrorCode.OK
+
+        res, _ = table_obj.output(["*"]).to_df()
+        pd.testing.assert_frame_equal(
+            res.sort_values("c1").reset_index(drop=True),
+            pd.DataFrame({
+                "c1": pd.array([1, 2], dtype="Int32"),
+                "c2": pd.array(["hello", "world"], dtype="string"),
+                "c3": pd.array(["default_val", "default_val"], dtype="string"),
+            }),
+        )
+
+        # 3. Add NOT NULL column without default on table that has data — fails
+        res = table_obj.add_columns({"c4": {"type": "int", "constraints": ["not null"]}})
+        assert res.error_code != infinity.ErrorCode.OK
 
         db_obj.drop_table(table_name)
 

@@ -202,12 +202,14 @@ std::shared_ptr<IndexReader> TableIndexReaderCache::GetIndexReader(NewTxn *txn) 
     std::scoped_lock lock(mutex_);
     if (begin_ts >= cache_ts_) [[likely]] {
         // no need to build, use cache
-        LOG_INFO(fmt::format("DEBUG: Using cached index readers for table_id: '{}'", table_id_str_));
+        LOG_TRACE(fmt::format("Using cached index readers for table_id: '{}'", table_id_str_));
         index_reader->column_index_readers_ = cache_column_readers_;
         return index_reader;
     }
 
-    TableMeta table_meta(db_id_str_, table_id_str_, table_name_, txn);
+    // Only the ids are needed here: this path reads index metadata,
+    // so the database name is left empty.
+    TableMeta table_meta(db_id_str_, "", table_id_str_, table_name_, txn);
     std::vector<std::string> *index_id_strs = nullptr;
     std::vector<std::string> *index_name_strs = nullptr;
     {

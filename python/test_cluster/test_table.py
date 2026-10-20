@@ -1,8 +1,7 @@
 import time
 
+from infinity.common import ConflictType, InfinityException
 from infinity_cluster import InfinityCluster
-from infinity.common import ConflictType
-from infinity.common import InfinityException
 
 
 class TestTable:

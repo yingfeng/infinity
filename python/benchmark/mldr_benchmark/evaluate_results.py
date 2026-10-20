@@ -1,11 +1,12 @@
 import os
 import platform
 import subprocess
-from pprint import pprint
 from dataclasses import dataclass, field
-from transformers import HfArgumentParser
-from pyserini.util import download_evaluation_script
+from pprint import pprint
+
 from mldr_common_tools import check_languages
+from pyserini.util import download_evaluation_script
+from transformers import HfArgumentParser
 
 
 @dataclass

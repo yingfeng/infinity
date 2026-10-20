@@ -1,13 +1,14 @@
 import concurrent.futures
-import pytest
-from common import common_values
-from infinity.common import ConflictType, InfinityException
-import infinity
-from infinity.errors import ErrorCode
-from common.utils import trace_expected_exceptions
 import random
 
+import infinity
+import pytest
+from common.utils import trace_expected_exceptions
+from infinity.common import ConflictType, InfinityException
+from infinity.errors import ErrorCode
 from infinity.infinity_http import infinity_http
+
+from common import common_values
 
 
 @pytest.fixture(scope="class")
