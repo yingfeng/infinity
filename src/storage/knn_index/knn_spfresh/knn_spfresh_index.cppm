@@ -23,6 +23,7 @@ import :index_spfresh;
 import :local_file_handle;
 import :buffer_handle;
 import :logger;
+import :croaring;
 
 import std.compat;
 
@@ -58,8 +59,7 @@ private:
 export class SPFreshIndexInMem : public BaseMemIndex {
 public:
     SPFreshIndexInMem();
-    SPFreshIndexInMem(RowID begin_row_id, const IndexSPFresh *index_def, u32 embedding_dim, u32 max_vectors,
-                      const std::string &base_path = "");
+    SPFreshIndexInMem(RowID begin_row_id, const IndexSPFresh *index_def, u32 embedding_dim, u32 max_vectors, const std::string &base_path = "");
     ~SPFreshIndexInMem() override;
 
     MemIndexTracerInfo GetInfo() const override;
@@ -81,11 +81,27 @@ public:
     // `fetcher` may be null: in that case re-encoding uses decoded approximations.
     void Compact(const SPFreshVectorFetcher *fetcher = nullptr);
 
+    // Scan up to `budget` partitions (round-robin, resumable across calls) and
+    // enqueue a kMerge fixup for every undersized leaf that has a sibling to take
+    // its data. Returns the number of merges enqueued. Used by the background
+    // fixup worker when its queue runs dry, and by tests.
+    u32 EnqueueMergeSweep(u32 budget = 0);
+
     // ── Search ──
     // approx_dist : RaBitQ estimate (squared L2)
     // error_bound : theoretical error bound of `approx_dist`
+    //
+    // `prune_threshold` is an optional live threshold: any candidate whose
+    // optimistic distance `approx_dist - error_bound` is not better than the
+    // current value is skipped without invoking the callback. The caller owns the
+    // storage and may lower it from inside the callback as its result heap fills.
     using SearchCallback = std::function<void(SegmentOffset, f32 approx_dist, f32 error_bound)>;
-    void Search(const f32 *query, u32 dim, const SearchCallback &callback, u32 max_candidates = 0, u32 beam_size = 0) const;
+    void Search(const f32 *query,
+                u32 dim,
+                const SearchCallback &callback,
+                u32 max_candidates = 0,
+                u32 beam_size = 0,
+                const f32 *prune_threshold = nullptr) const;
 
     // ── Persistence ──
     void Save(LocalFileHandle &fh) const;
@@ -103,6 +119,10 @@ public:
     u32 GetTreeHeight() const { return height_; }
     u32 dim() const { return dim_; }
     u32 GetPartitionCount() const { return partition_count_; }
+    // Ready, non-internal partitions that actually carry vectors. `GetPartitionCount()`
+    // also counts tombstones (split/merge sources), so this is what describes the
+    // current clustering quality.
+    u32 GetLiveLeafCount() const;
 
     static u32 QuantizedStride(u32 dim) { return QuantVecStride(dim); }
 
@@ -134,7 +154,6 @@ private:
         // only the (small) partition table stays in DRAM.
         const u8 *mmap_centroid_base_{nullptr};
         u64 mmap_centroid_stride_{0};
-        std::shared_ptr<const std::vector<u64>> deleted_bits_;
 
         const f32 *Centroid(PartitionKey key) const {
             if (mmap_centroid_base_ != nullptr) {
@@ -143,16 +162,18 @@ private:
             return centroids_->data() + static_cast<size_t>(key) * dim_;
         }
         const DataSlot &Slot(PartitionKey key) const { return (*slots_)[key]; }
-        const u8 *RegionBase() const {
-            return mode_ == StorageMode::kOwned ? reinterpret_cast<const u8 *>(data_region_->data()) : mmap_data_region_;
-        }
+        const u8 *RegionBase() const { return mode_ == StorageMode::kOwned ? reinterpret_cast<const u8 *>(data_region_->data()) : mmap_data_region_; }
         u32 ChildBegin(PartitionKey key) const { return (*child_offsets_)[key]; }
         u32 ChildEnd(PartitionKey key) const { return (*child_offsets_)[key + 1]; }
-        bool IsDeleted(u32 row_id) const;
     };
 
     void PublishSnapshot();
     void EnsureCapacity(u32 required_partitions);
+
+    // The deleted set is not part of the structural snapshot: it changes far more
+    // often than the tree and is fetched once per search / maintenance pass.
+    std::shared_ptr<const roaring::Roaring> CurrentDeletedSet() const;
+    static bool IsDeletedIn(const std::shared_ptr<const roaring::Roaring> &set, u32 row_id);
 
     // ─────────────────────────────────────────────────────────────────────────
     // Rotation / quantization
@@ -200,13 +221,25 @@ private:
     // Search
     // ─────────────────────────────────────────────────────────────────────────
     PartitionKey RouteToLeaf(const f32 *vec) const;
+    // `beam_size` == 0 selects the adaptive beam (see AdaptBeamSize).
     void SearchTree(const TreeSnapshot &snap, const f32 *query, u32 beam_size, std::vector<PartitionKey> &out_leaves) const;
-    void ScanLeafPartition(const TreeSnapshot &snap, PartitionKey key, const QueryQuantized &qq, const SearchCallback &callback) const;
+    void ScanLeafPartition(const TreeSnapshot &snap,
+                           PartitionKey key,
+                           const QueryQuantized &qq,
+                           const SearchCallback &callback,
+                           const f32 *prune_threshold,
+                           const std::shared_ptr<const roaring::Roaring> &deleted) const;
+
+    // Adaptive beam sizing helpers.
+    u32 AdaptBeamSize(u32 level, u32 base, u32 available, f32 gap) const;
 
     // ─────────────────────────────────────────────────────────────────────────
     // Fixups (split / merge)
     // ─────────────────────────────────────────────────────────────────────────
-    void EnqueueFixup(FixupRequest::Type type, PartitionKey key);
+    // `version` is the partition version observed by the caller while it held the
+    // tree lock; the worker drops the request if the partition has moved on since.
+    // Returns false when the request was already pending or the queue is full.
+    bool EnqueueFixup(FixupRequest::Type type, PartitionKey key, u64 version);
     void EnsureFixupWorker();
     void StopFixupWorker();
     void FixupWorkerLoop();
@@ -215,8 +248,8 @@ private:
     bool ExecuteMerge(PartitionKey key, const SPFreshVectorFetcher *fetcher);
     std::vector<PartitionKey> SiblingLeaves(PartitionKey key) const;
 
-    void CollectPartitionVectors(PartitionKey key, const SPFreshVectorFetcher *fetcher, std::vector<f32> &out_vecs,
-                                 std::vector<u32> &out_row_ids) const;
+    void
+    CollectPartitionVectors(PartitionKey key, const SPFreshVectorFetcher *fetcher, std::vector<f32> &out_vecs, std::vector<u32> &out_row_ids) const;
     void MigrateVectorToPartition(const f32 *vec, u32 row_id, PartitionKey dst, SPFreshDeltaBuffer &delta);
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -226,8 +259,12 @@ private:
 
     size_t Section1Size() const;
     void SerializeSection1(std::vector<char> &out) const;
-    void DeserializeSection1(const u8 *ptr, const SPFreshFileHeader &header, std::vector<PartitionMeta> &out_partitions,
-                             std::vector<f32> &out_centroids, std::vector<u32> &out_child_offsets, std::vector<u32> &out_child_ids);
+    void DeserializeSection1(const u8 *ptr,
+                             const SPFreshFileHeader &header,
+                             std::vector<PartitionMeta> &out_partitions,
+                             std::vector<f32> &out_centroids,
+                             std::vector<u32> &out_child_offsets,
+                             std::vector<u32> &out_child_ids);
 
     // ─────────────────────────────────────────────────────────────────────────
     // Member data
@@ -276,9 +313,13 @@ private:
     u32 num_vectors_{0};
     u64 deleted_count_{0};
 
-    // ── Deleted bitmap ──
-    std::shared_ptr<std::vector<u64>> deleted_bits_;
-    mutable std::mutex deleted_mtx_;
+    // ── Deleted set ──
+    // Roaring keeps the set sparse: row ids are segment offsets, so a handful of
+    // deletes in a large segment costs a handful of containers instead of a dense
+    // bitmap of `num_vectors_` bits. The published copy is immutable (copy-on-write
+    // on every delete) so readers never observe a container being mutated.
+    std::shared_ptr<const roaring::Roaring> deleted_bits_;
+    mutable std::shared_mutex deleted_mtx_;
 
     // ── Delta double buffering ──
     SPFreshDeltaBuffer *delta_a_{nullptr};
@@ -294,6 +335,14 @@ private:
     std::thread fixup_thread_;
     std::atomic<bool> fixup_stop_{false};
     std::atomic<bool> fixup_running_{false};
+
+    // ── Merge sweep cursor (round-robin over partitions) ──
+    std::atomic<u32> merge_sweep_cursor_{0};
+
+    // ── Adaptive beam statistics (per tree level) ──
+    bool adaptive_beam_{true};
+    mutable std::mutex level_stats_mtx_;
+    mutable std::array<LevelStats, kAdaptiveBeamMaxLevels> level_stats_{};
 
     // ── Snapshot (RCU) ──
     std::shared_ptr<const TreeSnapshot> snapshot_;

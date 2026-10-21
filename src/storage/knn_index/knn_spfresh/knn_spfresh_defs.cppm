@@ -85,9 +85,9 @@ export constexpr u32 kSlotFlagOverflow = 1u << 1;
 // ─────────────────────────────────────────────────────────────────────────────
 
 export struct QuantizedVectorMeta {
-    f32 centroid_distance_{0.0f};      // ‖o - c‖
-    f32 quantized_dot_product_{0.0f};  // 1 / ⟨ō, o⟩ (reciprocal avoids division)
-    u32 code_count_{0};                // popcount(codes), used by estimator term2
+    f32 centroid_distance_{0.0f};     // ‖o - c‖
+    f32 quantized_dot_product_{0.0f}; // 1 / ⟨ō, o⟩ (reciprocal avoids division)
+    u32 code_count_{0};               // popcount(codes), used by estimator term2
 };
 static_assert(sizeof(QuantizedVectorMeta) == 12, "QuantizedVectorMeta must be 12 bytes");
 
@@ -234,11 +234,23 @@ export struct FixupRequest {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Per-level search statistics (for adaptive beam sizing)
+//
+// The tree is traversed level by level. At every level we look at the sorted
+// distance-to-centroid of the children of the current frontier and measure the
+// "relative gap" between the last child we expand and the first one we drop:
+//
+//     gap = (d_next - d_last) / d_next        (0 == totally ambiguous)
+//
+// A large gap means the frontier is well separated from the rest and a narrow
+// beam is enough; a small (or unstable) gap means the query sits between
+// clusters and the beam has to be widened to avoid missing the true neighbour.
+// Both statistics are exponential moving averages so search stays adaptive
+// while remaining cheap (one update per level per query).
 // ─────────────────────────────────────────────────────────────────────────────
 
 export struct LevelStats {
-    f32 mean_{0.0f};     // mean of the "relative distance gap" samples
-    f32 variance_{1.0f}; // variance of the same samples
+    f32 mean_{0.0f};     // running mean of the "relative distance gap" samples
+    f32 variance_{1.0f}; // running variance of the same samples
     u32 samples_{0};
 };
 
@@ -253,5 +265,19 @@ export constexpr u32 kDefaultKMeansMaxIter = 16;
 export constexpr u32 kDefaultAllowImbalancePct = 33;
 export constexpr u32 kDefaultRerankMultiplier = 50;
 export constexpr u32 kDefaultFixupQueueCapacity = 256;
+
+// Adaptive beam sizing. The beam is scaled by a factor derived from the per-level
+// gap statistics, but never leaves [kMinAdaptiveBeam, kMaxAdaptiveBeam] and is
+// only adapted once a level has enough samples to be meaningful.
+export constexpr u32 kAdaptiveBeamMaxLevels = 16;
+export constexpr u32 kAdaptiveBeamMinBeam = 2;
+export constexpr u32 kAdaptiveBeamMaxBeam = 64;
+export constexpr u32 kAdaptiveBeamMinSamples = 8;
+export constexpr f32 kAdaptiveBeamAlpha = 0.1f; // EMA weight of a new sample
+
+// Background merge sweep: when the fixup queue is idle the worker scans this many
+// partitions per round and enqueues merges for the undersized leaves it finds.
+export constexpr u32 kMergeSweepBudget = 64;
+export constexpr u32 kFixupIdleWaitMs = 100;
 
 } // namespace infinity

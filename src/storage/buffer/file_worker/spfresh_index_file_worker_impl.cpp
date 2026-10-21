@@ -79,8 +79,7 @@ void SPFreshIndexFileWorker::FreeFromMmapImpl() {
 size_t SPFreshIndexFileWorker::GetMemoryCost() const {
     if (data_ == nullptr && mmap_data_ == nullptr)
         return 0;
-    auto *index = data_ != nullptr ? static_cast<SPFreshIndexInMem *>(data_)
-                                   : reinterpret_cast<SPFreshIndexInMem *>(mmap_data_);
+    auto *index = data_ != nullptr ? static_cast<SPFreshIndexInMem *>(data_) : reinterpret_cast<SPFreshIndexInMem *>(mmap_data_);
     // Tree metadata (partitions + centroids) is always resident in DRAM.
     // In mmap mode the vector payloads stay in the OS page cache.
     size_t cost = static_cast<size_t>(index->GetNumCentroids()) * index->dim() * sizeof(f32);

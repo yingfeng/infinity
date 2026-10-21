@@ -1,6 +1,6 @@
-# name: test/sql/dql/knn/tensor/test_spfresh.slt
+# name: test/sql/dql/knn/embedding/test_knn_spfresh.slt
 # description: SPFresh index creation, insertion, and search
-# group: [dql, knn, tensor, spfresh]
+# group: [dql, knn, embedding, spfresh]
 
 statement ok
 DROP TABLE IF EXISTS test_spfresh;
@@ -37,9 +37,16 @@ SELECT id FROM test_spfresh SEARCH MATCH VECTOR (c1, [1.0, 0.0, 0.0, 0.0], 'floa
 ----
 1
 
-# With SPFresh index
-statement ok
-SELECT id FROM test_spfresh SEARCH MATCH VECTOR (c1, [1.0, 0.0, 0.0, 0.0], 'float', 'l2', 3) WITH (nprobe = 10);
+# With SPFresh index. The index only stores RaBitQ codes, so the candidates are
+# re-scored against the raw vectors in the column store before being returned;
+# the result must match the brute-force order.
+# l2 distances to [1.0, 0.4, 0.0, 0.0]: id1 = 0.16, id5 = 0.52, id2 = 1.36, id3 = id4 = 2.16
+query I
+SELECT id FROM test_spfresh SEARCH MATCH VECTOR (c1, [1.0, 0.4, 0.0, 0.0], 'float', 'l2', 3) WITH (nprobe = 10);
+----
+1
+5
+2
 
 statement ok
 DROP TABLE IF EXISTS test_spfresh;

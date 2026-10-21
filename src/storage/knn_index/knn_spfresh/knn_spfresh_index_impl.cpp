@@ -61,7 +61,10 @@ SPFreshIndexInMem::SPFreshIndexInMem() {
     delta_b_ = new SPFreshDeltaBuffer(0);
 }
 
-SPFreshIndexInMem::SPFreshIndexInMem(RowID begin_row_id, const IndexSPFresh *index_def, u32 embedding_dim, u32 /*max_vectors*/,
+SPFreshIndexInMem::SPFreshIndexInMem(RowID begin_row_id,
+                                     const IndexSPFresh *index_def,
+                                     u32 embedding_dim,
+                                     u32 /*max_vectors*/,
                                      const std::string & /*base_path*/)
     : begin_row_id_(begin_row_id), storage_mode_(StorageMode::kOwned), dim_(embedding_dim) {
     pad_dim_ = 1;
@@ -86,7 +89,7 @@ SPFreshIndexInMem::SPFreshIndexInMem(RowID begin_row_id, const IndexSPFresh *ind
     centroids_ = std::make_shared<std::vector<f32>>();
     slot_table_ = std::make_shared<std::vector<DataSlot>>();
     data_region_ = std::make_shared<std::vector<char>>();
-    deleted_bits_ = std::make_shared<std::vector<u64>>();
+    deleted_bits_ = std::make_shared<roaring::Roaring>();
 
     delta_a_ = new SPFreshDeltaBuffer(QuantVecStride(dim_));
     delta_b_ = new SPFreshDeltaBuffer(QuantVecStride(dim_));
@@ -307,8 +310,8 @@ f32 SPFreshIndexInMem::ErrorBound(const QuantizedVectorMeta &meta, const QueryQu
 // K-means
 // ═════════════════════════════════════════════════════════════════════════════
 
-u32 SPFreshIndexInMem::KMeans(const f32 *vectors, u32 count, u32 k, u32 max_iter, std::vector<f32> &out_centroids,
-                              std::vector<u32> &out_labels) const {
+u32 SPFreshIndexInMem::KMeans(const f32 *vectors, u32 count, u32 k, u32 max_iter, std::vector<f32> &out_centroids, std::vector<u32> &out_labels)
+    const {
     out_centroids.clear();
     out_labels.clear();
     if (count == 0 || k == 0) {
@@ -341,7 +344,8 @@ u32 SPFreshIndexInMem::KMeans(const f32 *vectors, u32 count, u32 k, u32 max_iter
             total += min_dist[i];
         }
         if (total <= 0) {
-            std::memcpy(out_centroids.data() + static_cast<size_t>(c) * dim_, vectors + static_cast<size_t>(pick_index(rng)) * dim_,
+            std::memcpy(out_centroids.data() + static_cast<size_t>(c) * dim_,
+                        vectors + static_cast<size_t>(pick_index(rng)) * dim_,
                         dim_ * sizeof(f32));
             continue;
         }
@@ -429,7 +433,8 @@ u32 SPFreshIndexInMem::KMeans(const f32 *vectors, u32 count, u32 k, u32 max_iter
         if (counts[c] > 0) {
             if (alive != c) {
                 std::memcpy(out_centroids.data() + static_cast<size_t>(alive) * dim_,
-                            out_centroids.data() + static_cast<size_t>(c) * dim_, dim_ * sizeof(f32));
+                            out_centroids.data() + static_cast<size_t>(c) * dim_,
+                            dim_ * sizeof(f32));
             }
             ++alive;
         }
@@ -444,7 +449,10 @@ u32 SPFreshIndexInMem::KMeans(const f32 *vectors, u32 count, u32 k, u32 max_iter
     return alive;
 }
 
-void SPFreshIndexInMem::BalancedKMeans2(const f32 *vectors, u32 count, std::vector<f32> &out_a, std::vector<f32> &out_b,
+void SPFreshIndexInMem::BalancedKMeans2(const f32 *vectors,
+                                        u32 count,
+                                        std::vector<f32> &out_a,
+                                        std::vector<f32> &out_b,
                                         std::vector<u8> &out_label) const {
     out_a.assign(dim_, 0.0f);
     out_b.assign(dim_, 0.0f);
@@ -785,7 +793,7 @@ void SPFreshIndexInMem::Build(const f32 *vectors, u32 count) {
 
     {
         std::lock_guard deleted_lock(deleted_mtx_);
-        deleted_bits_ = std::make_shared<std::vector<u64>>((count + 63u) / 64u + 1u, 0ull);
+        deleted_bits_ = std::make_shared<roaring::Roaring>();
     }
 
     // Data region for 8M x 140B is ~1.1GB; reserve a bit to limit reallocation.
@@ -810,22 +818,26 @@ void SPFreshIndexInMem::Build(const f32 *vectors, u32 count) {
     PublishSnapshot();
 
     LOG_INFO(fmt::format("SPFresh Build: {} vectors, {} partitions, height {}, max_partition_size {}",
-                         count, partition_count_, height_, max_partition_size_));
+                         count,
+                         partition_count_,
+                         height_,
+                         max_partition_size_));
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
 // Snapshot
 // ═════════════════════════════════════════════════════════════════════════════
 
-bool SPFreshIndexInMem::TreeSnapshot::IsDeleted(u32 row_id) const {
-    if (!deleted_bits_ || deleted_bits_->empty()) {
+std::shared_ptr<const roaring::Roaring> SPFreshIndexInMem::CurrentDeletedSet() const {
+    std::shared_lock lock(deleted_mtx_);
+    return deleted_bits_;
+}
+
+bool SPFreshIndexInMem::IsDeletedIn(const std::shared_ptr<const roaring::Roaring> &set, u32 row_id) {
+    if (!set || set->isEmpty()) {
         return false;
     }
-    const u32 word = row_id >> 6;
-    if (word >= deleted_bits_->size()) {
-        return false;
-    }
-    return ((*deleted_bits_)[word] >> (row_id & 63u)) & 1ull;
+    return set->contains(row_id);
 }
 
 void SPFreshIndexInMem::PublishSnapshot() {
@@ -862,7 +874,6 @@ void SPFreshIndexInMem::PublishSnapshot() {
     snap->mmap_base_ = mmap_base_;
     snap->mmap_centroid_base_ = (storage_mode_ == StorageMode::kMmap) ? mmap_centroid_base_ : nullptr;
     snap->mmap_centroid_stride_ = mmap_centroid_stride_;
-    snap->deleted_bits_ = deleted_bits_;
 
     {
         std::unique_lock lock(snapshot_mtx_);
@@ -880,6 +891,9 @@ void SPFreshIndexInMem::SearchTree(const TreeSnapshot &snap, const f32 *query, u
         return;
     }
 
+    const u32 base_beam = beam_size == 0 ? base_beam_size_ : beam_size;
+    const bool adaptive = beam_size == 0 && adaptive_beam_;
+
     std::vector<PartitionKey> frontier{snap.root_key_};
     std::vector<std::pair<f32, PartitionKey>> scored;
     std::vector<PartitionKey> pending_leaves;
@@ -887,6 +901,7 @@ void SPFreshIndexInMem::SearchTree(const TreeSnapshot &snap, const f32 *query, u
     // The K-means tree is not perfectly balanced: partitions reached before the
     // maximum depth are already leaves. They must be carried over to the final
     // result instead of being dropped when their siblings expand.
+    u32 level = 0;
     for (;;) {
         scored.clear();
         pending_leaves.clear();
@@ -917,9 +932,29 @@ void SPFreshIndexInMem::SearchTree(const TreeSnapshot &snap, const f32 *query, u
         if (scored.empty()) {
             break;
         }
-        const u32 take = std::min<u32>(beam_size == 0 ? base_beam_size_ : beam_size, static_cast<u32>(scored.size()));
-        std::partial_sort(scored.begin(), scored.begin() + take, scored.end());
+
+        // Rank the children first: the gap between the last expanded and the first
+        // dropped child is what drives the adaptive beam.
+        const u32 probe = std::min<u32>(base_beam, static_cast<u32>(scored.size()));
+        std::partial_sort(scored.begin(), scored.begin() + probe, scored.end());
+        f32 gap = 1.0f; // "perfectly separated" by default
+        if (probe < scored.size()) {
+            const f32 d_last = scored[probe - 1].first;
+            const f32 d_next = scored[probe].first;
+            gap = d_next > 0.0f ? std::clamp((d_next - d_last) / d_next, 0.0f, 1.0f) : 1.0f;
+        }
+
+        u32 take = probe;
+        if (adaptive) {
+            take = AdaptBeamSize(level, base_beam, static_cast<u32>(scored.size()), gap);
+            if (take > probe) {
+                std::partial_sort(scored.begin(), scored.begin() + take, scored.end());
+            }
+        }
+        ++level;
+
         frontier.clear();
+        frontier.reserve(pending_leaves.size() + take);
         for (PartitionKey leaf : pending_leaves) {
             frontier.push_back(leaf);
         }
@@ -930,8 +965,54 @@ void SPFreshIndexInMem::SearchTree(const TreeSnapshot &snap, const f32 *query, u
     out_leaves = std::move(frontier);
 }
 
-void SPFreshIndexInMem::ScanLeafPartition(const TreeSnapshot &snap, PartitionKey key, const QueryQuantized &qq,
-                                          const SearchCallback &callback) const {
+u32 SPFreshIndexInMem::AdaptBeamSize(u32 level, u32 base, u32 available, f32 gap) const {
+    // Update the per-level EMA of the gap and turn it into a beam multiplier:
+    //   * well separated frontier (gap ~ 1) -> narrow beam (down to 0.5x)
+    //   * ambiguous frontier     (gap ~ 0) -> wide beam (up to 2x)
+    //   * unstable levels (high variance) get a small extra margin so a single
+    //     unlucky query does not permanently narrow the beam.
+    f32 mean = 0.0f;
+    f32 variance = 1.0f;
+    u32 samples = 0;
+    {
+        std::lock_guard lock(level_stats_mtx_);
+        LevelStats &stats = level_stats_[std::min<u32>(level, kAdaptiveBeamMaxLevels - 1)];
+        if (stats.samples_ == 0) {
+            stats.mean_ = gap;
+            stats.variance_ = 0.0f;
+        } else {
+            const f32 prev_mean = stats.mean_;
+            stats.mean_ = prev_mean + kAdaptiveBeamAlpha * (gap - prev_mean);
+            stats.variance_ = (1.0f - kAdaptiveBeamAlpha) * (stats.variance_ + kAdaptiveBeamAlpha * (gap - prev_mean) * (gap - prev_mean));
+        }
+        if (stats.samples_ < std::numeric_limits<u32>::max()) {
+            ++stats.samples_;
+        }
+        mean = stats.mean_;
+        variance = stats.variance_;
+        samples = stats.samples_;
+    }
+
+    if (samples < kAdaptiveBeamMinSamples) {
+        return std::min(base, available);
+    }
+
+    f32 factor = 1.5f - mean;
+    factor += 0.5f * std::min(std::sqrt(std::max(variance, 0.0f)), 0.5f);
+    factor = std::clamp(factor, 0.75f, 2.0f);
+
+    f32 scaled = static_cast<f32>(base) * factor;
+    u32 take = static_cast<u32>(scaled + 0.5f);
+    take = std::clamp(take, kAdaptiveBeamMinBeam, kAdaptiveBeamMaxBeam);
+    return std::min(take, available);
+}
+
+void SPFreshIndexInMem::ScanLeafPartition(const TreeSnapshot &snap,
+                                          PartitionKey key,
+                                          const QueryQuantized &qq,
+                                          const SearchCallback &callback,
+                                          const f32 *prune_threshold,
+                                          const std::shared_ptr<const roaring::Roaring> &deleted) const {
     if (!snap.partitions_ || key >= snap.partitions_->size()) {
         return;
     }
@@ -959,7 +1040,7 @@ void SPFreshIndexInMem::ScanLeafPartition(const TreeSnapshot &snap, PartitionKey
 
     for (u32 i = 0; i < count; ++i) {
         const u32 row_id = row_ids[i];
-        if (snap.IsDeleted(row_id)) {
+        if (IsDeletedIn(deleted, row_id)) {
             continue;
         }
         QuantizedVectorMeta meta;
@@ -968,11 +1049,22 @@ void SPFreshIndexInMem::ScanLeafPartition(const TreeSnapshot &snap, PartitionKey
         meta.code_count_ = code_counts[i];
         const f32 est = EstimateDistance(meta, codes + static_cast<size_t>(i) * code_bytes, qq);
         const f32 bound = ErrorBound(meta, qq);
+        // Error-bound pruning: `est - bound` is a lower bound of the true distance,
+        // so once it cannot beat the caller's current k-th best it is safe to drop
+        // the candidate without leaving this loop (no callback, no allocation).
+        if (prune_threshold != nullptr && est - bound > *prune_threshold) {
+            continue;
+        }
         callback(static_cast<SegmentOffset>(row_id), est, bound);
     }
 }
 
-void SPFreshIndexInMem::Search(const f32 *query, u32 dim, const SearchCallback &callback, u32 max_candidates, u32 beam_size) const {
+void SPFreshIndexInMem::Search(const f32 *query,
+                               u32 dim,
+                               const SearchCallback &callback,
+                               u32 max_candidates,
+                               u32 beam_size,
+                               const f32 *prune_threshold) const {
     if (dim != dim_ || callback == nullptr) {
         return;
     }
@@ -984,6 +1076,7 @@ void SPFreshIndexInMem::Search(const f32 *query, u32 dim, const SearchCallback &
     if (!snap || snap->partition_count_ == 0) {
         return;
     }
+    const auto deleted = CurrentDeletedSet();
 
     std::vector<PartitionKey> leaves;
     SearchTree(*snap, query, beam_size, leaves);
@@ -1005,13 +1098,19 @@ void SPFreshIndexInMem::Search(const f32 *query, u32 dim, const SearchCallback &
         // be recomputed for every candidate leaf.
         QueryQuantized qq;
         QuantizeQuery(qq, query, snap->Centroid(leaf));
-        ScanLeafPartition(*snap, leaf, qq, [&](SegmentOffset offset, f32 est, f32 bound) {
-            if (limited && emitted >= max_candidates) {
-                return;
-            }
-            callback(offset, est, bound);
-            ++emitted;
-        });
+        ScanLeafPartition(
+            *snap,
+            leaf,
+            qq,
+            [&](SegmentOffset offset, f32 est, f32 bound) {
+                if (limited && emitted >= max_candidates) {
+                    return;
+                }
+                callback(offset, est, bound);
+                ++emitted;
+            },
+            prune_threshold,
+            deleted);
     }
 
     // Delta entries are not associated with a single query quantization, so they
@@ -1035,7 +1134,7 @@ void SPFreshIndexInMem::Search(const f32 *query, u32 dim, const SearchCallback &
                     continue;
                 }
                 const u32 row_id = delta->GetRowId(i);
-                if (snap->IsDeleted(row_id)) {
+                if (IsDeletedIn(deleted, row_id)) {
                     continue;
                 }
                 auto it = qq_cache.find(key);
@@ -1047,6 +1146,9 @@ void SPFreshIndexInMem::Search(const f32 *query, u32 dim, const SearchCallback &
                 const QuantizedVectorMeta meta = delta->GetMeta(i);
                 const f32 est = EstimateDistance(meta, delta->GetCodes(i), it->second);
                 const f32 bound = ErrorBound(meta, it->second);
+                if (prune_threshold != nullptr && est - bound > *prune_threshold) {
+                    continue;
+                }
                 callback(static_cast<SegmentOffset>(row_id), est, bound);
                 ++emitted;
             }
@@ -1152,37 +1254,29 @@ void SPFreshIndexInMem::InsertDelta(const f32 *vec, u32 row_id) {
             ++num_vectors_;
         }
 
-        // Ensure the deleted bitmap can address this row.
-        {
-            std::lock_guard lock(deleted_mtx_);
-            const size_t needed = (static_cast<size_t>(row_id) >> 6) + 1;
-            if (deleted_bits_->size() < needed) {
-                deleted_bits_->resize(needed + 1, 0ull);
-            }
-        }
-
         need_split = (*partitions_)[leaf].TotalCount() > max_partition_size_;
         if (need_split) {
             const PartitionKey split_key = leaf;
+            const u64 split_version = (*partitions_)[leaf].version_;
             tree_lock.unlock();
-            EnqueueFixup(FixupRequest::Type::kSplit, split_key);
+            EnqueueFixup(FixupRequest::Type::kSplit, split_key, split_version);
             return;
         }
     }
 }
 
 void SPFreshIndexInMem::MarkDeleted(SegmentOffset offset) {
+    // Copy-on-write: the previous set stays alive for in-flight readers, the new
+    // one becomes visible to the next CurrentDeletedSet() call. Roaring only pays
+    // for the containers that actually hold deleted ids.
     std::lock_guard lock(deleted_mtx_);
-    const size_t needed = (static_cast<size_t>(offset) >> 6) + 1;
-    if (deleted_bits_->size() < needed) {
-        deleted_bits_->resize(needed + 1, 0ull);
+    if (deleted_bits_ && deleted_bits_->contains(offset)) {
+        return; // idempotent
     }
-    u64 &word = (*deleted_bits_)[static_cast<size_t>(offset) >> 6];
-    const u64 mask = 1ull << (offset & 63u);
-    if ((word & mask) == 0) {
-        word |= mask;
-        ++deleted_count_;
-    }
+    auto updated = deleted_bits_ ? std::make_shared<roaring::Roaring>(*deleted_bits_) : std::make_shared<roaring::Roaring>();
+    updated->add(offset);
+    deleted_bits_ = std::move(updated);
+    ++deleted_count_;
 }
 
 u32 SPFreshIndexInMem::GetRowCount() const {
@@ -1210,25 +1304,93 @@ u32 SPFreshIndexInMem::GetDeletedCount() const {
     return static_cast<u32>(deleted_count_);
 }
 
+u32 SPFreshIndexInMem::GetLiveLeafCount() const {
+    std::shared_lock tree_lock(tree_mtx_);
+    u32 live = 0;
+    for (u32 key = 0; key < partition_count_; ++key) {
+        const PartitionMeta &meta = (*partitions_)[key];
+        if (!meta.IsReady()) {
+            continue;
+        }
+        if (key < children_.size() && !children_[key].empty()) {
+            continue;
+        }
+        if (meta.TotalCount() == 0) {
+            continue;
+        }
+        ++live;
+    }
+    return live;
+}
+
 // ═════════════════════════════════════════════════════════════════════════════
 // Fixup queue
 // ═════════════════════════════════════════════════════════════════════════════
 
-void SPFreshIndexInMem::EnqueueFixup(FixupRequest::Type type, PartitionKey key) {
+bool SPFreshIndexInMem::EnqueueFixup(FixupRequest::Type type, PartitionKey key, u64 version) {
     {
         std::lock_guard lock(fixup_mtx_);
         for (const auto &req : fixup_queue_) {
             if (req.type_ == type && req.key_ == key) {
-                return;
+                return false; // already pending
             }
         }
         if (fixup_queue_.size() >= kDefaultFixupQueueCapacity) {
-            return; // backpressure: drop, will be retried on next insert
+            return false; // backpressure: drop, will be retried on the next sweep
         }
-        fixup_queue_.push_back(FixupRequest{type, key, (*partitions_)[key].version_});
+        fixup_queue_.push_back(FixupRequest{type, key, version});
     }
     EnsureFixupWorker();
     fixup_cv_.notify_one();
+    return true;
+}
+
+u32 SPFreshIndexInMem::EnqueueMergeSweep(u32 budget) {
+    const u32 scan_budget = budget == 0 ? kMergeSweepBudget : budget;
+    std::vector<FixupRequest> victims;
+    {
+        std::shared_lock tree_lock(tree_mtx_);
+        const u32 total = partition_count_;
+        if (total == 0) {
+            return 0;
+        }
+        u32 cursor = merge_sweep_cursor_.load(std::memory_order_relaxed);
+        u32 scanned = 0;
+        while (scanned < scan_budget && scanned < total) {
+            const u32 key = cursor % total;
+            ++cursor;
+            ++scanned;
+            if (key >= partition_count_) {
+                continue;
+            }
+            const PartitionMeta &meta = (*partitions_)[key];
+            if (!meta.IsReady()) {
+                continue;
+            }
+            if (meta.parent_ == kInvalidPartitionKey) {
+                continue; // the root is rebuilt by a split, never merged away
+            }
+            if (key < children_.size() && !children_[key].empty()) {
+                continue; // internal node
+            }
+            if (meta.TotalCount() >= min_partition_size_) {
+                continue;
+            }
+            victims.push_back(FixupRequest{FixupRequest::Type::kMerge, key, meta.version_});
+        }
+        merge_sweep_cursor_.store(cursor, std::memory_order_relaxed);
+    }
+
+    u32 enqueued = 0;
+    for (const FixupRequest &req : victims) {
+        if (EnqueueFixup(req.type_, req.key_, req.version_)) {
+            ++enqueued;
+        }
+    }
+    if (enqueued > 0) {
+        LOG_TRACE(fmt::format("SPFresh merge sweep: {} undersized partitions enqueued ({} scanned)", enqueued, scan_budget));
+    }
+    return enqueued;
 }
 
 void SPFreshIndexInMem::EnsureFixupWorker() {
@@ -1256,25 +1418,43 @@ void SPFreshIndexInMem::FixupWorkerLoop() {
     size_t executed = 0;
     while (!fixup_stop_.load(std::memory_order_acquire)) {
         FixupRequest req;
+        bool has_request = false;
         {
             std::unique_lock lock(fixup_mtx_);
-            fixup_cv_.wait(lock, [this]() {
+            // Bounded wait: when the queue stays empty the worker proactively hunts
+            // for undersized partitions instead of sleeping forever.
+            fixup_cv_.wait_for(lock, std::chrono::milliseconds(kFixupIdleWaitMs), [this]() {
                 return fixup_stop_.load(std::memory_order_acquire) || !fixup_queue_.empty();
             });
             if (fixup_stop_.load(std::memory_order_acquire)) {
                 break;
             }
-            req = fixup_queue_.front();
-            fixup_queue_.pop_front();
+            if (!fixup_queue_.empty()) {
+                req = fixup_queue_.front();
+                fixup_queue_.pop_front();
+                has_request = true;
+            }
+        }
+
+        if (!has_request) {
+            // Idle round: scan a slice of the partition table for merge victims.
+            // The cursor makes this a resumable, full-coverage sweep.
+            EnqueueMergeSweep();
+            continue;
         }
 
         bool changed = false;
         {
             std::unique_lock tree_lock(tree_mtx_);
-            if (req.type_ == FixupRequest::Type::kSplit) {
-                changed = ExecuteSplit(req.key_, nullptr);
-            } else {
-                changed = ExecuteMerge(req.key_, nullptr);
+            // Optimistic concurrency: drop requests that were queued against an older
+            // shape of the partition (already split/merged/compacted). A later sweep
+            // re-evaluates it against the current tree.
+            if (req.key_ < partition_count_ && req.version_ == (*partitions_)[req.key_].version_) {
+                if (req.type_ == FixupRequest::Type::kSplit) {
+                    changed = ExecuteSplit(req.key_, nullptr);
+                } else {
+                    changed = ExecuteMerge(req.key_, nullptr);
+                }
             }
         }
         if (changed) {
@@ -1291,7 +1471,9 @@ void SPFreshIndexInMem::FixupWorkerLoop() {
 // Split / merge
 // ═════════════════════════════════════════════════════════════════════════════
 
-void SPFreshIndexInMem::CollectPartitionVectors(PartitionKey key, const SPFreshVectorFetcher *fetcher, std::vector<f32> &out_vecs,
+void SPFreshIndexInMem::CollectPartitionVectors(PartitionKey key,
+                                                const SPFreshVectorFetcher *fetcher,
+                                                std::vector<f32> &out_vecs,
                                                 std::vector<u32> &out_row_ids) const {
     out_vecs.clear();
     out_row_ids.clear();
@@ -1307,6 +1489,7 @@ void SPFreshIndexInMem::CollectPartitionVectors(PartitionKey key, const SPFreshV
 
     const size_t code_bytes = static_cast<size_t>(code_width_) * 8;
     const f32 *centroid = snap->Centroid(key);
+    const auto deleted = CurrentDeletedSet();
 
     auto append_decoded = [&](u32 row_id, const QuantizedVectorMeta &meta, const u8 *codes) {
         const size_t pos = out_vecs.size();
@@ -1333,7 +1516,7 @@ void SPFreshIndexInMem::CollectPartitionVectors(PartitionKey key, const SPFreshV
             const auto *code_counts = reinterpret_cast<const u32 *>(base + static_cast<size_t>(count) * 12);
             const u8 *codes = base + static_cast<size_t>(count) * 16;
             for (u32 i = 0; i < count; ++i) {
-                if (snap->IsDeleted(row_ids[i])) {
+                if (IsDeletedIn(deleted, row_ids[i])) {
                     continue;
                 }
                 QuantizedVectorMeta meta;
@@ -1355,7 +1538,7 @@ void SPFreshIndexInMem::CollectPartitionVectors(PartitionKey key, const SPFreshV
                 continue;
             }
             const u32 row_id = delta->GetRowId(i);
-            if (snap->IsDeleted(row_id)) {
+            if (IsDeletedIn(deleted, row_id)) {
                 continue;
             }
             append_decoded(row_id, delta->GetMeta(i), delta->GetCodes(i));
@@ -1364,7 +1547,6 @@ void SPFreshIndexInMem::CollectPartitionVectors(PartitionKey key, const SPFreshV
     append_delta(delta_a_);
     append_delta(delta_b_);
 }
-
 
 bool SPFreshIndexInMem::ExecuteSplit(PartitionKey key, const SPFreshVectorFetcher *fetcher) {
     // Caller holds tree_mtx_ exclusively.
@@ -1406,13 +1588,18 @@ bool SPFreshIndexInMem::ExecuteSplit(PartitionKey key, const SPFreshVectorFetche
     const PartitionKey key_b = AllocPartition(parent, kLeafLevel, centroid_b.data(), 0, 0);
     auto &meta = (*partitions_)[key];
 
-    // Candidate targets for reassignment: the two new partitions plus all siblings.
+    // Candidate targets for reassignment: the two new partitions plus the leaf
+    // siblings (internal siblings would swallow vectors the searcher never reads).
     std::vector<PartitionKey> targets{key_a, key_b};
     if (meta.parent_ != kInvalidPartitionKey && meta.parent_ < children_.size()) {
         for (PartitionKey sibling : children_[meta.parent_]) {
-            if (sibling != key && sibling < partition_count_ && (*partitions_)[sibling].IsReady()) {
-                targets.push_back(sibling);
+            if (sibling == key || sibling >= partition_count_ || !(*partitions_)[sibling].IsReady()) {
+                continue;
             }
+            if (sibling < children_.size() && !children_[sibling].empty()) {
+                continue;
+            }
+            targets.push_back(sibling);
         }
     }
 
@@ -1486,9 +1673,19 @@ std::vector<PartitionKey> SPFreshIndexInMem::SiblingLeaves(PartitionKey key) con
         return result;
     }
     for (PartitionKey sibling : children_[parent]) {
-        if (sibling != key && sibling < partition_count_ && (*partitions_)[sibling].IsReady()) {
-            result.push_back(sibling);
+        if (sibling == key || sibling >= partition_count_) {
+            continue;
         }
+        if (!(*partitions_)[sibling].IsReady()) {
+            continue;
+        }
+        // The K-means tree is unbalanced, so a sibling can be an internal node.
+        // Merging into one would park the vectors in a partition the searcher never
+        // scans (internal nodes are expanded, never read), so only true leaves qualify.
+        if (sibling < children_.size() && !children_[sibling].empty()) {
+            continue;
+        }
+        result.push_back(sibling);
     }
     return result;
 }
@@ -1513,48 +1710,85 @@ bool SPFreshIndexInMem::ExecuteMerge(PartitionKey key, const SPFreshVectorFetche
     if (siblings.empty()) {
         return false;
     }
-    // Nearest sibling with enough room.
-    std::sort(siblings.begin(), siblings.end(), [&](PartitionKey l, PartitionKey r) {
-        const f32 *cl = centroids_->data() + static_cast<size_t>(l) * dim_;
-        const f32 *cr = centroids_->data() + static_cast<size_t>(r) * dim_;
-        const f32 *self = centroids_->data() + static_cast<size_t>(key) * dim_;
-        f64 dl = 0, dr = 0;
-        for (u32 d = 0; d < dim_; ++d) {
-            const f64 a = static_cast<f64>(self[d]) - cl[d];
-            const f64 b = static_cast<f64>(self[d]) - cr[d];
-            dl += a * a;
-            dr += b * b;
-        }
-        return dl < dr;
-    });
-
-    PartitionKey target = kInvalidPartitionKey;
-    for (PartitionKey sibling : siblings) {
-        if ((*partitions_)[sibling].TotalCount() + meta.TotalCount() <= max_partition_size_) {
-            target = sibling;
-            break;
-        }
-    }
-    if (target == kInvalidPartitionKey) {
-        return false;
-    }
 
     std::vector<f32> vecs;
     std::vector<u32> rows;
     CollectPartitionVectors(key, fetcher, vecs, rows);
+    if (rows.empty()) {
+        // Nothing to move: retire the empty partition anyway, it only costs a probe.
+        RemoveChild(meta.parent_, key);
+        meta.state_ = PartitionState::kDeleting;
+        meta.base_count_ = 0;
+        meta.delta_count_ = 0;
+        ++meta.version_;
+        if (meta.data_slot_ < slot_table_->size()) {
+            (*slot_table_)[meta.data_slot_].flags_ |= kSlotFlagTombstone;
+        }
+        return true;
+    }
+
+    // Same-level reassignment: instead of pushing the whole partition into the single
+    // nearest sibling (which can fill it and skew the clustering), every vector goes
+    // to its nearest sibling that still has room. This mirrors what a split does when
+    // it re-routes vectors to the two new partitions plus the existing siblings.
+    std::vector<u32> projected(siblings.size());
+    std::vector<PartitionKey> targets;
+    targets.reserve(siblings.size());
+    for (size_t i = 0; i < siblings.size(); ++i) {
+        projected[i] = (*partitions_)[siblings[i]].TotalCount();
+        if (projected[i] < max_partition_size_) {
+            targets.push_back(siblings[i]);
+        }
+    }
+    if (targets.empty()) {
+        return false; // every sibling is full
+    }
+
+    // Assign first, migrate second: a merge has to be all-or-nothing, because the
+    // delta buffer cannot undo an append.
+    std::vector<u32> assign(rows.size(), kInvalidPartitionKey);
+    std::vector<u32> moved(targets.size(), 0);
+    for (size_t i = 0; i < rows.size(); ++i) {
+        const f32 *v = vecs.data() + i * dim_;
+        size_t best = targets.size();
+        f64 best_dist = std::numeric_limits<f64>::max();
+        for (size_t t = 0; t < targets.size(); ++t) {
+            if (projected[t] >= max_partition_size_) {
+                continue; // filled up by earlier vectors of this same merge
+            }
+            const f32 *centroid = centroids_->data() + static_cast<size_t>(targets[t]) * dim_;
+            f64 sq = 0;
+            for (u32 d = 0; d < dim_; ++d) {
+                const f64 diff = static_cast<f64>(v[d]) - centroid[d];
+                sq += diff * diff;
+            }
+            if (sq < best_dist) {
+                best_dist = sq;
+                best = t;
+            }
+        }
+        if (best == targets.size()) {
+            return false; // no room left in this sibling group: retry on a later sweep
+        }
+        ++projected[best];
+        ++moved[best];
+        assign[i] = static_cast<u32>(best);
+    }
 
     {
         std::lock_guard lock(delta_mtx_);
         const u32 idx = active_delta_idx_.load(std::memory_order_acquire);
         SPFreshDeltaBuffer *active = (idx == 0) ? delta_a_ : delta_b_;
         for (size_t i = 0; i < rows.size(); ++i) {
-            MigrateVectorToPartition(vecs.data() + i * dim_, rows[i], target, *active);
+            MigrateVectorToPartition(vecs.data() + i * dim_, rows[i], targets[assign[i]], *active);
             delta_bytes_.fetch_add(active->Stride(), std::memory_order_release);
         }
     }
     {
         std::lock_guard counter_lock(counter_mtx_);
-        (*partitions_)[target].delta_count_ += static_cast<u32>(rows.size());
+        for (size_t t = 0; t < targets.size(); ++t) {
+            (*partitions_)[targets[t]].delta_count_ += moved[t];
+        }
     }
 
     RemoveChild(meta.parent_, key);
@@ -1681,6 +1915,7 @@ void SPFreshIndexInMem::Compact(const SPFreshVectorFetcher *fetcher) {
     }
 
     std::unique_lock tree_lock(tree_mtx_);
+    const auto deleted = CurrentDeletedSet();
 
     // Group frozen delta by partition.
     std::unordered_map<PartitionKey, std::vector<u32>> delta_by_partition;
@@ -1727,18 +1962,11 @@ void SPFreshIndexInMem::Compact(const SPFreshVectorFetcher *fetcher) {
                 const u8 *codes = base + static_cast<size_t>(count) * 16;
                 for (u32 i = 0; i < count; ++i) {
                     const u32 row_id = row_ids[i];
-                    bool deleted = false;
-                    {
-                        std::lock_guard lock(deleted_mtx_);
-                        const u32 word = row_id >> 6;
-                        if (word < deleted_bits_->size()) {
-                            deleted = ((*deleted_bits_)[word] >> (row_id & 63u)) & 1ull;
-                        }
-                    }
+                    bool is_deleted = IsDeletedIn(deleted, row_id);
                     if (fetcher != nullptr && fetcher->IsDeleted(row_id)) {
-                        deleted = true;
+                        is_deleted = true;
                     }
-                    if (deleted) {
+                    if (is_deleted) {
                         continue;
                     }
                     QuantizedVectorMeta meta_q;
@@ -1756,18 +1984,11 @@ void SPFreshIndexInMem::Compact(const SPFreshVectorFetcher *fetcher) {
         if (it != delta_by_partition.end()) {
             for (u32 di : it->second) {
                 const u32 row_id = frozen->GetRowId(di);
-                bool deleted = false;
-                {
-                    std::lock_guard lock(deleted_mtx_);
-                    const u32 word = row_id >> 6;
-                    if (word < deleted_bits_->size()) {
-                        deleted = ((*deleted_bits_)[word] >> (row_id & 63u)) & 1ull;
-                    }
-                }
+                bool is_deleted = IsDeletedIn(deleted, row_id);
                 if (fetcher != nullptr && fetcher->IsDeleted(row_id)) {
-                    deleted = true;
+                    is_deleted = true;
                 }
-                if (deleted) {
+                if (is_deleted) {
                     continue;
                 }
                 rows.push_back(row_id);
@@ -1821,12 +2042,17 @@ void SPFreshIndexInMem::Compact(const SPFreshVectorFetcher *fetcher) {
     {
         std::lock_guard lock(deleted_mtx_);
         deleted_count_ = 0;
-        deleted_bits_ = std::make_shared<std::vector<u64>>((live_vectors + 63) / 64 + 1, 0ull);
+        deleted_bits_ = std::make_shared<roaring::Roaring>();
     }
 
     frozen->Clear();
     tree_lock.unlock();
     PublishSnapshot();
+
+    // Compaction is exactly when partitions become undersized: garbage collection
+    // shrinks them, merges enqueue more shrink further. Kick a sweep so the tree
+    // does not degrade into ever-smaller leaves between two manual optimizations.
+    EnqueueMergeSweep();
 
     LOG_INFO(fmt::format("SPFresh Compact: {} vectors, {} partitions, {} slots", num_vectors_, partition_count_, next_slot_));
 }
@@ -1887,8 +2113,11 @@ void SPFreshIndexInMem::SerializeSection1(std::vector<char> &out) const {
     }
 }
 
-void SPFreshIndexInMem::DeserializeSection1(const u8 *ptr, const SPFreshFileHeader &header, std::vector<PartitionMeta> &out_partitions,
-                                            std::vector<f32> &out_centroids, std::vector<u32> &out_child_offsets,
+void SPFreshIndexInMem::DeserializeSection1(const u8 *ptr,
+                                            const SPFreshFileHeader &header,
+                                            std::vector<PartitionMeta> &out_partitions,
+                                            std::vector<f32> &out_centroids,
+                                            std::vector<u32> &out_child_offsets,
                                             std::vector<u32> &out_child_ids) {
     auto read = [&ptr](void *dst, size_t size) {
         std::memcpy(dst, ptr, size);
@@ -2034,7 +2263,7 @@ void SPFreshIndexInMem::Load(LocalFileHandle &fh, size_t /*file_size*/) {
 
     {
         std::lock_guard lock(deleted_mtx_);
-        deleted_bits_ = std::make_shared<std::vector<u64>>((static_cast<size_t>(num_vectors_) + 63) / 64 + 1, 0ull);
+        deleted_bits_ = std::make_shared<roaring::Roaring>();
     }
 
     delta_a_->SetEntrySize(QuantVecStride(dim_));
@@ -2136,7 +2365,7 @@ void SPFreshIndexInMem::LoadFromMmap(const u8 *base, size_t size) {
 
     {
         std::lock_guard lock(deleted_mtx_);
-        deleted_bits_ = std::make_shared<std::vector<u64>>((static_cast<size_t>(num_vectors_) + 63) / 64 + 1, 0ull);
+        deleted_bits_ = std::make_shared<roaring::Roaring>();
     }
 
     delta_a_->SetEntrySize(QuantVecStride(dim_));
@@ -2202,7 +2431,7 @@ void SPFreshIndexInMem::TransferTo(SPFreshIndexInMem *target) {
 
     {
         std::lock_guard lock(deleted_mtx_);
-        target->deleted_bits_ = std::make_shared<std::vector<u64>>(*deleted_bits_);
+        target->deleted_bits_ = deleted_bits_ ? std::make_shared<roaring::Roaring>(*deleted_bits_) : std::make_shared<roaring::Roaring>();
     }
 
     if (target->delta_a_ == nullptr) {
@@ -2238,8 +2467,11 @@ MemIndexTracerInfo SPFreshIndexInMem::GetInfo() const {
     total += storage_mode_ == StorageMode::kOwned ? (data_region_ ? data_region_->size() : 0) : 0;
     total += (delta_a_ ? delta_a_->data_.size() : 0) + (delta_b_ ? delta_b_->data_.size() : 0);
 
-    return MemIndexTracerInfo(std::make_shared<std::string>(index_name_), std::make_shared<std::string>(table_name_),
-                              std::make_shared<std::string>(db_name_), total, GetRowCount());
+    return MemIndexTracerInfo(std::make_shared<std::string>(index_name_),
+                              std::make_shared<std::string>(table_name_),
+                              std::make_shared<std::string>(db_name_),
+                              total,
+                              GetRowCount());
 }
 
 const ChunkIndexMetaInfo SPFreshIndexInMem::GetChunkIndexMetaInfo() const {

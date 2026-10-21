@@ -1003,14 +1003,15 @@ void ExecuteHnswSearch(QueryContext *query_context,
 // Chunks are managed internally by SPFreshIndexInMem. The physical operator sees only segment_index_meta.
 template <LogicalType t, typename ColumnDataType, template <typename, typename> typename C, typename DistanceDataType>
 void ExecuteSPFreshSearch(KnnScanSharedData *knn_scan_shared_data,
-                           MergeKnn<ColumnDataType, C, DistanceDataType> *merge_heap,
-                           u32 embedding_dim,
-                           SegmentID segment_id,
-                           SegmentIndexMeta *segment_index_meta,
-                           BlockIndex *block_index,
-                           bool use_bitmask,
-                           const Bitmask &bitmask) {
-    if constexpr (!(IsAnyOf<ColumnDataType, u8, i8, f32>)) return;
+                          MergeKnn<ColumnDataType, C, DistanceDataType> *merge_heap,
+                          u32 embedding_dim,
+                          SegmentID segment_id,
+                          SegmentIndexMeta *segment_index_meta,
+                          BlockIndex *block_index,
+                          bool use_bitmask,
+                          const Bitmask &bitmask) {
+    if constexpr (!(IsAnyOf<ColumnDataType, u8, i8, f32>))
+        return;
 
     const u32 topk = knn_scan_shared_data->topk_;
     const u32 max_search_candidates = std::max(topk * 100u, 10000u);
@@ -1028,8 +1029,10 @@ void ExecuteSPFreshSearch(KnnScanSharedData *knn_scan_shared_data,
         // semantics, same as the HNSW path) and must not be returned.
         const SegmentOffset max_segment_offset = block_index->GetSegmentOffset(segment_id);
         auto satisfy_filter = [&](SegmentOffset offset) -> bool {
-            if (offset >= max_segment_offset) return false;
-            if (use_bitmask && offset >= bitmask.count()) return false;
+            if (offset >= max_segment_offset)
+                return false;
+            if (use_bitmask && offset >= bitmask.count())
+                return false;
             return !use_bitmask || !bitmask.IsTrue(offset);
         };
 
@@ -1037,49 +1040,66 @@ void ExecuteSPFreshSearch(KnnScanSharedData *knn_scan_shared_data,
             const auto *query = queries + query_idx * embedding_dim;
             const auto *query_f32 = reinterpret_cast<const f32 *>(query);
 
-            // `bound` is the RaBitQ error bound: (dist - bound) is a safe optimistic
-            // lower bound, so it is used to over-fetch candidates before the final
-            // ranking pass.
+            // `bound` is the RaBitQ error bound: (dist - bound) is a lower bound of the
+            // true distance, so it drives both the over-fetch and the pruning.
             struct Candidate {
                 u32 offset;
                 f32 dist;
                 f32 bound;
             };
-            std::vector<Candidate> candidates;
-            candidates.reserve(max_search_candidates);
+
+            // Bounded candidate set. The pool keeps the best *estimates* (a pool ordered
+            // by `dist - bound` over-favours vectors that sit far from their centroid,
+            // whose large error bound makes them look optimistic although their estimate
+            // is poor). Pruning, on the other hand, is bound driven: once the pool is
+            // full its worst entry gives the lower bound below which the index can stop
+            // emitting candidates at all.
+            const auto lower_bound_of = [](const Candidate &c) { return c.dist - c.bound; };
+            const auto worse_first = [](const Candidate &a, const Candidate &b) { return a.dist < b.dist; };
+            std::priority_queue<Candidate, std::vector<Candidate>, decltype(worse_first)> heap(worse_first);
+            f32 prune_threshold = std::numeric_limits<f32>::max();
 
             idx->Search(
-                query_f32, embedding_dim,
+                query_f32,
+                embedding_dim,
                 [&](SegmentOffset offset, f32 approx_dist, f32 error_bound) {
-                    if (!satisfy_filter(offset)) return;
-                    candidates.push_back({offset, approx_dist, error_bound});
+                    if (!satisfy_filter(offset))
+                        return;
+                    heap.push(Candidate{offset, approx_dist, error_bound});
+                    if (static_cast<u32>(heap.size()) > rerank_candidates) {
+                        heap.pop();
+                    }
+                    if (static_cast<u32>(heap.size()) >= rerank_candidates) {
+                        prune_threshold = lower_bound_of(heap.top());
+                    }
                 },
-                max_search_candidates);
+                max_search_candidates,
+                0,
+                &prune_threshold);
 
-            if (candidates.empty()) continue;
+            if (heap.empty())
+                continue;
 
-            // 1) Optimistic pruning on `dist - bound`, which is a safe lower bound of the
-            //    true distance and therefore never drops a candidate that could win the
-            //    exact top-k.
-            const u32 keep = std::min<u32>(static_cast<u32>(candidates.size()), rerank_candidates);
-            std::partial_sort(candidates.begin(), candidates.begin() + keep, candidates.end(),
-                              [](const Candidate &a, const Candidate &b) { return (a.dist - a.bound) < (b.dist - b.bound); });
-            candidates.resize(keep);
+            // Rank the survivors by the estimate and hand them to the merge heap. The
+            // estimate is a squared L2 distance (RaBitQ), so it is only used to decide
+            // which candidates survive the merge: the completion stage re-scores them
+            // with the exact distance function against the raw vectors
+            // (see KnnScanSharedData::need_exact_rerank_).
+            std::vector<Candidate> candidates;
+            candidates.reserve(heap.size());
+            while (!heap.empty()) {
+                candidates.push_back(heap.top());
+                heap.pop();
+            }
+            std::sort(candidates.begin(), candidates.end(), [](const Candidate &a, const Candidate &b) { return a.dist < b.dist; });
 
-            // 2) Rank by the estimate and hand the whole over-fetched set to the merge
-            //    heap. The estimate is a squared L2 distance (RaBitQ), so it is only used
-            //    to decide which candidates survive the merge: the completion stage
-            //    re-scores them with the exact distance function against the raw vectors
-            //    (see KnnScanSharedData::need_exact_rerank_).
-            std::sort(candidates.begin(), candidates.end(),
-                      [](const Candidate &a, const Candidate &b) { return a.dist < b.dist; });
-
+            const size_t keep = candidates.size();
             std::vector<DistanceDataType> dists;
             std::vector<RowID> row_ids;
             dists.reserve(keep);
             row_ids.reserve(keep);
 
-            for (u32 i = 0; i < keep; ++i) {
+            for (size_t i = 0; i < keep; ++i) {
                 dists.push_back(static_cast<DistanceDataType>(candidates[i].dist));
                 row_ids.emplace_back(segment_id, candidates[i].offset);
             }
@@ -1113,7 +1133,8 @@ void ExecuteSPFreshSearch(KnnScanSharedData *knn_scan_shared_data,
         ChunkIndexMeta chunk_index_meta(chunk_id, *segment_index_meta);
         BufferObj *index_buffer = nullptr;
         Status status = chunk_index_meta.GetIndexBuffer(index_buffer);
-        if (!status.ok()) continue;
+        if (!status.ok())
+            continue;
         // Map instead of reading the whole file: partition payloads stay in the
         // OS page cache and only the tree metadata is materialised in DRAM.
         index_buffer->ToMmap();

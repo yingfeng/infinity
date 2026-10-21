@@ -24,9 +24,15 @@ class SPFreshTest : public BaseTest {};
 namespace {
 
 std::shared_ptr<IndexSPFresh> MakeIndexDef(u32 bucket_size_limit = 10000) {
-    return std::make_shared<IndexSPFresh>(std::make_shared<std::string>("test_idx"), std::make_shared<std::string>(""), "test",
-                                          std::vector<std::string>{"col1"}, MetricType::kMetricL2, /*num_centroids*/ 1,
-                                          /*replica_count*/ 1, bucket_size_limit, /*compress_to_rabitq*/ true,
+    return std::make_shared<IndexSPFresh>(std::make_shared<std::string>("test_idx"),
+                                          std::make_shared<std::string>(""),
+                                          "test",
+                                          std::vector<std::string>{"col1"},
+                                          MetricType::kMetricL2,
+                                          /*num_centroids*/ 1,
+                                          /*replica_count*/ 1,
+                                          bucket_size_limit,
+                                          /*compress_to_rabitq*/ true,
                                           /*max_delta_mb*/ 512);
 }
 
@@ -365,8 +371,12 @@ TEST_F(SPFreshTest, debug_quantization_ranking) {
         }
     });
     std::sort(all.begin(), all.end());
-    LOG_INFO(fmt::format("scanned={} best={} (offset {}) 2nd={} (offset {})", all.size(), all[0].first, all[0].second,
-                         all.size() > 1 ? all[1].first : -1.0f, all.size() > 1 ? all[1].second : 0u));
+    LOG_INFO(fmt::format("scanned={} best={} (offset {}) 2nd={} (offset {})",
+                         all.size(),
+                         all[0].first,
+                         all[0].second,
+                         all.size() > 1 ? all[1].first : -1.0f,
+                         all.size() > 1 ? all[1].second : 0u));
     f32 self_dist = -1;
     for (auto &[d, o] : all) {
         if (o == target) {
@@ -453,4 +463,285 @@ TEST_F(SPFreshTest, test_mmap_load_and_search) {
     ::munmap(base, static_cast<size_t>(st.st_size));
     ::close(fd);
     std::filesystem::remove(path, ec);
+}
+
+// ── Deleted set (roaring) ────────────────────────────────────────────────────
+
+TEST_F(SPFreshTest, test_deleted_set_is_sparse_and_idempotent) {
+    auto index_def = MakeIndexDef();
+    SPFreshIndexInMem idx(RowID(0, 0), index_def.get(), 4, 100);
+
+    f32 base[] = {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
+    idx.Build(base, 4);
+
+    idx.MarkDeleted(3);
+    idx.MarkDeleted(3); // idempotent
+    EXPECT_EQ(idx.GetDeletedCount(), 1u);
+
+    // A sparse segment offset far below/above the vector count must be representable:
+    // the roaring set indexes ids, it does not need to be sized by row count.
+    idx.MarkDeleted(1000000);
+    EXPECT_EQ(idx.GetDeletedCount(), 2u);
+
+    f32 query[] = {0.0f, 0.0f, 0.0f, 1.0f};
+    std::vector<SegmentOffset> seen;
+    idx.Search(query, 4, [&](SegmentOffset offset, f32, f32) { seen.push_back(offset); });
+    EXPECT_EQ(seen.size(), 3u); // row 3 is gone, the sparse delete touched nothing else
+    EXPECT_EQ(std::find(seen.begin(), seen.end(), 3u), seen.end());
+
+    idx.Compact();
+    EXPECT_EQ(idx.GetDeletedCount(), 0u);
+    EXPECT_EQ(idx.GetRowCount(), 3u);
+}
+
+// ── Background merge sweep ───────────────────────────────────────────────────
+
+TEST_F(SPFreshTest, test_merge_sweep_collapses_undersized_leaves) {
+    // fan-out 64 => min_partition_size = 8
+    auto index_def = MakeIndexDef(/*bucket_size_limit*/ 64);
+    const u32 dim = 16, n = 512;
+    std::mt19937 rng(31);
+    std::uniform_real_distribution<f32> dist(-1.0f, 1.0f);
+    std::vector<f32> data(static_cast<size_t>(n) * dim);
+    for (auto &x : data) {
+        x = dist(rng);
+    }
+
+    SPFreshIndexInMem idx(RowID(0, 0), index_def.get(), dim, n);
+    idx.Build(data.data(), n);
+    const u32 leaves_before = idx.GetLiveLeafCount();
+    ASSERT_GT(leaves_before, 4u) << "fan-out too large to produce several leaves";
+
+    // Keep one row out of sixteen: after compaction every leaf is far below
+    // min_partition_size, which is exactly what the sweep is supposed to fix.
+    u32 keep = 0;
+    for (u32 i = 0; i < n; ++i) {
+        if (i % 16 == 0) {
+            ++keep;
+        } else {
+            idx.MarkDeleted(i);
+        }
+    }
+    idx.Compact(); // drops the deleted rows and kicks a merge sweep
+    EXPECT_EQ(idx.GetRowCount(), keep);
+
+    // The worker rescans every kFixupIdleWaitMs; wait until the leaf count settles.
+    u32 live = idx.GetLiveLeafCount();
+    for (u32 round = 0; round < 100; ++round) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        const u32 now = idx.GetLiveLeafCount();
+        if (now == live && round > 5) {
+            break;
+        }
+        live = now;
+    }
+    LOG_INFO(fmt::format("merge sweep: live leaves {} -> {}", leaves_before, live));
+    EXPECT_LT(live, leaves_before);
+
+    // Merging must not lose data: every surviving row is still reachable. The beam is
+    // widened on purpose here — beam truncation is a recall question (covered by the
+    // adaptive-beam test), not a data-placement one.
+    u32 found = 0;
+    std::vector<f32> q(dim);
+    for (u32 i = 0; i < n; i += 16) {
+        std::memcpy(q.data(), data.data() + static_cast<size_t>(i) * dim, static_cast<size_t>(dim) * sizeof(f32));
+        bool hit = false;
+        idx.Search(
+            q.data(),
+            dim,
+            [&](SegmentOffset offset, f32, f32) {
+                if (offset == i) {
+                    hit = true;
+                }
+            },
+            0,
+            100000);
+        if (hit) {
+            ++found;
+        }
+    }
+    EXPECT_EQ(found, keep);
+}
+
+TEST_F(SPFreshTest, test_merge_sweep_is_resumable) {
+    // The sweep scans a bounded slice per call and must still cover every partition
+    // over a full cycle; with nothing to merge it stays silent.
+    auto index_def = MakeIndexDef(/*bucket_size_limit*/ 64);
+    const u32 dim = 8, n = 600;
+    std::mt19937 rng(41);
+    std::uniform_real_distribution<f32> dist(-1.0f, 1.0f);
+    std::vector<f32> data(static_cast<size_t>(n) * dim);
+    for (auto &x : data) {
+        x = dist(rng);
+    }
+
+    SPFreshIndexInMem idx(RowID(0, 0), index_def.get(), dim, n);
+    idx.Build(data.data(), n);
+
+    // Healthy index: no partition is undersized, so nothing gets enqueued.
+    EXPECT_EQ(idx.EnqueueMergeSweep(), 0u);
+    EXPECT_EQ(idx.GetLiveLeafCount(), idx.GetLiveLeafCount());
+
+    // Make everything tiny, then sweep in small slices until the tree collapses.
+    for (u32 i = 0; i < n; ++i) {
+        if (i % 24 != 0) {
+            idx.MarkDeleted(i);
+        }
+    }
+    idx.Compact();
+    u32 total = idx.EnqueueMergeSweep(8);
+    for (u32 round = 0; round < 50 && total == 0; ++round) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        total = idx.EnqueueMergeSweep(8);
+    }
+    EXPECT_GT(total, 0u);
+}
+
+// ── Error-bound pruning ──────────────────────────────────────────────────────
+
+TEST_F(SPFreshTest, test_error_bound_pruning_keeps_exact_topk) {
+    // Mirrors what the physical KNN operator does: bounded candidate heap, live
+    // prune threshold handed to the index, exact rerank of the survivors.
+    auto index_def = MakeIndexDef(/*bucket_size_limit*/ 128);
+    const u32 dim = 32, n = 1000, topk = 10, rerank = topk * 10;
+    std::mt19937 rng(53);
+    std::uniform_real_distribution<f32> dist(-1.0f, 1.0f);
+    std::vector<f32> data(static_cast<size_t>(n) * dim);
+    for (auto &x : data) {
+        x = dist(rng);
+    }
+
+    SPFreshIndexInMem idx(RowID(0, 0), index_def.get(), dim, n);
+    idx.Build(data.data(), n);
+
+    auto exact_l2 = [&](const f32 *a, u32 row) {
+        f32 sum = 0;
+        for (u32 d = 0; d < dim; ++d) {
+            const f32 df = a[d] - data[static_cast<size_t>(row) * dim + d];
+            sum += df * df;
+        }
+        return sum;
+    };
+
+    struct Cand {
+        SegmentOffset offset;
+        f32 est;
+        f32 bound;
+    };
+    auto lower = [](const Cand &c) { return c.est - c.bound; };
+
+    auto run = [&](const f32 *query, bool pruning, u32 &scanned) {
+        // Same policy as the physical KNN operator: keep the best estimates, prune by
+        // the error bound of the worst kept one.
+        auto worse_first = [](const Cand &a, const Cand &b) { return a.est < b.est; };
+        std::priority_queue<Cand, std::vector<Cand>, decltype(worse_first)> heap(worse_first);
+        f32 threshold = std::numeric_limits<f32>::max();
+        scanned = 0;
+        // A huge beam makes the candidate pool equal to the whole table, so the
+        // expected answer is the brute-force top-k.
+        idx.Search(
+            query,
+            dim,
+            [&](SegmentOffset offset, f32 est, f32 bound) {
+                ++scanned;
+                heap.push(Cand{offset, est, bound});
+                if (heap.size() > rerank) {
+                    heap.pop();
+                }
+                if (heap.size() >= rerank) {
+                    threshold = lower(heap.top());
+                }
+            },
+            0,
+            100000,
+            pruning ? &threshold : nullptr);
+
+        std::vector<std::pair<f32, SegmentOffset>> exact;
+        exact.reserve(heap.size());
+        while (!heap.empty()) {
+            exact.emplace_back(exact_l2(query, heap.top().offset), heap.top().offset);
+            heap.pop();
+        }
+        std::sort(exact.begin(), exact.end());
+        if (exact.size() > topk) {
+            exact.resize(topk);
+        }
+        return exact;
+    };
+
+    u32 pruned_total = 0;
+    u32 full_total = 0;
+    for (u32 p = 0; p < 10; ++p) {
+        const f32 *query = data.data() + static_cast<size_t>(p * 97 + 13) * dim;
+        u32 scanned_pruned = 0;
+        u32 scanned_full = 0;
+        const auto pruned = run(query, /*pruning*/ true, scanned_pruned);
+        const auto full = run(query, /*pruning*/ false, scanned_full);
+        pruned_total += scanned_pruned;
+        full_total += scanned_full;
+        ASSERT_EQ(pruned.size(), topk);
+        ASSERT_EQ(full.size(), topk);
+        for (u32 i = 0; i < topk; ++i) {
+            EXPECT_EQ(pruned[i].second, full[i].second) << "probe " << p << " rank " << i;
+        }
+    }
+    LOG_INFO(fmt::format("pruning: {} callbacks with threshold vs {} without", pruned_total, full_total));
+    // Pruning may only ever remove work, never add it.
+    EXPECT_LE(pruned_total, full_total);
+}
+
+// ── Adaptive beam ────────────────────────────────────────────────────────────
+
+TEST_F(SPFreshTest, test_adaptive_beam_keeps_exact_neighbour) {
+    // Default beam == adaptive beam. It has to find the exact neighbour of a stored
+    // vector while still touching far fewer candidates than a full scan.
+    auto index_def = MakeIndexDef(/*bucket_size_limit*/ 64);
+    const u32 dim = 32, n = 3000;
+    std::mt19937 rng(67);
+    std::uniform_real_distribution<f32> dist(-1.0f, 1.0f);
+    std::vector<f32> data(static_cast<size_t>(n) * dim);
+    for (auto &x : data) {
+        x = dist(rng);
+    }
+
+    SPFreshIndexInMem idx(RowID(0, 0), index_def.get(), dim, n);
+    idx.Build(data.data(), n);
+    ASSERT_GE(idx.GetTreeHeight(), 2u);
+
+    auto exact_l2 = [&](const f32 *a, const f32 *b) {
+        f32 sum = 0;
+        for (u32 d = 0; d < dim; ++d) {
+            const f32 df = a[d] - b[d];
+            sum += df * df;
+        }
+        return sum;
+    };
+
+    constexpr u32 kProbes = 30;
+    u32 hits = 0;
+    size_t max_scanned = 0;
+    for (u32 p = 0; p < kProbes; ++p) {
+        const u32 target = 11 + p * 89;
+        const f32 *query = data.data() + static_cast<size_t>(target) * dim;
+        std::vector<std::pair<f32, SegmentOffset>> cands;
+        idx.Search(query, dim, [&](SegmentOffset offset, f32, f32) { cands.emplace_back(0.0f, offset); }, 0, 0);
+        max_scanned = std::max(max_scanned, cands.size());
+        f32 best = std::numeric_limits<f32>::max();
+        SegmentOffset best_offset = std::numeric_limits<SegmentOffset>::max();
+        for (const auto &[unused, offset] : cands) {
+            const f32 d = exact_l2(query, data.data() + static_cast<size_t>(offset) * dim);
+            if (d < best) {
+                best = d;
+                best_offset = offset;
+            }
+        }
+        if (best_offset == target) {
+            ++hits;
+        }
+    }
+    const f32 recall = static_cast<f32>(hits) / static_cast<f32>(kProbes);
+    LOG_INFO(fmt::format("adaptive beam recall@1 = {}, max candidates scanned = {}", recall, max_scanned));
+    EXPECT_GE(recall, 0.95f);
+    // Adaptivity must not degenerate into a full scan.
+    EXPECT_LT(max_scanned, static_cast<size_t>(n));
 }
