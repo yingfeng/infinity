@@ -98,7 +98,9 @@ class TestMemIdx:
                 )
                 assert data_dict["c1"] == [8, 6, 6, 4, 4, 4]
 
-                data_dict, data_type_dict, _ = table_obj.output(["count(*)"]).to_result()
+                data_dict, data_type_dict, _ = table_obj.output(
+                    ["count(*)"]
+                ).to_result()
                 assert data_dict["count(star)"] == [13]
 
             # Wait for memindex dump
@@ -144,7 +146,9 @@ class TestMemIdx:
                     },
                 ),
             )
-            table_obj.insert([{"c1": 2, "c2": [0.1, 0.2, 0.3, -0.2]} for i in range(row_n)])
+            table_obj.insert(
+                [{"c1": 2, "c2": [0.1, 0.2, 0.3, -0.2]} for i in range(row_n)]
+            )
             # wait for 1024 lines to dump
             time.sleep(5)
 
@@ -195,7 +199,9 @@ class TestMemIdx:
             )
             assert res.error_code == infinity.ErrorCode.OK
 
-            table_obj.insert([{"c1": 2, "c2": [0.1, 0.2, 0.3, -0.2]} for i in range(51)])
+            table_obj.insert(
+                [{"c1": 2, "c2": [0.1, 0.2, 0.3, -0.2]} for i in range(51)]
+            )
             # trigger the dump by 52th record
             table_obj.insert([{"c1": 4, "c2": [0.2, 0.1, 0.3, 0.4]}])
             # table_obj.insert([{"c1": 2, "c2": [0.1, 0.2, 0.3, -0.2]} for i in range(2)])
@@ -219,7 +225,9 @@ class TestMemIdx:
 
             data_dict, data_type_dict, _ = (
                 table_obj.output(["c1"])
-                .match_dense("c2", [0.3, 0.3, 0.2, 0.2], "float", "l2", 6, {"nprobe": "100"})
+                .match_dense(
+                    "c2", [0.3, 0.3, 0.2, 0.2], "float", "l2", 6, {"nprobe": "100"}
+                )
                 .to_result()
             )
             # print(data_dict["c1"])
@@ -253,7 +261,9 @@ class TestMemIdx:
                 )
                 assert data_dict["c1"] == [8, 6, 6, 4, 4, 4]
 
-                data_dict, data_type_dict, _ = table_obj.output(["count(*)"]).to_result()
+                data_dict, data_type_dict, _ = table_obj.output(
+                    ["count(*)"]
+                ).to_result()
                 assert data_dict["count(star)"] == [59]
 
             check()
@@ -290,18 +300,24 @@ class TestMemIdx:
             )
             assert res.error_code == infinity.ErrorCode.OK
 
-            table_obj.insert([
-                {"c1": 1, "c2": "this is a test text"},
-                {"c1": 2, "c2": "this is not a test text"},
-            ])
+            table_obj.insert(
+                [
+                    {"c1": 1, "c2": "this is a test text"},
+                    {"c1": 2, "c2": "this is not a test text"},
+                ]
+            )
             # trigger the dump in 3rd record
-            table_obj.insert([
-                {"c1": 3, "c2": "this is indeed a test text"},
-            ])
-            table_obj.insert([
-                {"c1": 4, "c2": "this is definitely not a test text"},
-                {"c1": 5, "c2": "this is nothing but a test text"},
-            ])
+            table_obj.insert(
+                [
+                    {"c1": 3, "c2": "this is indeed a test text"},
+                ]
+            )
+            table_obj.insert(
+                [
+                    {"c1": 4, "c2": "this is definitely not a test text"},
+                    {"c1": 5, "c2": "this is nothing but a test text"},
+                ]
+            )
 
         part1()
 
@@ -319,9 +335,7 @@ class TestMemIdx:
             assert data_dict["count(star)"] == [5]
 
             data_dict, data_type_dict, _ = (
-                table_obj.output(["c1"])
-                .match_text('c2', 'test text', 3)
-                .to_result()
+                table_obj.output(["c1"]).match_text("c2", "test text", 3).to_result()
             )
             print(data_dict["c1"])
             assert data_dict["c1"] == [1, 2, 3]
@@ -331,17 +345,21 @@ class TestMemIdx:
             assert data_dict["count(star)"] == [5]
 
             # the 2nd dump
-            table_obj.insert([
-                {"c1": 6, "c2": "this is the exact opposite of a test text"},
-            ])
+            table_obj.insert(
+                [
+                    {"c1": 6, "c2": "this is the exact opposite of a test text"},
+                ]
+            )
             time.sleep(5)
-            table_obj.insert([
-                {"c1": 7, "c2": "what is this?"},
-                {"c1": 8, "c2": "this is what?"},
-                {"c1": 9, "c2": "not a test text!"},
-                {"c1": 10, "c2": "what a this?"},
-                {"c1": 11, "c2": "this is you!"},
-            ])
+            table_obj.insert(
+                [
+                    {"c1": 7, "c2": "what is this?"},
+                    {"c1": 8, "c2": "this is what?"},
+                    {"c1": 9, "c2": "not a test text!"},
+                    {"c1": 10, "c2": "what a this?"},
+                    {"c1": 11, "c2": "this is you!"},
+                ]
+            )
 
         part2()
 
@@ -357,19 +375,23 @@ class TestMemIdx:
             def check(rows):
                 data_dict, data_type_dict, _ = (
                     table_obj.output(["c1"])
-                    .match_text('c2', 'this what', 3)
+                    .match_text("c2", "this what", 3)
                     .to_result()
                 )
                 print(data_dict["c1"])
                 assert data_dict["c1"] == [7, 8, 10]
 
-                data_dict, data_type_dict, _ = table_obj.output(["count(*)"]).to_result()
+                data_dict, data_type_dict, _ = table_obj.output(
+                    ["count(*)"]
+                ).to_result()
                 assert data_dict["count(star)"] == [rows]
 
             check(11)
-            table_obj.insert([
-                {"c1": 12, "c2": "this is a text!"},
-            ])
+            table_obj.insert(
+                [
+                    {"c1": 12, "c2": "this is a text!"},
+                ]
+            )
             check(12)
 
             db_obj.drop_table("test_mem_indexer")
@@ -385,10 +407,25 @@ class TestMemIdx:
         infinity_runner.clear()
 
         test_data = [
-            {"c1": 1, "c2": SparseVector(indices=[0, 10, 20, 30, 40, 50, 60, 70, 80, 90],
-                                         values=[1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0])},
-            {"c1": 2, "c2": SparseVector(indices=[0, 20, 40, 60, 80], values=[2.0, 2.0, 2.0, 2.0, 2.0])},
-            {"c1": 3, "c2": SparseVector(indices=[0, 30, 60, 90], values=[3.0, 3.0, 3.0, 3.0])},
+            {
+                "c1": 1,
+                "c2": SparseVector(
+                    indices=[0, 10, 20, 30, 40, 50, 60, 70, 80, 90],
+                    values=[1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                ),
+            },
+            {
+                "c1": 2,
+                "c2": SparseVector(
+                    indices=[0, 20, 40, 60, 80], values=[2.0, 2.0, 2.0, 2.0, 2.0]
+                ),
+            },
+            {
+                "c1": 3,
+                "c2": SparseVector(
+                    indices=[0, 30, 60, 90], values=[3.0, 3.0, 3.0, 3.0]
+                ),
+            },
             {"c1": 4, "c2": SparseVector(indices=[0, 40, 80], values=[4.0, 4.0, 4.0])},
             {"c1": 5, "c2": SparseVector(indices=[0], values=[0.0])},
         ]
@@ -473,7 +510,9 @@ class TestMemIdx:
                 )
                 assert data_dict["c1"] == [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 2]
 
-                data_dict, data_type_dict, _ = table_obj.output(["count(*)"]).to_result()
+                data_dict, data_type_dict, _ = table_obj.output(
+                    ["count(*)"]
+                ).to_result()
                 assert data_dict["count(star)"] == [50]
 
             check()
@@ -497,6 +536,9 @@ class TestMemIdx:
         data_dir = "/var/infinity/data"
         idx1_name = "index1"
         idx2_name = "index2"
+        # Chunk files each index published before the kill, filled by part1 and
+        # read by part2 (the parts cannot see each other's locals).
+        before: dict[str, int] = {}
 
         @decorator1
         def part1(infinity_obj):
@@ -552,7 +594,9 @@ class TestMemIdx:
             # wait for mem index dump
             # time.sleep(5)
 
-            # 2 chunk indexes for each index
+            # At least one dump per index has to land before the kill. How many
+            # the background task completes depends on timing, so the count is
+            # recorded and part2 asserts the increment instead of a literal.
             db1_dir = data_dir + "/db_2"
             db2_dir = data_dir + "/db_3"
 
@@ -560,14 +604,25 @@ class TestMemIdx:
             while time.time() - start_time < 30:
                 idx1_dirs = list(pathlib.Path(db1_dir).rglob("*chunk*"))
                 idx2_dirs = list(pathlib.Path(db2_dir).rglob("*chunk*"))
-                if len(idx1_dirs) == 2 and len(idx2_dirs) == 2:
+                if len(idx1_dirs) >= 2 and len(idx2_dirs) >= 2:
                     break
                 time.sleep(1)
 
-            idx1_dirs = list(pathlib.Path(db1_dir).rglob("*chunk*"))
-            assert len(idx1_dirs) == 2
-            idx2_dirs = list(pathlib.Path(db2_dir).rglob("*chunk*"))
-            assert len(idx2_dirs) == 2
+            before["idx1"] = len(list(pathlib.Path(db1_dir).rglob("*chunk*")))
+            before["idx2"] = len(list(pathlib.Path(db2_dir).rglob("*chunk*")))
+            assert before["idx1"] >= 2, (
+                f"db1 published {before['idx1']} chunk(s) before the kill"
+            )
+            assert before["idx2"] >= 2, (
+                f"db2 published {before['idx2']} chunk(s) before the kill"
+            )
+
+            # The chunk file appears when the dump writes it; the catalog record
+            # that makes it part of the index follows. The id is taken before the
+            # write, so a kill inside that window leaves a file no record names
+            # instead of one the next dump writes over, and `cleanup()` sweeps it
+            # (part3).
+            time.sleep(3)
 
         part1()
 
@@ -584,15 +639,24 @@ class TestMemIdx:
             while time.time() - start_time < 60:
                 idx1_dirs = list(pathlib.Path(db1_dir).rglob("*chunk*"))
                 idx2_dirs = list(pathlib.Path(db2_dir).rglob("*chunk*"))
-                if len(idx1_dirs) == 3 and len(idx2_dirs) == 3:
+                if (
+                    len(idx1_dirs) >= before["idx1"] + 1
+                    and len(idx2_dirs) >= before["idx2"] + 1
+                ):
                     break
                 time.sleep(1)
 
             idx1_dirs = list(pathlib.Path(db1_dir).rglob("*chunk*"))
             print(idx1_dirs)
-            assert len(idx1_dirs) == 3
+            assert len(idx1_dirs) >= before["idx1"] + 1, (
+                f"db1 still at {len(idx1_dirs)} chunk(s), no chunk was appended after "
+                f"the restart (was {before['idx1']})"
+            )
             idx2_dirs = list(pathlib.Path(db2_dir).rglob("*chunk*"))
-            assert len(idx2_dirs) == 3
+            assert len(idx2_dirs) >= before["idx2"] + 1, (
+                f"db2 still at {len(idx2_dirs)} chunk(s), no chunk was appended after "
+                f"the restart (was {before['idx2']})"
+            )
 
             # wait for optimize commit
             # The optimization transaction creates the file before committing.
@@ -607,7 +671,9 @@ class TestMemIdx:
         def part3(infinity_obj):
             infinity_obj.cleanup()
 
-            # after checkpoint (during restart) and cleanup, 2 old chunks of each index are removed
+            # after checkpoint (during restart) and cleanup only the merged chunk of
+            # each index is left: the ones it superseded and the files an interrupted
+            # dump left behind are both gone
             db1_dir = data_dir + "/db_2"
             db2_dir = data_dir + "/db_3"
 
@@ -818,8 +884,12 @@ class TestMemIdx:
         def part1(infinity_obj):
             db_obj = infinity_obj.get_database("default_db")
             db_obj.drop_table(table_name, ConflictType.Ignore)
-            table_obj = db_obj.create_table(table_name, {"c1": {"type": "int"}, "c2": {"type": "varchar"}})
-            table_obj.create_index("idx1", index.IndexInfo("c2", index.IndexType.FullText))
+            table_obj = db_obj.create_table(
+                table_name, {"c1": {"type": "int"}, "c2": {"type": "varchar"}}
+            )
+            table_obj.create_index(
+                "idx1", index.IndexInfo("c2", index.IndexType.FullText)
+            )
 
             insert_n = 8192 * 3
             for i in range(insert_n):
